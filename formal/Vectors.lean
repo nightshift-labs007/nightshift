@@ -3,7 +3,7 @@ import Nightshift.Vault
 /-!
 Emits JSON test vectors computed by the Lean Vault model. `scripts/test-lean-vectors.mjs`
 replays every case against the real `NightshiftVault` on a local chain and requires an exact match.
-Run: `lake exe vectors > ../test/vectors/vectors.json`
+Run: `node scripts/formal.mjs vectors` (uses `lake env lean --run Vectors.lean`)
 -/
 
 open Nightshift.Vault

@@ -1,1 +1,258 @@
-{"version":1,"generatedAt":"1970-01-01T00:00:00Z","gitCommit":null,"sourceSha256":"","lean":{"toolchain":"leanprover/lean4:v4.34.1","mathlib":null},"prover":"Harmonic Aristotle (proofs re-checked by the Lean kernel)","properties":[],"algorand":{"network":"testnet","manifestSha256":"","txId":null}}
+{
+  "version": 1,
+  "generatedAt": "2026-10-12T08:54:05.309Z",
+  "gitCommit": "ea1169cdbcfa01c8bd216ed78ec577f10e0ebe9b",
+  "sourceSha256": "ba95b9dc644501aaca7eecc18dd2cb852239cd4331395f27f414666e4d024d86",
+  "lean": {
+    "toolchain": "leanprover/lean4:v4.28.0",
+    "mathlib": "8f9d9cff6bd728b17a24e163c9402775d9e6a365"
+  },
+  "prover": "Harmonic Aristotle (proofs re-checked by the Lean kernel)",
+  "properties": [
+    {
+      "id": "V1",
+      "module": "Vault",
+      "plain": "A healthy loan can never be liquidated.",
+      "theorem": "Nightshift.Vault.healthy_not_liquidatable",
+      "file": "formal/Nightshift/Vault.lean",
+      "assumptions": "Integer (uint256) model of NightshiftVault; overflow reverts in Solidity 0.8.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Vault.lean"
+    },
+    {
+      "id": "V0",
+      "module": "Vault",
+      "plain": "The Vault's health check means exactly: debt is no more than collateral value times the liquidation LTV.",
+      "theorem": "Nightshift.Vault.healthy_iff",
+      "file": "formal/Nightshift/Vault.lean",
+      "assumptions": "Integer model; floor division as in Solidity.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Vault.lean"
+    },
+    {
+      "id": "V2",
+      "module": "Vault",
+      "plain": "A price rise never makes a healthy loan unhealthy.",
+      "theorem": "Nightshift.Vault.healthy_mono_price",
+      "file": "formal/Nightshift/Vault.lean",
+      "assumptions": "Integer model.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Vault.lean"
+    },
+    {
+      "id": "V3",
+      "module": "Vault",
+      "plain": "Adding collateral never makes a healthy loan unhealthy.",
+      "theorem": "Nightshift.Vault.healthy_mono_collateral",
+      "file": "formal/Nightshift/Vault.lean",
+      "assumptions": "Integer model.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Vault.lean"
+    },
+    {
+      "id": "V4",
+      "module": "Vault",
+      "plain": "Repaying debt never makes a healthy loan unhealthy.",
+      "theorem": "Nightshift.Vault.healthy_anti_debt",
+      "file": "formal/Nightshift/Vault.lean",
+      "assumptions": "Integer model.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Vault.lean"
+    },
+    {
+      "id": "V5",
+      "module": "Vault",
+      "plain": "The Vault always rounds in the protocol's favour: a loan it calls healthy is healthy in exact arithmetic too.",
+      "theorem": "Nightshift.Vault.healthy_conservative",
+      "file": "formal/Nightshift/Vault.lean",
+      "assumptions": "Integer model.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Vault.lean"
+    },
+    {
+      "id": "V6",
+      "module": "Vault",
+      "plain": "Liquidation bonuses are capped at 15%.",
+      "theorem": "Nightshift.Vault.lif_bounds",
+      "file": "formal/Nightshift/Vault.lean",
+      "assumptions": "LLTV at most 100%.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Vault.lean"
+    },
+    {
+      "id": "V7",
+      "module": "Vault",
+      "plain": "Anything you can borrow within the Nightshift limit is healthy at that same price.",
+      "theorem": "Nightshift.Vault.borrowLimit_healthy",
+      "file": "formal/Nightshift/Vault.lean",
+      "assumptions": "Integer model; same oracle price at borrow time.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Vault.lean"
+    },
+    {
+      "id": "G1",
+      "module": "Guardian",
+      "plain": "The Guardian's sale amount is never negative.",
+      "theorem": "Nightshift.Guardian.sellAmount_nonneg",
+      "file": "formal/Nightshift/Guardian.lean",
+      "assumptions": "Real-number model; slippage below 100%; position solvent after slippage.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Guardian.lean"
+    },
+    {
+      "id": "G2",
+      "module": "Guardian",
+      "plain": "The Guardian never sells more collateral than you have.",
+      "theorem": "Nightshift.Guardian.sellAmount_le_collateral",
+      "file": "formal/Nightshift/Guardian.lean",
+      "assumptions": "Real-number model; slippage below 100%; position solvent after slippage.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Guardian.lean"
+    },
+    {
+      "id": "G3",
+      "module": "Guardian",
+      "plain": "When the Guardian acts, it restores your loan exactly to your target health.",
+      "theorem": "Nightshift.Guardian.sellAmount_reaches_target",
+      "file": "formal/Nightshift/Guardian.lean",
+      "assumptions": "Real-number model (the contract rounds the sale down, so on-chain it can land a hair below target); slippage below 100%; position solvent after slippage.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Guardian.lean"
+    },
+    {
+      "id": "G3b",
+      "module": "Guardian",
+      "plain": "The Guardian never sells more than it needs to.",
+      "theorem": "Nightshift.Guardian.sellAmount_minimal",
+      "file": "formal/Nightshift/Guardian.lean",
+      "assumptions": "Real-number model; slippage below 100%; position solvent after slippage.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Guardian.lean"
+    },
+    {
+      "id": "G4",
+      "module": "Guardian",
+      "plain": "If selling can't help, the Guardian won't sell. It alerts you instead.",
+      "theorem": "Nightshift.Guardian.no_sell_when_insolvent",
+      "file": "formal/Nightshift/Guardian.lean",
+      "assumptions": "Real-number model; enforced in the contract, the keeper and the paper Guardian.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Guardian.lean"
+    },
+    {
+      "id": "G5",
+      "module": "Guardian",
+      "plain": "The Guardian only acts on loans that can still be saved by selling.",
+      "theorem": "Nightshift.Guardian.healthy_gate_solvent",
+      "file": "formal/Nightshift/Guardian.lean",
+      "assumptions": "Real-number model; LLTV below 1 − slippage (true for every Nightshift market).",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Guardian.lean"
+    },
+    {
+      "id": "O1",
+      "module": "Oracle",
+      "plain": "The fair value always stays between the lowest and highest market signal.",
+      "theorem": "Nightshift.Oracle.blend_within_signals",
+      "file": "formal/Nightshift/Oracle.lean",
+      "assumptions": "Weights non-negative and summing to 1 (proven by O1a).",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Oracle.lean"
+    },
+    {
+      "id": "O1a",
+      "module": "Oracle",
+      "plain": "The Oracle's signal weights are never negative and always add up to 100%.",
+      "theorem": "Nightshift.Oracle.normalize_invariant",
+      "file": "formal/Nightshift/Oracle.lean",
+      "assumptions": "Real-number model of the normalisation in computeQuote.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Oracle.lean"
+    },
+    {
+      "id": "O1b",
+      "module": "Oracle",
+      "plain": "Learning from past accuracy can never produce a negative weight.",
+      "theorem": "Nightshift.Oracle.learned_invariant",
+      "file": "formal/Nightshift/Oracle.lean",
+      "assumptions": "Real-number model of learnWeights.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Oracle.lean"
+    },
+    {
+      "id": "O2",
+      "module": "Oracle",
+      "plain": "With the signals' agreement unchanged, confidence never rises while the market stays closed.",
+      "theorem": "Nightshift.Oracle.confidence_antitone",
+      "file": "formal/Nightshift/Oracle.lean",
+      "assumptions": "Dispersion held fixed; confidence also depends on how much the signals agree, which can change.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Oracle.lean"
+    },
+    {
+      "id": "O2b",
+      "module": "Oracle",
+      "plain": "More disagreement between the signals never raises confidence.",
+      "theorem": "Nightshift.Oracle.confidence_antitone_dispersion",
+      "file": "formal/Nightshift/Oracle.lean",
+      "assumptions": "Real-number model before rounding.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Oracle.lean"
+    },
+    {
+      "id": "O3",
+      "module": "Oracle",
+      "plain": "Confidence always stays between 35 and 98.",
+      "theorem": "Nightshift.Oracle.confidence_bounds",
+      "file": "formal/Nightshift/Oracle.lean",
+      "assumptions": "Real-number model before rounding (rounding keeps the bounds).",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Oracle.lean"
+    },
+    {
+      "id": "C1",
+      "module": "Cloak",
+      "plain": "Cloak proofs can't be faked through number overflow.",
+      "theorem": "Nightshift.Cloak.capacity_fits",
+      "file": "formal/Nightshift/Cloak.lean",
+      "assumptions": "Circuit range checks of 64, 40 and 14 bits; BN254 field.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Cloak.lean"
+    },
+    {
+      "id": "C1b",
+      "module": "Cloak",
+      "plain": "The debt side of the Cloak comparison also stays inside its safe range.",
+      "theorem": "Nightshift.Cloak.need_fits",
+      "file": "formal/Nightshift/Cloak.lean",
+      "assumptions": "Debt range check of 64 bits; GreaterThan(120).",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Cloak.lean"
+    },
+    {
+      "id": "C2",
+      "module": "Cloak",
+      "plain": "Inside the circuit's range, field arithmetic equals ordinary arithmetic.",
+      "theorem": "Nightshift.Cloak.field_val_eq",
+      "file": "formal/Nightshift/Cloak.lean",
+      "assumptions": "Values below the field modulus.",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Cloak.lean"
+    },
+    {
+      "id": "C4",
+      "module": "Cloak",
+      "plain": "A Cloak proof made from rounded numbers still proves the real loan is solvent.",
+      "theorem": "Nightshift.Cloak.circuit_sound_rounding",
+      "file": "formal/Nightshift/Cloak.lean",
+      "assumptions": "Collateral rounded down and debt rounded up before proving (as the app now does).",
+      "status": "verified",
+      "source": "/verified/src/Nightshift/Cloak.lean"
+    }
+  ],
+  "algorand": {
+    "network": "testnet",
+    "manifestSha256": "a97614aa79d544859a53a3449bb7c39c078c61a38cbcbb36ef6bfb86ddb96da2",
+    "txId": null
+  }
+}

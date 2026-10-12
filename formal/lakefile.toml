@@ -2,14 +2,11 @@ name = "nightshift-formal"
 version = "0.1.0"
 defaultTargets = ["Nightshift"]
 
+# Pinned to the versions Harmonic's Aristotle supports (Lean v4.28.0, Mathlib v4.28.0).
 [[require]]
 name = "mathlib"
-scope = "leanprover-community"
-rev = "v4.34.1"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.28.0"
 
 [[lean_lib]]
 name = "Nightshift"
-
-[[lean_exe]]
-name = "vectors"
-root = "Vectors"

@@ -20,29 +20,35 @@ def BN254_R : ℕ :=
 theorem product_no_wrap (a b c i j k P : ℕ)
     (ha : a < 2 ^ i) (hb : b < 2 ^ j) (hc : c < 2 ^ k)
     (hP : 2 ^ (i + j + k) ≤ P) : a * b * c < P := by
-  sorry
+  have h1 : a * b < 2 ^ i * 2 ^ j := Nat.mul_lt_mul'' ha hb
+  have h2 : a * b * c < 2 ^ i * 2 ^ j * 2 ^ k := Nat.mul_lt_mul'' h1 hc
+  calc a * b * c < 2 ^ i * 2 ^ j * 2 ^ k := h2
+    _ = 2 ^ (i + j + k) := by rw [pow_add, pow_add]
+    _ ≤ P := hP
 
 -- C1a: instantiated with the circuit's real widths: capacity fits in 118 bits, inside BN254
 theorem capacity_fits (u p l : ℕ) (hu : u < 2 ^ 64) (hp : p < 2 ^ 40) (hl : l < 2 ^ 14) :
     u * p * l < 2 ^ 118 ∧ 2 ^ 118 < BN254_R := by
-  sorry
+  refine ⟨product_no_wrap u p l 64 40 14 _ hu hp hl le_rfl, ?_⟩
+  unfold BN254_R; norm_num
 
 -- C1b: the scaled debt also fits under GreaterThan(120)'s 2^120 bound
 theorem need_fits (d : ℕ) (hd : d < 2 ^ 64) : d * 10 ^ 8 < 2 ^ 120 := by
-  sorry
+  calc d * 10 ^ 8 < 2 ^ 64 * 10 ^ 8 := Nat.mul_lt_mul_of_pos_right hd (by norm_num)
+    _ ≤ 2 ^ 120 := by norm_num
 
 -- C2: below the modulus, field values equal integer values,
 -- so the in-circuit comparison matches the integer comparison
 theorem field_val_eq (P x : ℕ) [NeZero P] (hx : x < P) :
     (x : ZMod P).val = x := by
-  sorry
+  exact ZMod.val_cast_of_lt hx
 
 -- C3: conservative rounding is sound: a check passed on rounded-down
 -- collateral and rounded-up debt implies the exact check
 theorem conservative_rounding (coll collDown debt debtUp : ℕ)
     (h1 : collDown ≤ coll) (h2 : debt ≤ debtUp)
     (pass : debtUp ≤ collDown) : debt ≤ coll := by
-  sorry
+  omega
 
 /-- The statement the circuit enforces. -/
 def circuitSolvent (units priceCents lltvBps debtCents : ℕ) : Prop :=
@@ -53,6 +59,9 @@ def circuitSolvent (units priceCents lltvBps debtCents : ℕ) : Prop :=
 theorem circuit_sound_rounding {units unitsTrue debtCents debtTrue p l : ℕ}
     (hu : units ≤ unitsTrue) (hd : debtTrue ≤ debtCents)
     (h : circuitSolvent units p l debtCents) : circuitSolvent unitsTrue p l debtTrue := by
-  sorry
+  unfold circuitSolvent at *
+  calc debtTrue * 10 ^ 8 ≤ debtCents * 10 ^ 8 := Nat.mul_le_mul_right _ hd
+    _ < units * p * l := h
+    _ ≤ unitsTrue * p * l := Nat.mul_le_mul_right _ (Nat.mul_le_mul_right _ hu)
 
 end Nightshift.Cloak

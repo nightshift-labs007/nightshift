@@ -2,3 +2,4 @@
 audit.txt
 aristotle-*.log
 aristotle-*.rejected.lean
+.audit/
