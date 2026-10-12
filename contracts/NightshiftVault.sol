@@ -18,6 +18,8 @@ contract NightshiftVault {
     uint256 internal constant WAD = 1e18;
     uint256 public constant SLIPPAGE_WAD = 0.005e18; // Guardian sells collateral 0.5% below the Oracle price
     uint256 public constant MAX_PRICE_AGE = 7 days;
+    /// @notice No new borrowing while the Oracle is this unsure (existing loans can still repay, add collateral or be protected).
+    uint256 public constant MIN_BORROW_CONFIDENCE = 40;
 
     struct Market {
         bool enabled;
@@ -157,6 +159,8 @@ contract NightshiftVault {
 
     function borrow(address collateral, uint256 amount) external {
         require(markets[collateral].enabled, "market");
+        (, uint8 confidence) = _price(collateral);
+        require(confidence >= MIN_BORROW_CONFIDENCE, "low confidence");
         Position storage p = positions[msg.sender][collateral];
         p.debt += amount;
         require(p.debt <= borrowLimit(msg.sender, collateral), "over limit");

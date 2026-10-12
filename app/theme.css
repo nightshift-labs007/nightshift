@@ -346,3 +346,14 @@ input[type="range"] { accent-color: var(--mint); }
 .wl-empty a { color: var(--mint); }
 .wl-note { margin: 14px 0 0; font-size: 12px; line-height: 1.55; color: var(--text-4); }
 @media (max-width: 900px) { .nav-cta { display: none; } }
+
+/* ---------- app pages ---------- */
+.page-hero { padding: 72px 0 8px; }
+.page-hero h1 { font-size: clamp(2rem, 4.6vw, 3.4rem); margin: 16px 0 0; max-width: 900px; }
+.page-hero + .block { padding-top: 40px; }
+.contracts { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+.contracts td { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.contracts td:first-child { color: var(--text-3); width: 180px; }
+.contracts a { color: var(--mint); text-decoration: none; word-break: break-all; }
+.contracts-pending p { margin: 8px 0 0; }
+.nav-links a { white-space: nowrap; }

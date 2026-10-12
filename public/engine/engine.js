@@ -38,7 +38,7 @@
     { token: "GLD", ang: 0.55, dist: 3.15 },
     { token: "IBIT", ang: 2.6, dist: 3.05 },
   ];
-  const ROUTES = { core: "#oracle", anchor: "#oracle", global: "#oracle", momentum: "#oracle", sentiment: "#oracle", vault: "#vault", guardian: "#guardian", cloak: "#cloak", ledger: "#ledger" };
+  const ROUTES = { core: "/oracle", anchor: "/oracle", global: "/oracle", momentum: "/oracle", sentiment: "/oracle", vault: "/app#vault", guardian: "/app#guardian", cloak: "/proof", ledger: "/transparency#ledger" };
   const beads = RINGS.map((_, i) => ({ a: i * 2.1, hot: 0 }));
 
   // ---------- data ----------
@@ -1122,7 +1122,7 @@
       if (c) window.open(c.url, "_blank", "noopener,noreferrer");
       return;
     }
-    if (hit && ROUTES[hit]) go(ROUTES[hit]);
+    if (hit && ROUTES[hit]) goPage(ROUTES[hit]);
   });
   canvas.addEventListener(
     "wheel",

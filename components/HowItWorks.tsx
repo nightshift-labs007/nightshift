@@ -10,7 +10,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
   {
     n: "01",
     name: "Oracle",
-    href: "#oracle",
+    href: "/oracle",
     status: "Live",
     tone: "live",
     what: "Prices SPY, QQQ, gold and Bitcoin ETF tokens around the clock from overnight futures, world markets and sentiment, with a confidence score.",
@@ -23,7 +23,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
   {
     n: "02",
     name: "Vault",
-    href: "#vault",
+    href: "/app#vault",
     status: ONCHAIN,
     tone: "paper",
     what: "Deposit ETF tokens and borrow USDG against them. Limits come from the Oracle's price, not a frozen close.",
@@ -37,7 +37,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
   {
     n: "03",
     name: "Guardian",
-    href: "#guardian",
+    href: "/app#guardian",
     status: ONCHAIN,
     tone: "paper",
     what: "Re-checks every loan on each price update. Alerts you, or repays automatically, before the health factor reaches liquidation.",
@@ -47,7 +47,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
   {
     n: "04",
     name: "Cloak",
-    href: "#cloak",
+    href: "/proof",
     status: "Live ZK proofs",
     tone: "live",
     what: "Proves a loan is safely backed at the Oracle price with a zero-knowledge proof, without revealing its size or liquidation level.",
@@ -60,7 +60,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
   {
     n: "05",
     name: "Ledger",
-    href: "#ledger",
+    href: "/transparency#ledger",
     status: "Testnet ready",
     tone: "ready",
     what: "Stamps each pre-open prediction on Algorand so the track record can't be edited after the bell.",
@@ -70,7 +70,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
   {
     n: "06",
     name: "Earn",
-    href: "#earn",
+    href: "/#earn",
     status: "Read-only",
     tone: "ready",
     what: "Idle USDG earns the Sentora protected RWA rate. Live yield today; deposits stay on Sentora.",
@@ -97,7 +97,7 @@ export function HowItWorks() {
             </svg>
             <h3>{m.name}</h3>
             {VERIFIED_MODULE[m.name] && verifiedCount(VERIFIED_MODULE[m.name]) > 0 && (
-              <span className="module-verified" onClick={(e) => { e.preventDefault(); document.getElementById("verified")?.scrollIntoView({ behavior: "smooth" }); }}>
+              <span className="module-verified" onClick={(e) => { e.preventDefault(); window.location.href = "/transparency#verified"; }}>
                 Mathematically verified · {verifiedCount(VERIFIED_MODULE[m.name])} properties
               </span>
             )}

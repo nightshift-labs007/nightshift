@@ -1,11 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPublicClient, createWalletClient, custom, formatEther, http, maxUint256, parseEther, type Address } from "viem";
 import { ABI, DEPLOYMENT, addrUrl, chainOf, isDeployed, txUrl } from "@/lib/chain";
 import { useWallet } from "@/lib/wallet";
 import { toast } from "./Toast";
 import { WalletButton } from "./WalletButton";
+import { Turnstile, turnstileEnabled } from "./Turnstile";
+import { dripMessage } from "@/lib/drip";
+
+/** Contract and wallet errors in plain English. */
+function friendly(e: unknown): string {
+  const err = e as { code?: number; shortMessage?: string; message?: string; cause?: { code?: number } };
+  const msg = err.shortMessage ?? err.message ?? String(e);
+  if (err.code === 4001 || err.cause?.code === 4001 || /user (rejected|denied)|rejected the request/i.test(msg)) return "Cancelled in your wallet.";
+  if (/insufficient funds|exceeds balance|gas required exceeds/i.test(msg)) return "Not enough test ETH for gas. Click Get test funds.";
+  const reasons: [RegExp, string][] = [
+    [/over limit/, "That's more than your borrow limit at the current Oracle price."],
+    [/low confidence/, "New borrowing is paused while the Oracle's confidence is below 40 (markets have been closed a long time). Try again later."],
+    [/"health"|reverted.*health|: health/, "That would leave your loan below the 1.10 health factor needed to withdraw."],
+    [/stale price/, "The on-chain price is out of date; it refreshes within minutes."],
+    [/insolvent: alert only/, "Selling collateral can't restore this loan, so the Guardian only alerts. Repay or add collateral."],
+    [/levels/, "Guardian levels: trigger must be above 1.00, and target at least 0.05 above the trigger (max 5)."],
+    [/allowance|"balance"|: balance/, "Not enough tokens for that amount."],
+    [/"market"|: market/, "That market isn't enabled."],
+  ];
+  for (const [re, text] of reasons) if (re.test(msg)) return text;
+  return msg.slice(0, 180);
+}
 import { usd } from "./useApi";
 
 type Pos = { token: string; collateral: number; debt: number; hf: number; limit: number; rule: { mode: number; trigger: number; target: number } };
@@ -65,10 +87,21 @@ export function OnchainVault() {
     return () => clearInterval(id);
   }, [refresh]);
 
-  const switchChain = () => wallet.switchToTarget().catch((e) => toast(String(e?.message ?? e).slice(0, 140), "warn"));
+  const switchChain = () => wallet.switchToTarget().catch((e) => toast(friendly(e), "warn"));
+  const autoSwitched = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isDeployed || !account || wallet.onTargetChain || autoSwitched.current === account) return;
+    autoSwitched.current = account;
+    switchChain();
+  }, [account, wallet.onTargetChain]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const onCaptcha = useCallback((t: string | null) => setCaptcha(t), []);
 
   async function write(label: string, address: Address, abi: readonly unknown[], functionName: string, args: unknown[]) {
     if (!wallet.provider || !chain || !account || !pub) throw new Error("wallet");
+    if ((await pub.getBalance({ address: account })) < 20_000_000_000_000n) throw new Error("insufficient funds for gas");
+    // dry-run first: a revert is caught here with the contract's reason, before the wallet asks to sign
+    await pub.simulateContract({ address, abi: abi as never, functionName: functionName as never, args: args as never, account } as never);
     const client = createWalletClient({ chain, transport: custom(wallet.provider), account });
     const hash = await client.writeContract({ address, abi: abi as never, functionName: functionName as never, args: args as never, chain } as never);
     setTxs((t) => [{ label, hash, at: Date.now() }, ...t].slice(0, 8));
@@ -80,7 +113,11 @@ export function OnchainVault() {
   async function ensureAllowance(tokenAddr: Address, needed: bigint, label: string) {
     if (!pub || !account) return;
     const allowance = (await pub.readContract({ address: tokenAddr, abi: ABI.token as never, functionName: "allowance" as never, args: [account, DEPLOYMENT.contracts.vault] as never })) as bigint;
-    if (allowance < needed) await write(`Approve ${label}`, tokenAddr, ABI.token, "approve", [DEPLOYMENT.contracts.vault, maxUint256]);
+    if (allowance < needed) {
+      toast(`Step 1 of 2: approve ${label} in your wallet so the Vault can move it.`);
+      await write(`Approve ${label}`, tokenAddr, ABI.token, "approve", [DEPLOYMENT.contracts.vault, maxUint256]);
+      toast("Step 2 of 2: confirm the transaction in your wallet.");
+    }
   }
 
   async function run(kind: "deposit" | "borrow" | "repay" | "withdraw" | "rule" | "drip") {
@@ -92,7 +129,11 @@ export function OnchainVault() {
       const amt = amount ? parseEther(amount) : 0n;
       if (kind !== "rule" && kind !== "drip" && amt <= 0n) throw new Error("Enter an amount.");
       if (kind === "drip") {
-        const res = await fetch("/api/drip", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: account }) });
+        if (turnstileEnabled && !captcha) throw new Error("Please complete the captcha first.");
+        const issuedAt = new Date().toISOString();
+        toast("Sign the message in your wallet to prove this address is yours (free, no transaction).");
+        const signature = (await wallet.provider!.request({ method: "personal_sign", params: [`0x${Array.from(new TextEncoder().encode(dripMessage(account, issuedAt)), (b) => b.toString(16).padStart(2, "0")).join("")}`, account] })) as `0x${string}`;
+        const res = await fetch("/api/drip", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: account, signature, issuedAt, turnstileToken: captcha }) });
         const j = await res.json();
         if (!res.ok) throw new Error(j.error ?? "Faucet failed");
         toast(j.sent.length ? `Sent ${j.sent.map((s: { what: string }) => s.what).join(", ")}` : "You already have test funds.", "ok");
@@ -118,8 +159,7 @@ export function OnchainVault() {
       setAmount("");
       await refresh();
     } catch (e) {
-      const msg = (e as { shortMessage?: string; message?: string }).shortMessage ?? (e as Error).message ?? String(e);
-      toast(msg.includes("User rejected") ? "Transaction cancelled in the wallet." : msg.slice(0, 180), "error");
+      toast(friendly(e), "error");
     } finally {
       setBusy("");
     }
@@ -177,6 +217,7 @@ export function OnchainVault() {
               <span className="mono xs muted">
                 {account.slice(0, 6)}…{account.slice(-4)}
               </span>
+              <Turnstile onToken={onCaptcha} />
               <button className="btn secondary small" onClick={() => run("drip")} disabled={!!busy}>
                 {busy === "drip" ? "Sending…" : "Get test funds"}
               </button>

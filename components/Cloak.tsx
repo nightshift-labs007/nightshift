@@ -65,6 +65,15 @@ export function Cloak({ quotes }: { quotes: Quote[] }) {
   useEffect(() => setSalt(randomFieldSalt()), []);
   // "Prove with Cloak" from a Vault position card
   useEffect(() => {
+    try {
+      const pick = sessionStorage.getItem("ns.cloak.pick");
+      if (pick) {
+        sessionStorage.removeItem("ns.cloak.pick");
+        setSource(pick);
+      }
+    } catch {
+      /* storage unavailable */
+    }
     const on = (e: Event) => setSource((e as CustomEvent<string>).detail);
     window.addEventListener("nightshift:cloak", on);
     return () => window.removeEventListener("nightshift:cloak", on);

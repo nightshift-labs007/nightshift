@@ -23,7 +23,7 @@ export async function fetchChart(
       next: { revalidate: interval === "1d" ? 600 : 120 },
       signal: AbortSignal.timeout(6000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return fallbackChart(symbol, interval, range); // blocked or rate-limited: try the second provider
     const json = await res.json();
     const r = json?.chart?.result?.[0];
     const ts: number[] = r?.timestamp ?? [];
@@ -34,9 +34,42 @@ export async function fetchChart(
       const c = q.close?.[i];
       if (typeof o === "number" && typeof c === "number") bars.push({ t: ts[i], o, c });
     }
-    if (bars.length < (prePost ? 1 : 5)) return null;
+    if (bars.length < (prePost ? 1 : 5)) return fallbackChart(symbol, interval, range);
     const price = typeof r.meta?.regularMarketPrice === "number" ? r.meta.regularMarketPrice : bars[bars.length - 1].c;
     return { symbol, bars, price };
+  } catch {
+    return fallbackChart(symbol, interval, range);
+  }
+}
+
+// ---------- second provider: Twelve Data (only with TWELVEDATA_API_KEY) ----------
+// Yahoo's endpoint is unofficial and sometimes blocks cloud IPs; this is tried before anything becomes "simulated".
+// The free tier has no index futures, so ES=F / NQ=F / ^N225 etc. stay Yahoo-only; gold futures use spot gold.
+const TD_SYMBOL: Record<string, string> = {
+  SPY: "SPY", QQQ: "QQQ", GLD: "GLD", IBIT: "IBIT",
+  "BTC-USD": "BTC/USD", "GC=F": "XAU/USD",
+  AAPL: "AAPL", NVDA: "NVDA", MSFT: "MSFT", TSLA: "TSLA", GOOGL: "GOOGL", AMZN: "AMZN", META: "META", AVGO: "AVGO",
+  TSM: "TSM", "BRK-B": "BRK.B", JPM: "JPM", LLY: "LLY", V: "V", MA: "MA", ORCL: "ORCL", NFLX: "NFLX", AMD: "AMD", WMT: "WMT", COST: "COST", XOM: "XOM",
+};
+const TD_INTERVAL = { "5m": "5min", "1h": "1h", "1d": "1day" } as const;
+const TD_SIZE: Record<string, number> = { "1d": 300, "5d": 130, "1mo": 35, "3mo": 70 };
+
+async function fallbackChart(symbol: string, interval: "5m" | "1h" | "1d", range: "1d" | "5d" | "1mo" | "3mo"): Promise<Chart | null> {
+  const key = process.env.TWELVEDATA_API_KEY?.trim();
+  const td = TD_SYMBOL[symbol];
+  if (!key || !td) return null;
+  try {
+    const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(td)}&interval=${TD_INTERVAL[interval]}&outputsize=${TD_SIZE[range]}&timezone=UTC&apikey=${key}`;
+    const res = await fetch(url, { next: { revalidate: interval === "1d" ? 600 : 120 }, signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const j = (await res.json()) as { status?: string; values?: { datetime: string; open: string; close: string }[] };
+    if (j.status !== "ok" || !j.values?.length) return null;
+    const bars: Bar[] = j.values
+      .map((v) => ({ t: Math.floor(Date.parse(v.datetime.replace(" ", "T") + "Z") / 1000), o: Number(v.open), c: Number(v.close) }))
+      .filter((b) => Number.isFinite(b.t) && b.o > 0 && b.c > 0)
+      .reverse();
+    if (bars.length < 5) return null;
+    return { symbol, bars, price: bars[bars.length - 1].c };
   } catch {
     return null;
   }

@@ -66,8 +66,11 @@ const after = await hf();
 check("Guardian protect restores HF to target 1.40", Math.abs(after - 1.4) < 0.001, `${before.toFixed(3)} → ${after.toFixed(3)}`);
 check("non-updater cannot set prices", await reverts(user.writeContract({ address: oracle, abi: A.NightshiftOracle.abi, functionName: "setPrices", args: [[SPY], [1n], [50]] })));
 
-// 5. liquidation after a crash
+// 5. liquidation after a crash: a 40% move is skipped by the oracle's move limit, then confirmed by the owner
+const beforeCrash = (await read(oracle, "NightshiftOracle", "getPrice", [SPY]))[0];
 await tx(owner, oracle, "NightshiftOracle", "setPrices", [[SPY], [(price * 60n) / 100n], [conf]]);
+check("oracle skips a 40% jump from a normal update", (await read(oracle, "NightshiftOracle", "getPrice", [SPY]))[0] === beforeCrash);
+await tx(owner, oracle, "NightshiftOracle", "forceSetPrices", [[SPY], [(price * 60n) / 100n], [conf]]);
 check("HF below 1 after a 40% crash", (await hf()) < 1, (await hf()).toFixed(3));
 await tx(owner, usdg, "TestToken", "mint", [liq.account.address, parseEther("100000")]);
 await tx(liq, usdg, "TestToken", "approve", [vault, parseEther("100000")]);

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 /// @title TestToken: minimal ERC-20 for the Nightshift testnet demo.
-/// @notice Anyone can claim a small amount every hour; the owner (the deployer/keeper) can mint freely.
+/// @notice Anyone can claim a small amount every hour; the owner and approved minters (the faucet wallet) can mint.
 contract TestToken {
     string public name;
     string public symbol;
@@ -15,9 +15,11 @@ contract TestToken {
     mapping(address => uint256) public balanceOf;
     mapping(address => mapping(address => uint256)) public allowance;
     mapping(address => uint256) public lastClaim;
+    mapping(address => bool) public isMinter;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
+    event MinterSet(address indexed minter, bool allowed);
 
     constructor(string memory name_, string memory symbol_, uint256 faucetAmount_) {
         name = name_;
@@ -54,8 +56,15 @@ contract TestToken {
         _mint(msg.sender, faucetAmount);
     }
 
-    function mint(address to, uint256 value) external {
+    /// @notice Lets a separate faucet wallet mint test tokens without holding the owner key.
+    function setMinter(address minter, bool allowed) external {
         require(msg.sender == owner, "owner");
+        isMinter[minter] = allowed;
+        emit MinterSet(minter, allowed);
+    }
+
+    function mint(address to, uint256 value) external {
+        require(msg.sender == owner || isMinter[msg.sender], "minter");
         _mint(to, value);
     }
 

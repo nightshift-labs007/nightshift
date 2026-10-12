@@ -77,7 +77,7 @@ for (const v of V.hf) {
   const limit = await read(vault, "NightshiftVault", "borrowLimit", [user.account.address, t]);
   check(`limit at borrow matches Lean (case d=${v.d})`, limit === big(v.limitAtBorrow), `${limit} vs ${v.limitAtBorrow}`);
   await tx(user, vault, "NightshiftVault", "borrow", [t, big(v.d)]);
-  await tx(owner, oracle, "NightshiftOracle", "setPrices", [[t], [big(v.p1)], [Number(v.conf)]]);
+  await tx(owner, oracle, "NightshiftOracle", "forceSetPrices", [[t], [big(v.p1)], [Number(v.conf)]]); // vectors include moves beyond the 15% update limit
   const hf = await read(vault, "NightshiftVault", "healthFactor", [user.account.address, t]);
   check(`healthFactor after move matches Lean`, hf === big(v.hf), `${hf} vs ${v.hf}`);
   const liquidatable = !(await reverts(pub.simulateContract({ address: vault, abi: A.NightshiftVault.abi, functionName: "liquidate", args: [user.account.address, t, 1n], account: owner.account }), "healthy"));
@@ -99,6 +99,24 @@ for (const v of V.hf) {
     "G4: protect() refuses to sell when selling can't help",
     await reverts(tx(owner, vault, "NightshiftVault", "protect", [user.account.address, t]), "insolvent: alert only"),
   );
+}
+
+// 3. safety rules added from the MVP review
+{
+  const W = 10n ** 18n;
+  const t = await market((77n * W) / 100n, 10n * W, 100n * W, 35);
+  check("no new borrowing while Oracle confidence is below 40", await reverts(tx(user, vault, "NightshiftVault", "borrow", [t, W]), "low confidence"));
+  await tx(owner, oracle, "NightshiftOracle", "setPrices", [[t], [100n * W], [90]]);
+  await tx(user, vault, "NightshiftVault", "borrow", [t, W]);
+  check("borrowing works again once confidence recovers", true);
+  await tx(owner, oracle, "NightshiftOracle", "setPrices", [[t], [130n * W], [90]]);
+  check("a single update can't move a price more than 15%", (await read(oracle, "NightshiftOracle", "getPrice", [t]))[0] === 100n * W);
+  await tx(owner, oracle, "NightshiftOracle", "setPrices", [[t], [110n * W], [90]]);
+  check("moves within 15% still update", (await read(oracle, "NightshiftOracle", "getPrice", [t]))[0] === 110n * W);
+  check("a non-minter can't mint test tokens", await reverts(tx(user, t, "TestToken", "mint", [user.account.address, W]), "minter"));
+  await tx(owner, t, "TestToken", "setMinter", [user.account.address, true]);
+  await tx(user, t, "TestToken", "mint", [user.account.address, W]);
+  check("an approved minter (the faucet wallet) can mint", true);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

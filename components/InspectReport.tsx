@@ -3,9 +3,7 @@
 import type { OracleSnapshot } from "@/lib/oracle";
 import type { StockBoard, StockQuote } from "@/lib/stocks";
 import { isDeployed } from "@/lib/chain";
-import { BrandMark } from "./BrandMark";
-import { AlwaysOnAudio } from "./AlwaysOnAudio";
-import { WalletButton } from "./WalletButton";
+import { SiteNav } from "./Site";
 import { StockLogo, StockTable } from "./Stocks";
 import { signed, usd, useApi } from "./useApi";
 
@@ -88,22 +86,8 @@ export function InspectReport() {
 
   return (
     <>
-      <nav className="nav scrolled" aria-label="Main">
-        <div className="wrap nav-inner">
-          <a className="brand" href="/">
-            <BrandMark /> Nightshift
-          </a>
-          <div className="nav-links">
-            <a href="#now">Right now</a>
-            <a href="#analysis">Stock analysis</a>
-            <a href="#all">All stocks</a>
-            <a href="#method">Method</a>
-          </div>
-          <WalletButton />
-        </div>
-      </nav>
+      <SiteNav />
 
-      <AlwaysOnAudio />
       <main className="ins-enter">
         <section className="block ins-hero">
           <div className="wrap">

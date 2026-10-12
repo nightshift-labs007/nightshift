@@ -26,8 +26,12 @@ export const marksFrom = (quotes: Quote[]): Marks =>
   Object.fromEntries(quotes.map((q) => [q.token, { price: q.fairValue, frozen: q.lastClose, confidence: q.confidence, lltv: q.lltv }]));
 
 export const selectForCloak = (id: string) => {
-  window.dispatchEvent(new CustomEvent("nightshift:cloak", { detail: id }));
-  document.getElementById("cloak")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  try {
+    sessionStorage.setItem("ns.cloak.pick", id);
+  } catch {
+    /* storage unavailable */
+  }
+  window.location.href = "/proof#cloak";
 };
 
 const fmtUnits = (x: number) => (Math.abs(x - Math.round(x)) < 1e-9 ? String(Math.round(x)) : x.toFixed(4));

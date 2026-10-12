@@ -1,13 +1,15 @@
 // Deploys the Nightshift testnet stack and writes lib/chain/deployment.json.
 // Usage: DEPLOYER_PRIVATE_KEY=0x... npm run contracts:deploy
 // Optional: RPC_URL (default Base Sepolia), CHAIN_ID, ORACLE_URL (where to read starting prices)
+// Role wallets (recommended): ORACLE_UPDATER_PRIVATE_KEY, KEEPER_PRIVATE_KEY, FAUCET_PRIVATE_KEY. The deployer stays the
+// owner and is never needed on the server: the updater pushes prices, the keeper runs the Guardian, the faucet mints.
 import fs from "node:fs";
 import { createPublicClient, createWalletClient, http, parseEther, defineChain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 const RPC_URL = process.env.RPC_URL || "https://sepolia.base.org";
 const CHAIN_ID = Number(process.env.CHAIN_ID || 84532);
-const ORACLE_URL = process.env.ORACLE_URL || "https://nightshift3.vercel.app/api/oracle";
+const ORACLE_URL = process.env.ORACLE_URL || "https://nightshift.buzz/api/oracle";
 const key = process.env.DEPLOYER_PRIVATE_KEY;
 if (!key) throw new Error("Set DEPLOYER_PRIVATE_KEY");
 
@@ -18,6 +20,8 @@ const chain = defineChain({
   rpcUrls: { default: { http: [RPC_URL] } },
 });
 const account = privateKeyToAccount(key);
+const roleAddr = (k) => (process.env[k] ? privateKeyToAccount(process.env[k].trim()).address : null);
+const ROLES = { updater: roleAddr("ORACLE_UPDATER_PRIVATE_KEY"), keeper: roleAddr("KEEPER_PRIVATE_KEY"), faucet: roleAddr("FAUCET_PRIVATE_KEY") };
 const pub = createPublicClient({ chain, transport: http(RPC_URL) });
 const wallet = createWalletClient({ chain, account, transport: http(RPC_URL) });
 const A = JSON.parse(fs.readFileSync("lib/chain/artifacts.json", "utf8"));
@@ -71,6 +75,22 @@ for (const q of snap.quotes) {
 }
 await send(oracle, "NightshiftOracle", "setPrices", [toks, prices, confs]);
 
+console.log("Authorising role wallets…");
+if (ROLES.updater) await send(oracle, "NightshiftOracle", "setUpdater", [ROLES.updater, true]);
+if (ROLES.faucet) for (const t of [usdg, ...Object.values(tokens)]) await send(t, "TestToken", "setMinter", [ROLES.faucet, true]);
+
+// split the deployer's remaining test ETH: updater 35%, keeper 25%, faucet 30%, deployer keeps ~10%
+const left = await pub.getBalance({ address: account.address });
+const share = { updater: 35n, keeper: 25n, faucet: 30n };
+for (const [role, pct] of Object.entries(share)) {
+  const to = ROLES[role];
+  if (!to || to === account.address) continue;
+  const value = (left * pct) / 100n;
+  const hash = await wallet.sendTransaction({ to, value });
+  await pub.waitForTransactionReceipt({ hash });
+  console.log(`  funded ${role.padEnd(8)} ${to}  ${Number(value) / 1e18} ETH`);
+}
+
 const deployment = {
   deployed: true,
   chainId: chain.id,
@@ -79,7 +99,9 @@ const deployment = {
   explorer: chain.id === 84532 ? "https://sepolia.basescan.org" : "",
   deployedAt: new Date().toISOString(),
   startBlock: Number(startBlock),
-  keeper: account.address,
+  owner: account.address,
+  keeper: ROLES.keeper ?? account.address,
+  roles: { updater: ROLES.updater ?? account.address, keeper: ROLES.keeper ?? account.address, faucet: ROLES.faucet ?? account.address },
   contracts: { usdg, oracle, vault, verifier },
   tokens: Object.fromEntries(ASSETS.map((a) => [a.token, { address: tokens[a.token], lltv: Number(a.lltv), adapter: adapters[a.token] }])),
 };
