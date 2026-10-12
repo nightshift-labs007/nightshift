@@ -22,6 +22,7 @@ import { Earn } from "./Earn";
 import { Verified } from "./Verified";
 import { BrandMark } from "./BrandMark";
 import { AlwaysOnAudio } from "./AlwaysOnAudio";
+import { WalletButton } from "./WalletButton";
 import type { StockBoard } from "@/lib/stocks";
 
 const NAV = [
@@ -169,6 +170,7 @@ export function Dashboard() {
               </a>
             ))}
           </div>
+          <WalletButton />
           <a className="btn primary small nav-cta" href="#vault">
             Open paper vault
           </a>

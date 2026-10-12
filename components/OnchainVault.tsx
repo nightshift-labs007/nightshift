@@ -1,19 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPublicClient, createWalletClient, custom, formatEther, http, maxUint256, parseEther, type Address, type EIP1193Provider } from "viem";
+import { createPublicClient, createWalletClient, custom, formatEther, http, maxUint256, parseEther, type Address } from "viem";
 import { ABI, DEPLOYMENT, addrUrl, chainOf, isDeployed, txUrl } from "@/lib/chain";
+import { useWallet } from "@/lib/wallet";
 import { toast } from "./Toast";
+import { WalletButton } from "./WalletButton";
 import { usd } from "./useApi";
 
 type Pos = { token: string; collateral: number; debt: number; hf: number; limit: number; rule: { mode: number; trigger: number; target: number } };
 type Tx = { label: string; hash: string; at: number };
 
-declare global {
-  interface Window {
-    ethereum?: EIP1193Provider;
-  }
-}
 
 const fmt = (x: number, d = 2) => x.toLocaleString("en-US", { maximumFractionDigits: d });
 const MAX_HF = 1e30;
@@ -21,8 +18,10 @@ const MAX_HF = 1e30;
 export function OnchainVault() {
   const chain = useMemo(() => (isDeployed ? chainOf() : null), []);
   const pub = useMemo(() => (chain ? createPublicClient({ chain, transport: http(DEPLOYMENT.rpcUrl) }) : null), [chain]);
-  const [account, setAccount] = useState<Address | null>(null);
-  const [wrongChain, setWrongChain] = useState(false);
+  // one shared wallet connection for the whole site (lib/wallet.tsx)
+  const wallet = useWallet();
+  const account = wallet.account as Address | null;
+  const wrongChain = !!account && !wallet.onTargetChain;
   const [bal, setBal] = useState<Record<string, number>>({});
   const [positions, setPositions] = useState<Pos[]>([]);
   const [busy, setBusy] = useState("");
@@ -66,56 +65,12 @@ export function OnchainVault() {
     return () => clearInterval(id);
   }, [refresh]);
 
-  const checkChain = useCallback(async () => {
-    if (!window.ethereum || !chain) return;
-    const id = (await window.ethereum.request({ method: "eth_chainId" })) as string;
-    setWrongChain(parseInt(id, 16) !== chain.id);
-  }, [chain]);
-
-  useEffect(() => {
-    const eth = window.ethereum;
-    if (!eth) return;
-    const onAcc = (a: unknown) => setAccount(((a as string[])[0] as Address) ?? null);
-    const onChain = () => checkChain();
-    eth.on?.("accountsChanged", onAcc as never);
-    eth.on?.("chainChanged", onChain as never);
-    eth.request({ method: "eth_accounts" }).then((a) => {
-      if ((a as string[])[0]) setAccount((a as string[])[0] as Address);
-    });
-    checkChain();
-    return () => {
-      eth.removeListener?.("accountsChanged", onAcc as never);
-      eth.removeListener?.("chainChanged", onChain as never);
-    };
-  }, [checkChain]);
-
-  async function connect() {
-    if (!window.ethereum) return toast("No wallet found. Install MetaMask or Coinbase Wallet to use the testnet vault.", "warn");
-    const a = (await window.ethereum.request({ method: "eth_requestAccounts" })) as string[];
-    setAccount(a[0] as Address);
-    await switchChain();
-  }
-
-  async function switchChain() {
-    if (!window.ethereum || !chain) return;
-    const hex = `0x${chain.id.toString(16)}`;
-    try {
-      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hex }] });
-    } catch (e) {
-      if ((e as { code?: number }).code === 4902) {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [{ chainId: hex, chainName: chain.name, nativeCurrency: chain.nativeCurrency, rpcUrls: [DEPLOYMENT.rpcUrl], blockExplorerUrls: DEPLOYMENT.explorer ? [DEPLOYMENT.explorer] : [] }],
-        });
-      } else throw e;
-    }
-    await checkChain();
-  }
+  const switchChain = () => wallet.switchToTarget().catch((e) => toast(String(e?.message ?? e).slice(0, 140), "warn"));
 
   async function write(label: string, address: Address, abi: readonly unknown[], functionName: string, args: unknown[]) {
-    if (!window.ethereum || !chain || !account || !pub) throw new Error("wallet");
-    const wallet = createWalletClient({ chain, transport: custom(window.ethereum), account });
-    const hash = await wallet.writeContract({ address, abi: abi as never, functionName: functionName as never, args: args as never, chain } as never);
+    if (!wallet.provider || !chain || !account || !pub) throw new Error("wallet");
+    const client = createWalletClient({ chain, transport: custom(wallet.provider), account });
+    const hash = await client.writeContract({ address, abi: abi as never, functionName: functionName as never, args: args as never, chain } as never);
     setTxs((t) => [{ label, hash, at: Date.now() }, ...t].slice(0, 8));
     const r = await pub.waitForTransactionReceipt({ hash });
     if (r.status !== "success") throw new Error(`${label} reverted`);
@@ -129,7 +84,7 @@ export function OnchainVault() {
   }
 
   async function run(kind: "deposit" | "borrow" | "repay" | "withdraw" | "rule" | "drip") {
-    if (!account) return connect();
+    if (!account) return toast("Connect your wallet with the button above first.", "warn");
     if (wrongChain) return switchChain();
     setBusy(kind);
     try {
@@ -212,9 +167,7 @@ export function OnchainVault() {
         </div>
         <div className="row-actions" style={{ marginTop: 0 }}>
           {!account ? (
-            <button className="btn" onClick={connect}>
-              Connect wallet
-            </button>
+            <WalletButton />
           ) : wrongChain ? (
             <button className="btn" onClick={switchChain}>
               Switch to {DEPLOYMENT.chainName}

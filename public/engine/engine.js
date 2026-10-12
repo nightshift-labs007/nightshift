@@ -123,7 +123,7 @@
     if (key.startsWith("logo:")) {
       const k = key.slice(5);
       const c = CHAINS.find((x) => x.key === k);
-      if (c) return { k: "NETWORK", b: c.name, p: c.body, i: "" };
+      if (c) return { k: "NETWORK", b: c.name, p: `${c.body} Nightshift doesn’t sell tokens; availability depends on your country.`, i: `CLICK TO VISIT ${new URL(c.url).hostname.replace(/^www./, "").toUpperCase()} ↗` };
       const o = STOCK_ORBIT.find((x) => x.key === k);
       const st = o && stockOf(o.ticker);
       if (!st) return { k: o ? o.ticker : k, b: "—", p: "Waiting for stock data.", i: "" };
@@ -813,11 +813,11 @@
   // the core becomes the eye and the world's largest stocks take the orbits.
   const LOGO = window.NS_LOGOS || {};
   const CHAINS = [
-    { key: "HOOD_CHAIN", ring: 0, a: 0.2, name: "Robinhood Chain", body: "Robinhood's Arbitrum-based network for tokenized stocks: Nightshift's target home." },
-    { key: "SOLANA", ring: 0, a: 3.3, name: "Solana", body: "High-throughput chain where tokenized stocks already trade around the clock. A candidate network." },
-    { key: "COINBASE", ring: 1, a: 1.1, name: "Coinbase · Base", body: "Base, Coinbase's Ethereum layer 2, runs the Nightshift testnet contracts (Base Sepolia)." },
-    { key: "ARC", ring: 1, a: 4.2, name: "Arc by Circle", body: "Circle's open, EVM-compatible Layer-1 for stablecoins. USDC is the gas token, so fees are predictable in dollars, and finality is deterministic and sub-second. Built for lending, capital markets, FX and payments: a candidate network for settling Nightshift's stablecoin loans against tokenized stocks." },
-    { key: "BINANCE", ring: 2, a: 2.4, name: "BNB Chain", body: "Binance's chain, with deep crypto liquidity. A candidate network." },
+    { key: "HOOD_CHAIN", url: "https://robinhood.com/", ring: 0, a: 0.2, name: "Robinhood Chain", body: "Robinhood's Arbitrum-based network for tokenized stocks: Nightshift's target home." },
+    { key: "SOLANA", url: "https://solana.com/", ring: 0, a: 3.3, name: "Solana", body: "High-throughput chain where tokenized stocks already trade around the clock. A candidate network." },
+    { key: "COINBASE", url: "https://www.coinbase.com/", ring: 1, a: 1.1, name: "Coinbase · Base", body: "Base, Coinbase's Ethereum layer 2, runs the Nightshift testnet contracts (Base Sepolia)." },
+    { key: "ARC", url: "https://www.arc.network/", ring: 1, a: 4.2, name: "Arc by Circle", body: "Circle's open, EVM-compatible Layer-1 for stablecoins. USDC is the gas token, so fees are predictable in dollars, and finality is deterministic and sub-second. Built for lending, capital markets, FX and payments: a candidate network for settling Nightshift's stablecoin loans against tokenized stocks." },
+    { key: "BINANCE", url: "https://www.binance.com/", ring: 2, a: 2.4, name: "BNB Chain", body: "Binance's chain, with deep crypto liquidity. A candidate network." },
   ];
   const STOCK_ORBIT = [
     { key: "AAPL", ticker: "AAPL", ring: 0, a: 0.3 },
@@ -1118,6 +1118,8 @@
     if (hit && hit.startsWith("logo:")) {
       const o = STOCK_ORBIT.find((x) => "logo:" + x.key === hit);
       if (o) goPage("/inspect#" + o.ticker);
+      const c = CHAINS.find((x) => "logo:" + x.key === hit);
+      if (c) window.open(c.url, "_blank", "noopener,noreferrer");
       return;
     }
     if (hit && ROUTES[hit]) go(ROUTES[hit]);

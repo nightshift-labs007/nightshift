@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Funnel_Sans, Geist_Mono, Unbounded } from "next/font/google";
 import "./globals.css";
 import "./theme.css";
+import { WalletProvider } from "@/lib/wallet";
 
 const display = Unbounded({ subsets: ["latin"], weight: ["300", "400", "500"], variable: "--font-display", display: "swap" });
 const sans = Funnel_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -22,7 +23,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <WalletProvider>{children}</WalletProvider>
+      </body>
     </html>
   );
 }
