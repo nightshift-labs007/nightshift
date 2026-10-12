@@ -67,7 +67,7 @@ function Simulator({ apy }: { apy: number | null }) {
         </div>
       </div>
       <p className="earn-fine">
-        Projected at the current 7-day APY of {pctFmt(apy)}. Rates change daily; this is an illustration, not a forecast. Borrow USDG in the paper vault to
+        Projected at the 7-day APY of {pctFmt(apy)}. Rates change daily; this is an illustration, not a forecast. Borrow USDG in the paper vault to
         see your own idle balance here.
       </p>
     </div>
@@ -78,6 +78,9 @@ export function Earn() {
   const { data, error } = useApi<SentoraEarn>("/api/earn/sentora", 600_000);
   if (!data) return <div className="skeleton">{error ? "Earn data is unavailable right now." : "Loading…"}</div>;
   const dataAge = data.dataAt ? (Date.now() - Date.parse(data.dataAt)) / 3_600_000 : null;
+  const pub = data.apyPublished;
+  const headline = pub ? pub.apy : data.apy7d;
+  const asOf = pub ? new Date(`${pub.asOf}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "";
   return (
     <div className="earn">
       {data.stale && (
@@ -105,13 +108,15 @@ export function Earn() {
           </div>
 
           <div className="earn-apy">
-            <strong>{pctFmt(data.apy7d)}</strong>
-            <span className="unit">Net APY · 7-day · current, variable, not guaranteed</span>
+            <strong>{pctFmt(headline, pub ? 1 : 2)}</strong>
+            <span className="unit">
+              {pub ? `Est. APY · 7-day · as published by Sentora, ${asOf} · variable, not guaranteed` : "Net APY · 7-day · current, variable, not guaranteed"}
+            </span>
           </div>
 
           <div className="earn-stats">
             <div>
-              <span className="unit">30-day APY</span>
+              <span className="unit">30-day APY{pub ? " · calc." : ""}</span>
               <b className="mono">{pctFmt(data.apy30d)}</b>
             </div>
             <div>
@@ -139,11 +144,12 @@ export function Earn() {
           </p>
           <p className="earn-src mono">
             Source: {data.source === "defillama" ? "DefiLlama share-price history" : "vault contract + DefiLlama history"}
+            {pub && data.apy7d !== null && ` · on-chain 7-day calc. ${pctFmt(data.apy7d)}`}
             {dataAge !== null && ` · data ${dataAge < 1 ? "under an hour" : `${Math.round(dataAge)}h`} old`} · refreshed every 10 min
           </p>
         </div>
 
-        <Simulator apy={data.apy7d} />
+        <Simulator apy={headline} />
       </div>
     </div>
   );

@@ -17,7 +17,16 @@ const CONFIG = {
   confirmed: process.env.SENTORA_VAULT_CONFIRMED === "true",
   coverActive: process.env.SENTORA_FIRELIGHT_COVER === "true",
   depositBase: process.env.SENTORA_DEPOSIT_URL ?? "https://vaults.sentora.com/",
+  // Sentora's own "Est. APY 7d" from vaults.sentora.com. Their API isn't public, so it's set by hand;
+  // update SENTORA_APY_7D / SENTORA_APY_AS_OF when Sentora's figure changes; "off" disables it.
+  publishedApy7d: process.env.SENTORA_APY_7D || "8.9",
+  publishedAsOf: process.env.SENTORA_APY_AS_OF || "2026-10-12",
 };
+
+function published(): { apy: number; asOf: string } | null {
+  const apy = Number(CONFIG.publishedApy7d);
+  return CONFIG.publishedApy7d !== "off" && Number.isFinite(apy) ? { apy, asOf: CONFIG.publishedAsOf } : null;
+}
 
 const UTM = { utm_source: "nightshift", utm_medium: "earn_panel", utm_campaign: "sentora_phase1" };
 const STALE_AFTER_MS = 60 * 60 * 1000;
@@ -29,6 +38,7 @@ export type SentoraEarn = {
   apy7d: number | null; // % a year, from share-price growth over 7 days
   apy30d: number | null; // % a year, from share-price growth over 30 days
   apyReported: number | null; // DefiLlama's current figure, for cross-checking
+  apyPublished: { apy: number; asOf: string } | null; // Sentora's own 7-day figure, set in config
   tvl: number | null; // USD (PYUSD is 1:1 with the dollar)
   sharePrice: number | null; // PYUSD per vault share
   coverActive: boolean;
@@ -127,6 +137,7 @@ export async function getSentoraEarn(): Promise<SentoraEarn> {
       apy7d: p7 ? annualise(nowP, nowT, p7.sharePrice, Date.parse(p7.t)) : null,
       apy30d: p30 ? annualise(nowP, nowT, p30.sharePrice, Date.parse(p30.t)) : null,
       apyReported: latest.apy ?? null,
+      apyPublished: published(),
       tvl,
       sharePrice: nowP,
       coverActive: CONFIG.coverActive,
@@ -145,6 +156,7 @@ export async function getSentoraEarn(): Promise<SentoraEarn> {
       apy7d: null,
       apy30d: null,
       apyReported: null,
+      apyPublished: published(),
       tvl: null,
       sharePrice: null,
       coverActive: CONFIG.coverActive,

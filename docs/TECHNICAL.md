@@ -230,4 +230,6 @@ Environment variables (all optional):
 | `SENTORA_VAULT_CONFIRMED` | `false` | `true` removes the "pending confirmation" label |
 | `SENTORA_FIRELIGHT_COVER` | `false` | `true` shows the Firelight cover badge (only once Sentora confirms) |
 | `SENTORA_DEPOSIT_URL` | `https://vaults.sentora.com/` | Deep link target (UTM tags are added) |
+| `SENTORA_APY_7D` | `8.9` | Sentora's published 7-day APY, shown as the headline with its date (`off` = use the on-chain calculation) |
+| `SENTORA_APY_AS_OF` | `2026-10-12` | Date of that published figure |
 | `ETH_RPC_URL` | public RPC | Ethereum mainnet RPC (Alchemy/Infura recommended) |
