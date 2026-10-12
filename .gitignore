@@ -27,3 +27,6 @@ ROBOKY-NIGHTFALL-MOTION.html
 formal/audit.txt
 formal/aristotle-*.log
 formal/aristotle-*.rejected.lean
+
+# the template has no values and documents every setting
+!.env.example
