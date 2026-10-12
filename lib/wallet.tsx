@@ -35,6 +35,39 @@ const WC_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 
 type Announce = CustomEvent<{ info: { uuid: string; name: string; icon: string; rdns: string }; provider: EIP1193Provider }>;
 
+/** WalletConnect provider, created once per page and themed to Nightshift. */
+let wcPromise: Promise<import("@walletconnect/ethereum-provider").default> | null = null;
+function getWalletConnect(chainId: number) {
+  if (!wcPromise) {
+    wcPromise = import("@walletconnect/ethereum-provider").then(({ EthereumProvider }) =>
+      EthereumProvider.init({
+        projectId: WC_PROJECT_ID,
+        chains: [chainId],
+        optionalChains: [1, 8453, 84532],
+        showQrModal: true,
+        qrModalOptions: {
+          themeMode: "dark",
+          themeVariables: {
+            "--w3m-accent": "#c4ecd9",
+            "--w3m-color-mix": "#070909",
+            "--w3m-color-mix-strength": 20,
+            "--w3m-border-radius-master": "2px",
+            "--w3m-font-family": "\"Funnel Sans\", system-ui, sans-serif",
+            "--w3m-z-index": 1000,
+          },
+        } as never,
+        metadata: {
+          name: "Nightshift",
+          description: "Tokenized ETFs, priced after the bell.",
+          url: typeof window !== "undefined" ? window.location.origin : "https://nightshift.buzz",
+          icons: ["https://nightshift.buzz/brand/nightshift-n-128.png"],
+        },
+      }),
+    );
+  }
+  return wcPromise;
+}
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const target = useMemo(() => (isDeployed ? chainOf() : baseSepolia), []);
   const [injected, setInjected] = useState<WalletInfo[]>([]);
@@ -90,14 +123,35 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         setWalletName(null);
       }
     };
-    const onChain = (id: unknown) => setChainId(parseInt(id as string, 16));
+    const onChain = (id: unknown) => setChainId(typeof id === "number" ? id : parseInt(id as string, 16));
+    const onDisconnect = () => onAcc([]);
     provider.on?.("accountsChanged", onAcc as never);
     provider.on?.("chainChanged", onChain as never);
+    provider.on?.("disconnect", onDisconnect as never);
     return () => {
       provider.removeListener?.("accountsChanged", onAcc as never);
       provider.removeListener?.("chainChanged", onChain as never);
+      provider.removeListener?.("disconnect", onDisconnect as never);
     };
   }, [provider]);
+
+  // restore a phone-wallet (WalletConnect) session after a reload, without a new QR scan
+  useEffect(() => {
+    let last: string | null = null;
+    try {
+      last = localStorage.getItem(LAST);
+    } catch {
+      /* storage unavailable */
+    }
+    if (last !== "walletconnect" || !WC_PROJECT_ID) return;
+    getWalletConnect(target.id)
+      .then(async (wc) => {
+        if (!wc.session) return;
+        wcRef.current = wc;
+        await attach(wc as unknown as EIP1193Provider, "WalletConnect", false);
+      })
+      .catch(() => {});
+  }, [attach, target.id]);
 
   // silently reconnect the last browser wallet (no popup)
   useEffect(() => {
@@ -117,22 +171,16 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setConnecting(true);
       try {
         if (w.kind === "walletconnect") {
-          const { EthereumProvider } = await import("@walletconnect/ethereum-provider");
-          const wc = await EthereumProvider.init({
-            projectId: WC_PROJECT_ID,
-            chains: [target.id],
-            optionalChains: [1, 8453, 84532],
-            showQrModal: true,
-            metadata: {
-              name: "Nightshift",
-              description: "Tokenized ETFs, priced after the bell.",
-              url: typeof window !== "undefined" ? window.location.origin : "https://nightshift.buzz",
-              icons: ["https://nightshift.buzz/brand/nightshift-n-128.png"],
-            },
-          });
-          await wc.connect();
+          const wc = await getWalletConnect(target.id);
+          if (!wc.session) await wc.connect();
           wcRef.current = wc;
-          await attach(wc as unknown as EIP1193Provider, "WalletConnect", false);
+          if (await attach(wc as unknown as EIP1193Provider, "WalletConnect", false)) {
+            try {
+              localStorage.setItem(LAST, "walletconnect");
+            } catch {
+              /* storage unavailable */
+            }
+          }
         } else if (w.provider) {
           const okConnect = await attach(w.provider, w.name, true);
           if (okConnect) {
@@ -156,12 +204,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* already gone */
     }
+    const wasWc = !!wcRef.current;
     wcRef.current = null;
-    try {
-      // let browser wallets forget the site where they support it
-      await provider?.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] } as never);
-    } catch {
-      /* not supported by every wallet */
+    if (!wasWc) {
+      try {
+        // let browser wallets forget the site where they support it
+        await provider?.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] } as never);
+      } catch {
+        /* not supported by every wallet */
+      }
     }
     try {
       localStorage.removeItem(LAST);
