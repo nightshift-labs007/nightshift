@@ -39,6 +39,7 @@ export function configStatus() {
     captcha: !!(env.turnstileSecret && env.turnstileSite),
     alerts: !!(env.telegramToken && env.telegramChat),
     walletConnect: env.walletConnect.length > 0,
+    xAgent: ["X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET"].every((k) => v(k).length > 0),
   };
 }
 

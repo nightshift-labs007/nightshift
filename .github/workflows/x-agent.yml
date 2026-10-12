@@ -1,0 +1,45 @@
+name: x-agent
+# Nightshift's autonomous X account (@nightshift_si). Each slot is scheduled at its UTC time for both EDT and EST;
+# the site only posts when a call lands inside the slot's New York-time window, so exactly one of each pair posts.
+on:
+  schedule:
+    - cron: "2 13,14 * * 1-5"   # preopen  09:00 ET, Mon-Fri
+    - cron: "17 14,15 * * 1-5"  # graded   10:15 ET, Mon-Fri
+    - cron: "2 16,17 * * 6"     # weekend  12:00 ET, Sat
+    - cron: "2 17,18 * * 3"     # fact     13:00 ET, Wed
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "preopen, graded, weekend or fact"
+        required: true
+        default: preopen
+      mode:
+        description: "dry = show the post without posting; force = post now, ignoring the time window"
+        required: true
+        default: dry
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Post to X
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_SLOT: ${{ github.event.inputs.slot }}
+          INPUT_MODE: ${{ github.event.inputs.mode }}
+        run: |
+          case "$SCHEDULE" in
+            "2 13,14 * * 1-5")  slot=preopen ;;
+            "17 14,15 * * 1-5") slot=graded ;;
+            "2 16,17 * * 6")    slot=weekend ;;
+            "2 17,18 * * 3")    slot=fact ;;
+            *)                  slot="$INPUT_SLOT" ;;
+          esac
+          extra=""
+          [ "$INPUT_MODE" = "dry" ] && extra="&dry=1"
+          [ "$INPUT_MODE" = "force" ] && extra="&force=1"
+          code=$(curl -s -o out.json -w "%{http_code}" -m 90 -H "Authorization: Bearer $CRON_SECRET" "https://nightshift.buzz/api/x/post?slot=$slot$extra")
+          cat out.json; echo
+          test "$code" = "200"
