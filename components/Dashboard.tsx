@@ -21,6 +21,7 @@ import { TopStocks } from "./Stocks";
 import { Earn } from "./Earn";
 import { Verified } from "./Verified";
 import { BrandMark } from "./BrandMark";
+import { AlwaysOnAudio } from "./AlwaysOnAudio";
 import type { StockBoard } from "@/lib/stocks";
 
 const NAV = [
@@ -179,6 +180,7 @@ export function Dashboard() {
         </div>
       </nav>
 
+      <AlwaysOnAudio />
       <EngineHero />
       <MarketStrip snap={snap} />
 

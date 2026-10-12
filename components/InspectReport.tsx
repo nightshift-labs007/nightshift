@@ -4,6 +4,7 @@ import type { OracleSnapshot } from "@/lib/oracle";
 import type { StockBoard, StockQuote } from "@/lib/stocks";
 import { isDeployed } from "@/lib/chain";
 import { BrandMark } from "./BrandMark";
+import { AlwaysOnAudio } from "./AlwaysOnAudio";
 import { StockLogo, StockTable } from "./Stocks";
 import { signed, usd, useApi } from "./useApi";
 
@@ -100,6 +101,7 @@ export function InspectReport() {
         </div>
       </nav>
 
+      <AlwaysOnAudio />
       <main className="ins-enter">
         <section className="block ins-hero">
           <div className="wrap">

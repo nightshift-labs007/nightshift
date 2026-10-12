@@ -1218,6 +1218,17 @@
     true,
   );
 
+  // the soundtrack is always on and lives in the page: forward the first interaction here so it can start.
+  // Opened on its own (not embedded), the scene starts its own soundtrack instead.
+  const startAudio = () => {
+    if (window.top !== window) window.parent.postMessage({ type: "ns-audio-start" }, window.location.origin);
+    else {
+      const s = document.getElementById("sound");
+      if (s && s.getAttribute("aria-pressed") !== "true") s.click();
+    }
+  };
+  ["pointerdown", "keydown", "touchstart"].forEach((ev) => window.addEventListener(ev, startAudio, { capture: true, once: true }));
+
   new ResizeObserver(resize).observe(stage);
   resize();
   load();
