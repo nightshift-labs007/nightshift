@@ -16,7 +16,7 @@
     tYaw: 0.42, tPitch: -0.34, tZoom: 1,
     look: { x: 0, y: 0, tx: -0.35, ty: -0.15 },
     awake: false, inspecting: false, paused: false,
-    t: 0, energy: 0, hover: null, drag: null,
+    t: 0, energy: 0, hover: null, drag: null, kickGlow: 0, diving: false, started: false,
   };
   let W = 0, H = 0, dpr = 1;
   let snap = null;
@@ -195,6 +195,25 @@
     tip.classList.remove("on");
     tipKey = null;
   }
+  // "Inspect the engine": widen the stage, fade the page away, zoom the camera into the eye,
+  // then cut to black and open the analysis page
+  function diveInto(url) {
+    if (S.diving) return;
+    if (reduced) return goPage(url);
+    S.diving = true;
+    S.kickGlow = 1;
+    S.look.tx = 0;
+    S.look.ty = 0;
+    hideTip();
+    exp.classList.add("ns-diving");
+    document.documentElement.classList.add("ns-diving");
+    S.tZoom = 5.2;
+    const veil = document.createElement("div");
+    veil.className = "ns-veil";
+    document.body.appendChild(veil);
+    setTimeout(() => veil.classList.add("on"), 950);
+    setTimeout(() => goPage(url), 1500);
+  }
   function goPage(url) {
     try {
       (window.top || window).location.href = url;
@@ -227,7 +246,7 @@
     return rotX(rotY(p, S.yaw + S.look.x * 0.12), S.pitch + S.look.y * 0.08);
   }
   function project(p, g) {
-    const s = 1100 / (1100 - p.z);
+    const s = 1100 / Math.max(160, 1100 - p.z); // never let a point pass behind the camera
     return { x: g.cx + p.x * s, y: g.cy + p.y * s, z: p.z, s };
   }
   function ringPoint(ring, ang, g) {
@@ -658,6 +677,10 @@
         ctx.fill();
       });
     }
+    // the eyeball (inner ring, pupil and its live core) only appears once the engine runs;
+    // at rest the Ethereum crystal takes its place
+    const eyeball = morph();
+    ctx.globalAlpha = eyeball;
     ctx.lineWidth = 1.4;
     ctx.strokeStyle = `rgba(${AMBER},${Math.min(1, lit + 0.25)})`;
     ctx.beginPath();
@@ -680,6 +703,7 @@
     ctx.beginPath();
     ctx.arc(ix, iy, dotR * 3, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalAlpha = 1;
 
     // Ethereum inside the eye: it fills the lens at rest, then settles into the pupil once the engine runs
     {
@@ -780,7 +804,7 @@
       y = Math.max(hh, Math.min(H - hh, y));
       el.style.left = `${x}px`;
       el.style.top = `${y}px`;
-      el.style.opacity = S.inspecting && S.zoom > 1.4 ? "0.25" : "1";
+      el.style.opacity = S.diving ? "0" : S.inspecting && S.zoom > 1.4 ? "0.25" : "1";
     });
   }
 
@@ -951,6 +975,11 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     placeTags(g);
+    if (S.diving) {
+      // the dive: only the eye, growing to fill the view
+      drawCore(g);
+      return;
+    }
     drawPlatform(g);
     drawProjection(g);
     drawConduits(g);
@@ -971,12 +1000,13 @@
   // ---------- loop ----------
   let last = performance.now();
   function frame(now) {
+    S.started = true;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     const tscale = S.paused ? 0 : 1;
     S.t += dt * tscale;
     S.energy += ((S.awake ? 1 : 0) - S.energy) * Math.min(1, dt * 1.6);
-    const ease = Math.min(1, dt * 4);
+    const ease = Math.min(1, dt * (S.diving ? 2.6 : 4));
     if (!S.inspecting && !S.drag) {
       S.tYaw = 0.42 + Math.sin(S.t * 0.08) * 0.1;
     }
@@ -1006,6 +1036,8 @@
     H = r.height;
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
+    // resizing wipes the canvas after this frame was drawn; repaint now so the stage never flashes blank
+    if (S.started && W > 0 && H > 0) draw(0);
   }
 
   // ---------- interaction ----------
@@ -1056,7 +1088,7 @@
       hideTip();
       return;
     }
-    const hit = hitTest(m.x, m.y);
+    const hit = S.diving ? null : hitTest(m.x, m.y);
     S.hover = hit;
     canvas.style.cursor = hit ? "pointer" : S.inspecting ? "grab" : "";
     if (hit) showTip(hit, m.x, m.y);
@@ -1181,7 +1213,7 @@
       e.preventDefault();
       e.stopImmediatePropagation();
       if (b.id === "stocks-btn") go("#stocks");
-      else goPage("/inspect");
+      else diveInto("/inspect");
     },
     true,
   );

@@ -100,7 +100,7 @@ export function InspectReport() {
         </div>
       </nav>
 
-      <main>
+      <main className="ins-enter">
         <section className="block ins-hero">
           <div className="wrap">
             <p className="overline-plain mono">ENGINE INSPECTION · {board ? board.market.etTime.toUpperCase() : "LOADING"}</p>

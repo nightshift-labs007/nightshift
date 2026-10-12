@@ -13,7 +13,7 @@ export const LOGOS: Record<string, { title: string; hex: string; path: string; b
  "COINBASE": {
   "title": "Coinbase",
   "hex": "#0052FF",
-  "path": "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4.6a5.4 5.4 0 0 1 5.3 4.4h-3.4a2.1 2.1 0 1 0 0 2h3.4A5.4 5.4 0 1 1 12 6.6z"
+  "path": "M21.37 8.5A10 10 0 1 0 21.37 15.5H9.4Q8.5 15.5 8.5 14.6V9.4Q8.5 8.5 9.4 8.5Z"
  },
  "BINANCE": {
   "title": "Binance",
