@@ -1,0 +1,42 @@
+{
+  "name": "nightshift",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "algo:account": "node scripts/new-algorand-account.mjs",
+    "zk:build": "node scripts/zk-build.mjs",
+    "contracts:compile": "node scripts/compile-contracts.mjs",
+    "contracts:deploy": "node scripts/deploy-contracts.mjs",
+    "chain:local": "hardhat node --config hardhat.config.cjs",
+    "formal:prove": "node --env-file-if-exists=.env.local scripts/formal.mjs prove",
+    "formal:check": "node scripts/formal.mjs audit && node scripts/formal.mjs vectors && node scripts/formal.mjs manifest",
+    "formal:test": "node scripts/test-formal.mjs && node --test test/guardian-rule.test.mjs",
+    "formal:anchor": "node --env-file-if-exists=.env.local scripts/formal.mjs anchor"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "algosdk": "^3.8.0",
+    "next": "^15.5.27",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "server-only": "^0.0.1",
+    "snarkjs": "^0.7.6",
+    "viem": "^2.57.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "circom2": "^0.2.23",
+    "circomlib": "^2.0.5",
+    "hardhat": "^2.29.1",
+    "solc": "^0.8.26",
+    "typescript": "^5.9.3"
+  }
+}

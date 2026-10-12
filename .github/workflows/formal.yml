@@ -1,0 +1,55 @@
+name: formal-verification
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      prove:
+        description: "Run Aristotle on a module (Guardian, Vault, Oracle, Cloak or all); leave empty to only re-check"
+        required: false
+
+jobs:
+  lean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal
+          use-mathlib-cache: true
+      # Optional, manual only: CI normally never calls Aristotle, it re-checks the committed proofs.
+      - name: Aristotle (manual)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.prove != '' }}
+        env:
+          ARISTOTLE_API_KEY: ${{ secrets.ARISTOTLE_API_KEY }}
+        run: |
+          pip install aristotlelib
+          node scripts/formal.mjs prove "${{ inputs.prove }}"
+      - name: Axiom audit (fails on any sorry or unexpected axiom)
+        run: node scripts/formal.mjs audit --strict
+      - name: Lean test vectors vs the real contracts
+        run: |
+          node scripts/formal.mjs vectors
+          npx hardhat node --config hardhat.config.cjs > /tmp/chain.log 2>&1 &
+          sleep 8
+          node scripts/test-formal.mjs
+          node --test test/guardian-rule.test.mjs
+      - name: Build manifest
+        run: node scripts/formal.mjs manifest
+      - name: Anchor manifest on Algorand
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+        env:
+          ALGORAND_MNEMONIC: ${{ secrets.ALGORAND_MNEMONIC }}
+        run: node scripts/formal.mjs anchor
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verification
+          path: |
+            public/verified/manifest.json
+            formal/PROPERTIES.md
+            formal/audit.txt

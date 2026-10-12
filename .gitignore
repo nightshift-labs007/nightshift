@@ -1,0 +1,29 @@
+node_modules/
+.next/
+out/
+.vercel/
+.env
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+# ZK build intermediates (public/zk holds the deployable artifacts)
+zk/*.ptau
+zk/*_0000.zkey
+.next-verify/
+
+.vercel
+.env*
+.nightshift-addresses.txt
+cache/
+artifacts/
+formal/.lake/
+
+# Local-only source material (personal photos, stock images, third-party design file)
+/*.jpg
+/*.jpeg
+WhatsApp Image *
+ROBOKY-NIGHTFALL-MOTION.html
+# Formal-verification run artefacts
+formal/audit.txt
+formal/aristotle-*.log
+formal/aristotle-*.rejected.lean

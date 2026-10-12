@@ -1,0 +1,28 @@
+# Not needed to build or run the site (Vercel installs dependencies itself)
+node_modules
+.next
+.env
+.env*.local
+
+# Source material kept locally only
+ROBOKY-NIGHTFALL-MOTION.html
+Nightshift_Concept_Paper.pdf
+WhatsApp Image *.jpeg
+38208ac3-26ec-44e4-8355-664dd89b15bf.jpg
+
+# ZK build intermediates (compiled artifacts live in public/zk)
+zk/*.ptau
+zk/*_0000.zkey
+.next-verify
+.nightshift-addresses.txt
+hardhat.config.cjs
+cache
+artifacts
+
+# Formal verification: Lean sources stay in the repo, but the multi-GB Mathlib build cache never ships
+formal/.lake
+formal/audit.txt
+formal/aristotle-*
+santora-integration.pdf
+Nightshift_Harmonic_Integration_Spec.pdf
+*.jpg

@@ -1,0 +1,87 @@
+// Deploys the Nightshift testnet stack and writes lib/chain/deployment.json.
+// Usage: DEPLOYER_PRIVATE_KEY=0x... npm run contracts:deploy
+// Optional: RPC_URL (default Base Sepolia), CHAIN_ID, ORACLE_URL (where to read starting prices)
+import fs from "node:fs";
+import { createPublicClient, createWalletClient, http, parseEther, defineChain } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+
+const RPC_URL = process.env.RPC_URL || "https://sepolia.base.org";
+const CHAIN_ID = Number(process.env.CHAIN_ID || 84532);
+const ORACLE_URL = process.env.ORACLE_URL || "https://nightshift3.vercel.app/api/oracle";
+const key = process.env.DEPLOYER_PRIVATE_KEY;
+if (!key) throw new Error("Set DEPLOYER_PRIVATE_KEY");
+
+const chain = defineChain({
+  id: CHAIN_ID,
+  name: CHAIN_ID === 84532 ? "Base Sepolia" : `chain ${CHAIN_ID}`,
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: [RPC_URL] } },
+});
+const account = privateKeyToAccount(key);
+const pub = createPublicClient({ chain, transport: http(RPC_URL) });
+const wallet = createWalletClient({ chain, account, transport: http(RPC_URL) });
+const A = JSON.parse(fs.readFileSync("lib/chain/artifacts.json", "utf8"));
+
+async function deploy(name, args = []) {
+  const hash = await wallet.deployContract({ abi: A[name].abi, bytecode: A[name].bytecode, args });
+  const r = await pub.waitForTransactionReceipt({ hash });
+  console.log(`  ${name.padEnd(20)} ${r.contractAddress}`);
+  return r.contractAddress;
+}
+async function send(address, name, fn, args) {
+  const hash = await wallet.writeContract({ address, abi: A[name].abi, functionName: fn, args });
+  await pub.waitForTransactionReceipt({ hash });
+}
+
+const ASSETS = [
+  { token: "SPY", name: "Nightshift Test SPY", faucet: "10", lltv: "0.77" },
+  { token: "QQQ", name: "Nightshift Test QQQ", faucet: "10", lltv: "0.77" },
+  { token: "GLD", name: "Nightshift Test GLD", faucet: "20", lltv: "0.77" },
+  { token: "IBIT", name: "Nightshift Test IBIT", faucet: "200", lltv: "0.625" },
+];
+
+const balance = await pub.getBalance({ address: account.address });
+console.log(`Deployer ${account.address} on ${chain.name} (${chain.id}), balance ${Number(balance) / 1e18} ETH`);
+if (balance === 0n) throw new Error("Deployer has no gas. Fund it from a faucet first.");
+const startBlock = await pub.getBlockNumber();
+
+console.log("Deploying:");
+const usdg = await deploy("TestToken", ["Nightshift Test USDG", "tUSDG", parseEther("1000")]);
+const tokens = {};
+for (const a of ASSETS) tokens[a.token] = await deploy("TestToken", [a.name, `t${a.token}`, parseEther(a.faucet)]);
+const oracle = await deploy("NightshiftOracle");
+const vault = await deploy("NightshiftVault", [usdg, oracle]);
+const verifier = await deploy("Groth16Verifier");
+const adapters = {};
+for (const a of ASSETS) adapters[a.token] = await deploy("MorphoOracleAdapter", [oracle, tokens[a.token]]);
+
+console.log("Configuring markets, liquidity and starting prices…");
+for (const a of ASSETS) await send(vault, "NightshiftVault", "setMarket", [tokens[a.token], parseEther(a.lltv), true]);
+await send(usdg, "TestToken", "mint", [vault, parseEther("50000000")]);
+
+const snap = await (await fetch(ORACLE_URL)).json();
+const toks = [];
+const prices = [];
+const confs = [];
+for (const q of snap.quotes) {
+  if (!tokens[q.token]) continue;
+  toks.push(tokens[q.token]);
+  prices.push(parseEther(q.fairValue.toFixed(6)));
+  confs.push(q.confidence);
+}
+await send(oracle, "NightshiftOracle", "setPrices", [toks, prices, confs]);
+
+const deployment = {
+  deployed: true,
+  chainId: chain.id,
+  chainName: chain.name,
+  rpcUrl: RPC_URL,
+  explorer: chain.id === 84532 ? "https://sepolia.basescan.org" : "",
+  deployedAt: new Date().toISOString(),
+  startBlock: Number(startBlock),
+  keeper: account.address,
+  contracts: { usdg, oracle, vault, verifier },
+  tokens: Object.fromEntries(ASSETS.map((a) => [a.token, { address: tokens[a.token], lltv: Number(a.lltv), adapter: adapters[a.token] }])),
+};
+fs.writeFileSync("lib/chain/deployment.json", JSON.stringify(deployment, null, 2));
+console.log("Wrote lib/chain/deployment.json");

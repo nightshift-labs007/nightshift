@@ -1,0 +1,4 @@
+.lake/
+audit.txt
+aristotle-*.log
+aristotle-*.rejected.lean

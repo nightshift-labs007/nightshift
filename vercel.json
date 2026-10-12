@@ -1,0 +1,14 @@
+{
+  "crons": [
+    { "path": "/api/commit", "schedule": "0 12 * * 1-5" },
+    { "path": "/api/keeper", "schedule": "30 12 * * *" }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.nightshift.buzz" }],
+      "destination": "https://nightshift.buzz/:path*",
+      "permanent": true
+    }
+  ]
+}
