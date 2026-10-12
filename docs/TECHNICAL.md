@@ -216,7 +216,7 @@ npx vercel --prod      # deploy from local, no GitHub needed (see README)
 `GET /api/earn/sentora` → `{ vault, apy7d, apy30d, apyReported, tvl, sharePrice, coverActive, history, source, updatedAt, dataAt, stale, depositUrl }`, cached 10 min (`s-maxage=600`). Code: `lib/earn/sentora.ts`, UI: `components/Earn.tsx`.
 
 - **APY** = `(P_now / P_then)^(365/d) − 1` on the vault share price, for d = 7 (headline) and 30 days. The daily share-price history comes from DefiLlama's yields API (`/chart/{pool}`), so no snapshot database is needed.
-- **On-chain read**: when `SENTORA_VAULT_ADDRESS` is set, the current share price (`convertToAssets(1 share)`) and TVL (`totalAssets()`) are read from the ERC-4626 vault on Ethereum mainnet (`ETH_RPC_URL`, default a public RPC).
+- **On-chain read**: the current share price (`getSharePrice()`) and TVL (`getTotalAssets()`) are read from the Sentora Protected RWA vault `0xd000E6BcAd5457E8F4de67eDdeFe50BCC4B3d743` on Ethereum mainnet (`ETH_RPC_URL`, default a public RPC). The vault isn't ERC-4626; these are the same calls DefiLlama's Sentora adapter uses.
 - **Stale**: if the last good read is over an hour old, `stale: true` and the panel shows a warning.
 - **Deposit link**: opens Sentora in a new tab with `utm_source=nightshift&utm_medium=earn_panel&utm_campaign=sentora_phase1`. Nightshift never touches funds.
 
@@ -224,12 +224,12 @@ Environment variables (all optional):
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SENTORA_LLAMA_POOL` | `64d85231-…` (Sentora PRIME, PYUSD, Ethereum) | DefiLlama pool for history/APY/TVL |
-| `SENTORA_VAULT_NAME` | `Sentora PRIME` | Name shown on the panel |
-| `SENTORA_VAULT_ADDRESS` | unset | Vault contract for on-chain reads |
-| `SENTORA_VAULT_CONFIRMED` | `false` | `true` removes the "pending confirmation" label |
-| `SENTORA_FIRELIGHT_COVER` | `false` | `true` shows the Firelight cover badge (only once Sentora confirms) |
-| `SENTORA_DEPOSIT_URL` | `https://vaults.sentora.com/` | Deep link target (UTM tags are added) |
+| `SENTORA_LLAMA_POOL` | `64d85231-…` (Sentora Protected RWA, listed on DefiLlama as Sentora PRIME, PYUSD, Ethereum) | DefiLlama pool for history/APY/TVL |
+| `SENTORA_VAULT_NAME` | `Sentora Protected RWA` | Name shown on the panel |
+| `SENTORA_VAULT_ADDRESS` | `0xd000E6Bc…d743` | Vault contract for on-chain reads |
+| `SENTORA_VAULT_CONFIRMED` | `true` | `false` shows a "pending confirmation" label |
+| `SENTORA_FIRELIGHT_COVER` | `true` | Shows the Firelight cover badge (the vault is marked "Protected" on Sentora); `false` hides it |
+| `SENTORA_DEPOSIT_URL` | the vault's page on vaults.sentora.com | Deep link target (UTM tags are added) |
 | `SENTORA_APY_7D` | `8.9` | Sentora's published 7-day APY, shown as the headline with its date (`off` = use the on-chain calculation) |
 | `SENTORA_APY_AS_OF` | `2026-10-12` | Date of that published figure |
 | `ETH_RPC_URL` | public RPC | Ethereum mainnet RPC (Alchemy/Infura recommended) |

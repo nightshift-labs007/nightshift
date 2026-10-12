@@ -2,21 +2,21 @@ import "server-only";
 import { createPublicClient, http, parseAbi } from "viem";
 import { mainnet } from "viem/chains";
 
-// Phase 1 of the Sentora integration: a read-only view of a Sentora PYUSD vault. Nightshift never touches funds.
-// Until Sentora confirms which vault is the Firelight-protected one, the panel follows the vault configured
-// below and says it is pending confirmation; the Firelight badge stays hidden until cover is confirmed.
+// Phase 1 of the Sentora integration: a read-only view of Sentora Protected RWA, the Firelight-covered PYUSD vault
+// on Ethereum (vaults.sentora.com lists it at $2.2M TVL; DefiLlama tracks it as "Sentora PRIME"). Nightshift never
+// touches funds. Every default below can be overridden by the matching SENTORA_* environment variable.
 const CONFIG = {
-  name: process.env.SENTORA_VAULT_NAME ?? "Sentora PRIME",
+  name: process.env.SENTORA_VAULT_NAME || "Sentora Protected RWA",
   chain: "Ethereum",
   asset: "PYUSD",
   // DefiLlama yields pool id (daily share-price history + current APY and TVL)
   llamaPool: process.env.SENTORA_LLAMA_POOL ?? "64d85231-3132-5684-86e9-572888258092",
-  // ERC-4626 vault address; when set, the current share price and TVL are read on-chain
-  vaultAddress: process.env.SENTORA_VAULT_ADDRESS as `0x${string}` | undefined,
+  // vault contract; the current share price and TVL are read from it on-chain
+  vaultAddress: (process.env.SENTORA_VAULT_ADDRESS || "0xd000E6BcAd5457E8F4de67eDdeFe50BCC4B3d743") as `0x${string}`,
   rpcUrl: process.env.ETH_RPC_URL ?? "https://ethereum-rpc.publicnode.com",
-  confirmed: process.env.SENTORA_VAULT_CONFIRMED === "true",
-  coverActive: process.env.SENTORA_FIRELIGHT_COVER === "true",
-  depositBase: process.env.SENTORA_DEPOSIT_URL ?? "https://vaults.sentora.com/",
+  confirmed: process.env.SENTORA_VAULT_CONFIRMED !== "false",
+  coverActive: process.env.SENTORA_FIRELIGHT_COVER !== "false", // the vault carries Sentora's "Protected" (Firelight) badge
+  depositBase: process.env.SENTORA_DEPOSIT_URL || "https://vaults.sentora.com/vault/ethereum/0xd000E6BcAd5457E8F4de67eDdeFe50BCC4B3d743",
   // Sentora's own "Est. APY 7d" from vaults.sentora.com. Their API isn't public, so it's set by hand;
   // update SENTORA_APY_7D / SENTORA_APY_AS_OF when Sentora's figure changes; "off" disables it.
   publishedApy7d: process.env.SENTORA_APY_7D || "8.9",
@@ -77,27 +77,25 @@ async function fromDefiLlama(): Promise<EarnPoint[]> {
     .map((p) => ({ t: p.timestamp, apy: p.apy ?? 0, sharePrice: p.pricePerShare as number, tvl: p.tvlUsd }));
 }
 
+// Sentora's vault isn't ERC-4626: it reports the share price and total assets directly, both in the asset's units
+// (the same calls DefiLlama's Sentora adapter uses).
 const VAULT_ABI = parseAbi([
-  "function decimals() view returns (uint8)",
   "function asset() view returns (address)",
-  "function convertToAssets(uint256 shares) view returns (uint256)",
-  "function totalAssets() view returns (uint256)",
+  "function getSharePrice() view returns (uint256)",
+  "function getTotalAssets() view returns (uint256)",
 ]);
 const ERC20_ABI = parseAbi(["function decimals() view returns (uint8)"]);
 
 async function fromChain(address: `0x${string}`) {
   const client = createPublicClient({ chain: mainnet, transport: http(CONFIG.rpcUrl, { timeout: 8000 }) });
-  const [shareDec, asset] = await Promise.all([
-    client.readContract({ address, abi: VAULT_ABI, functionName: "decimals" }),
-    client.readContract({ address, abi: VAULT_ABI, functionName: "asset" }),
-  ]);
-  const assetDec = await client.readContract({ address: asset, abi: ERC20_ABI, functionName: "decimals" });
-  const [assets, total] = await Promise.all([
-    client.readContract({ address, abi: VAULT_ABI, functionName: "convertToAssets", args: [10n ** BigInt(shareDec)] }),
-    client.readContract({ address, abi: VAULT_ABI, functionName: "totalAssets" }),
+  const asset = await client.readContract({ address, abi: VAULT_ABI, functionName: "asset" });
+  const [assetDec, price, total] = await Promise.all([
+    client.readContract({ address: asset, abi: ERC20_ABI, functionName: "decimals" }),
+    client.readContract({ address, abi: VAULT_ABI, functionName: "getSharePrice" }),
+    client.readContract({ address, abi: VAULT_ABI, functionName: "getTotalAssets" }),
   ]);
   const scale = 10 ** assetDec;
-  return { sharePrice: Number(assets) / scale, tvl: Number(total) / scale };
+  return { sharePrice: Number(price) / scale, tvl: Number(total) / scale };
 }
 
 // last good read, kept per server instance; reads are also cached by the fetch layer for 10 minutes
