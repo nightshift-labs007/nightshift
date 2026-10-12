@@ -28,15 +28,17 @@ const WINDOW_BEFORE_MIN = 10; // GitHub may start a little early…
 const WINDOW_AFTER_MIN = 55; // …or up to most of an hour late; the other DST variant lands an hour away
 
 const money = (x: number) => `$${x.toFixed(2)}`;
-const signed = (x: number, d = 2) => `${x >= 0 ? "+" : "-"}${Math.abs(x).toFixed(d)}%`;
-const bps = (x: number) => (x < 10 ? x.toFixed(1) : x.toFixed(0));
 /** Same day → same wording; different days → different wording. */
 const pick = <T,>(options: T[], seed: string) => options[[...seed].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % options.length];
-const dateLabel = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 const etStamp = (now: number) => {
   const p = etParts(now);
-  return `${dateLabel(p.date)}, ${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")} ET`;
+  const md = new Date(`${p.date}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  return `${md}, ${p.hour % 12 || 12}:${String(p.minute).padStart(2, "0")}${p.hour < 12 ? "am" : "pm"} ET`;
 };
+/** "up 0.26%", "down 0.04%", "flat" */
+const move = (pct: number) => (Math.abs(pct) < 0.005 ? "flat" : `${pct > 0 ? "up" : "down"} ${Math.abs(pct).toFixed(2)}%`);
+/** basis points → percent, for people */
+const pctOff = (bpsVal: number) => `${(bpsVal / 100).toFixed(bpsVal < 10 ? 3 : 2)}%`;
 
 function fit(lines: string[]) {
   const out = [...lines];
@@ -58,7 +60,7 @@ async function theorem(now: number): Promise<Draft> {
   const tick = Math.floor(now / (20 * 60_000));
   const card = cards[tick % cards.length];
   const prop = verified.get(card.id)!;
-  let live: string[] = [];
+  let live = "";
   if (card.live) {
     const snap = await getOracleSnapshot();
     const quotes = snap.quotes.filter((q) => q.source === "live");
@@ -67,17 +69,12 @@ async function theorem(now: number): Promise<Draft> {
       live = card.live({ q, quotes });
     }
   }
-  const lines = [
-    `Theorem ${card.id} · proven ✓`,
-    "",
-    ...card.math,
-    ...(live.length ? ["", ...live] : []),
-    "",
-    prop.plain,
-    "",
-    `Lean 4 · Harmonic Aristotle · ${verified.size}/${M.properties.length} · ${etStamp(now)}`,
-  ];
-  return { slot: "theorem", text: fit(lines) };
+  const footer = `✓ Machine-proven (${prop.id}): Lean 4 + Harmonic's Aristotle · ${etStamp(now)}`;
+  const build = (formula: string[], withLive: boolean) =>
+    [card.ask, "", card.answer, ...(formula.length ? ["", ...formula] : []), ...(withLive && live ? ["", live] : []), "", footer].join("\n");
+  // too long? drop extra formula lines first, then the formula, and the live example last: it's the most concrete part
+  const tries = [build(card.formula, true), build(card.formula.slice(0, 1), true), build([], true), build(card.formula.slice(0, 1), false)];
+  return { slot: "theorem", text: tries.find((t) => xLength(t) <= 275) ?? fit(tries[3].split("\n")) };
 }
 
 async function preopen(now: number): Promise<Draft> {
@@ -85,10 +82,12 @@ async function preopen(now: number): Promise<Draft> {
   const qs = snap.quotes;
   if (!qs.length || qs.some((q) => q.source !== "live")) return { slot: "preopen", skip: "some prices are simulated right now" };
   const date = etParts(now).date;
-  const line = (q: Quote) => `${q.token}: FV = ${money(q.fairValue)} · Δ ${signed(q.driftPct)} · conf ${q.confidence}`;
-  const head = pick([`Pre-open call · ${dateLabel(date)}`, `Before the bell · ${dateLabel(date)}`, `Fair value, ${dateLabel(date)} pre-open`], date);
-  const tail = pick(["Δ vs last close. Graded at 9:30: ε = |open − FV|", "Δ vs last close. Scored against the open, every day.", "A stale feed still shows Δ = 0."], date + "t");
-  return { slot: "preopen", text: fit([head, "FV = Σ wᵢ·sᵢ  (Σ wᵢ = 1)", "", ...qs.map(line), "", tail]) };
+  const head = pick(
+    ["US markets open in 30 minutes. Where should these ETFs open?", "30 minutes to the opening bell. Our call:", "Before the bell: where these ETFs should open today"],
+    date,
+  );
+  const line = (q: Quote) => `${q.token}  ${money(q.fairValue)}  (${move(q.driftPct)})`;
+  return { slot: "preopen", text: fit([head, "", ...qs.map(line), "", "vs yesterday's close. We'll grade this at 9:30 ET."]) };
 }
 
 async function graded(now: number): Promise<Draft> {
@@ -99,16 +98,13 @@ async function graded(now: number): Promise<Draft> {
     .map((r) => ({ r, row: r.rows.find((x) => x.date === date) }))
     .filter((x): x is { r: (typeof reports)[number]; row: NonNullable<(typeof x)["row"]> } => !!x.row);
   if (!today.length) return { slot: "graded", skip: `no graded open for ${date} yet` };
-  // prices for the first token, the rest compact, so all four fit in one post
-  const lines = today.map(({ r, row }, i) =>
-    i === 0
-      ? `${r.token}: FV ${money(row.predictedOpen)} → open ${money(row.actualOpen)} · ε = ${bps(row.nightshiftErrBps)} bps (stale ${bps(row.staleErrBps)})`
-      : `${r.token}: ε = ${bps(row.nightshiftErrBps)} bps (stale ${bps(row.staleErrBps)})`,
-  );
+  const lines = today.map(({ r, row }) => `${r.token}: off by ${pctOff(row.nightshiftErrBps)} (frozen price: ${pctOff(row.staleErrBps)})`);
   const spy = today.find((x) => x.r.token === "SPY")?.r ?? today[0].r;
-  const record = `${spy.token}, last ${spy.rows.length} opens: ε_NS < ε_stale ${spy.wins}/${spy.rows.length}`;
-  const head = pick([`Open graded · ${dateLabel(date)}`, `How the call did · ${dateLabel(date)}`, `Scorecard · ${dateLabel(date)} open`], date);
-  return { slot: "graded", text: fit([head, "ε = |open − FV| / open", "", ...lines, "", record]) };
+  const head = pick(["How close was our 9am call to the actual open?", "Scorecard: our pre-open call vs the real open", "Graded: our call vs today's open"], date);
+  return {
+    slot: "graded",
+    text: fit([head, "", ...lines, "", `Last ${spy.rows.length} opens on ${spy.token}: we beat the frozen price ${spy.wins} times.`]),
+  };
 }
 
 async function weekend(now: number): Promise<Draft> {
@@ -116,25 +112,25 @@ async function weekend(now: number): Promise<Draft> {
   const q = snap.quotes.find((x) => x.token === "IBIT");
   if (!q || q.source !== "live") return { slot: "weekend", skip: "IBIT price is simulated right now" };
   const date = etParts(now).date;
-  const head = pick(["Markets are closed. Bitcoin isn't.", "Weekend shift.", "The ETF is closed. Its price shouldn't be frozen."], date);
+  const head = pick(["Stock markets are closed. Bitcoin isn't.", "It's the weekend. Bitcoin is still moving.", "The Bitcoin ETF is closed. Bitcoin isn't."], date);
   return {
     slot: "weekend",
     text: fit([
       head,
       "",
-      `IBIT: P_close = ${money(q.lastClose)} → FV = ${money(q.fairValue)}`,
-      `Δ = ${signed(q.driftPct)} · conf = ${q.confidence}`,
+      `The Bitcoin ETF (IBIT) closed Friday at ${money(q.lastClose)}.`,
+      `Where it would trade right now: ${money(q.fairValue)} (${move(q.driftPct)}).`,
       "",
-      "A traditional feed holds P_close until Monday 9:30. Lending against it shouldn't.",
+      "Most price feeds will show the Friday price until Monday. Nightshift doesn't.",
     ]),
   };
 }
 
 function fact(now: number): Draft {
   const facts = [
-    `Every pre-open call is hashed to Algorand before the bell:\n\nt_commit < 09:30 ET < t_graded\n\nSo the track record can't be edited afterwards, including by us. Proof list fingerprint: ${M.algorand.manifestSha256.slice(0, 10)}…`,
-    "Cloak proves\n\ndebt·10⁸ < units·price·LLTV\n\nwithout revealing debt or units.\n\nGroth16 · 918 constraints · proved in your browser · verified by a contract on Base.",
-    "price() = P_oracle × 10¹⁸ (Morpho Blue's 1e36 scale)\n\nborrow ≤ C·P·LLTV ✓\nborrow > C·P·LLTV ✗\nP ↓ 20% ⟹ liquidatable ✓\n\nTested against a real Morpho Blue market on a fork of Base.",
+    "Can Nightshift quietly edit its past predictions?\n\nNo. Every morning's prediction is recorded on the Algorand blockchain before the market opens, so the track record is public and permanent.",
+    "Can you prove your loan is safe without showing how big it is?\n\nOn Nightshift, yes. A zero-knowledge proof shows debt < collateral × price × LTV and reveals nothing else. Made in your browser, checked by a contract on Base.",
+    "Does Nightshift's price feed work with Morpho, the lending protocol?\n\nYes. We tested it against a real Morpho market on a copy of Base: borrowing up to the limit works, one dollar more is refused, and a price drop triggers liquidation.",
   ];
   const week = Math.floor(now / (7 * 86_400_000));
   return { slot: "fact", text: fit([facts[week % facts.length]]) };
