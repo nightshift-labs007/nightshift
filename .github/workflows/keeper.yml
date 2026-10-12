@@ -1,16 +1,15 @@
 name: keeper
-# Pushes Oracle prices on-chain and runs the Guardian by calling the site's keeper job.
-# Every 30 minutes keeps a private repo inside GitHub's free Actions minutes; for a 5-minute cadence use
-# cron-job.org (free) with the same "Authorization: Bearer <CRON_SECRET>" header.
+# Every 20 minutes: pushes Oracle prices on-chain, runs the Guardian, and posts the X agent's theorem of the moment
+# (one job for both, so each run costs one Actions minute). The fixed-time market posts live in x-agent.yml.
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/20 * * * *"
   workflow_dispatch:
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 4
     steps:
       - name: Call the keeper
         env:
@@ -18,4 +17,12 @@ jobs:
         run: |
           code=$(curl -s -o out.json -w "%{http_code}" -m 90 -H "Authorization: Bearer $CRON_SECRET" https://nightshift.buzz/api/keeper)
           head -c 1500 out.json; echo
+          test "$code" = "200"
+      - name: Post the theorem to X
+        if: always()
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          code=$(curl -s -o x.json -w "%{http_code}" -m 90 -H "Authorization: Bearer $CRON_SECRET" "https://nightshift.buzz/api/x/post?slot=theorem")
+          cat x.json; echo
           test "$code" = "200"
