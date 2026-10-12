@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { OracleSnapshot } from "@/lib/oracle";
-import { DEPLOYMENT, addrUrl, isDeployed } from "@/lib/chain";
+import { DEPLOYMENT, NETWORK, addrUrl, isDeployed, isMainnet, sym } from "@/lib/chain";
 import { ApiPanel } from "./ApiPanel";
 import { Cloak, VerifyProof } from "./Cloak";
 import { GuardianConsole } from "./GuardianConsole";
@@ -30,15 +30,17 @@ export function AppPage() {
         title="Borrow against ETF tokens, priced overnight."
         lead={
           isDeployed
-            ? "Connect a wallet (it switches to Base Sepolia for you), get free test funds, deposit collateral and borrow tUSDG. The health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation."
-            : "The on-chain vault goes live on Base Sepolia shortly. Until then, try the full flow without a wallet: your paper account starts with 10 SPY, 10 QQQ, 20 GLD and 200 IBIT."
+            ? isMainnet
+              ? `Live on ${NETWORK} with demo assets that have no value: connect a wallet (it switches to ${NETWORK} for you), get demo tokens, deposit collateral and borrow ${sym("USDG")}. You only pay a few cents of ETH gas. Health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation. Unaudited demo.`
+              : `Connect a wallet (it switches to ${NETWORK} for you), get free test funds, deposit collateral and borrow ${sym("USDG")}. The health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation.`
+            : "The on-chain vault goes live on Base shortly. Until then, try the full flow without a wallet: your paper account starts with 10 SPY, 10 QQQ, 20 GLD and 200 IBIT."
         }
       />
       <section className="block" id="vault">
         <div className="wrap">
           <div className="seg vault-mode" role="tablist" aria-label="Vault mode">
             <button className={mode === "testnet" ? "on" : ""} onClick={() => setMode("testnet")}>
-              With wallet (testnet)
+              {isMainnet ? `With wallet (${NETWORK})` : "With wallet (testnet)"}
             </button>
             <button className={mode === "paper" ? "on" : ""} onClick={() => setMode("paper")}>
               Try without wallet
@@ -122,7 +124,7 @@ function Contracts() {
         <h3>Contracts</h3>
         <p className="muted">
           The Vault, Guardian and Oracle contracts are built and tested (15 contract tests and 37 checks against the Lean model all pass) and
-          go live on Base Sepolia shortly. Their addresses will be listed here.
+          go live on Base shortly. Their addresses will be listed here.
         </p>
       </div>
     );
@@ -131,12 +133,12 @@ function Contracts() {
     ["Vault + Guardian", DEPLOYMENT.contracts.vault],
     ["Oracle", DEPLOYMENT.contracts.oracle],
     ["ZK verifier", DEPLOYMENT.contracts.verifier],
-    ["tUSDG", DEPLOYMENT.contracts.usdg],
-    ...Object.entries(DEPLOYMENT.tokens ?? {}).map(([sym, t]) => [`t${sym}`, (t as { address: string }).address] as [string, string]),
+    [sym("USDG"), DEPLOYMENT.contracts.usdg],
+    ...Object.entries(DEPLOYMENT.tokens ?? {}).map(([s, t]) => [sym(s), (t as { address: string }).address] as [string, string]),
   ];
   return (
     <div className="card panel">
-      <h3>Contracts on {DEPLOYMENT.chainName}</h3>
+      <h3>Contracts on {NETWORK}{isMainnet ? " (unaudited demo, assets have no value)" : ""}</h3>
       <table className="contracts">
         <tbody>
           {rows.map(([name, addr]) => (

@@ -39,6 +39,10 @@ for (const file of Object.values(out.contracts)) {
   }
 }
 fs.mkdirSync("lib/chain", { recursive: true });
+// the exact compiler input + version, so the deployed contracts can be source-verified (scripts/verify-sourcify.mjs)
+fs.mkdirSync("contracts/build", { recursive: true });
+fs.writeFileSync("contracts/build/standard-input.json", JSON.stringify(input));
+fs.writeFileSync("contracts/build/compiler.json", JSON.stringify({ version: solc.version().replace(/.Emscripten.*$/, "") }));
 fs.writeFileSync("lib/chain/artifacts.json", JSON.stringify(artifacts));
 // ABIs only (no bytecode) for the app bundle
 fs.writeFileSync("lib/chain/abis.json", JSON.stringify(Object.fromEntries(Object.entries(artifacts).map(([k, v]) => [k, v.abi]))));

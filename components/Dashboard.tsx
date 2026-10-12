@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect } from "react";
 import type { OracleSnapshot } from "@/lib/oracle";
 import type { StockBoard } from "@/lib/stocks";
-import { isDeployed } from "@/lib/chain";
+import { isDeployed, isMainnet } from "@/lib/chain";
+const LIVE = isDeployed ? (isMainnet ? "Live on Base · demo" : "Live on testnet") : "Testnet-ready";
 import { CountUp } from "./CountUp";
 import { Earn } from "./Earn";
 import { HowItWorks } from "./HowItWorks";
@@ -46,8 +47,8 @@ function MarketStrip({ snap }: { snap: OracleSnapshot | null }) {
 
 const ROADMAP = [
   { phase: "Live", title: "Oracle and shift reports", body: "Off-hours fair values for SPY, QQQ, gold and Bitcoin ETF tokens, a public API, and a graded track record." },
-  { phase: isDeployed ? "Live on testnet" : "Testnet-ready", title: "Vault on Morpho", body: "Smart contracts with Morpho Blue's rules and a Morpho-compatible oracle adapter, on Base Sepolia. Next: markets on Morpho itself." },
-  { phase: isDeployed ? "Live on testnet" : "Testnet-ready", title: "Guardian", body: "Borrowers opt in on-chain; a keeper protects loans around the clock. Next: alerts by email and Telegram." },
+  { phase: LIVE, title: "Vault on Morpho", body: "Smart contracts with Morpho Blue's rules and a Morpho-compatible oracle adapter, on Base. Next: markets on Morpho itself." },
+  { phase: LIVE, title: "Guardian", body: "Borrowers opt in on-chain; a keeper protects loans around the clock. Next: alerts by email and Telegram." },
   { phase: "Live proofs", title: "Cloak", body: "Solvency proofs verified by the server and by a smart contract. Next: shielded positions and an auditor view key." },
 ];
 

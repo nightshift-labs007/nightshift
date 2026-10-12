@@ -56,6 +56,16 @@ contract TestToken {
         _mint(msg.sender, faucetAmount);
     }
 
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /// @notice Hands every owner power (prices override, markets, roles) to a new address, e.g. the team's own wallet.
+    function transferOwnership(address newOwner) external {
+        require(msg.sender == owner, "owner");
+        require(newOwner != address(0), "zero");
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
     /// @notice Lets a separate faucet wallet mint test tokens without holding the owner key.
     function setMinter(address minter, bool allowed) external {
         require(msg.sender == owner, "owner");

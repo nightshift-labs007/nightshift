@@ -1,8 +1,8 @@
 import "server-only";
-import { createPublicClient, createWalletClient, formatEther, http, parseEther, type Address, type PublicClient } from "viem";
+import { createPublicClient, createWalletClient, formatEther, parseEther, type Address, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { getOracleSnapshot } from "@/lib/oracle";
-import { ABI, DEPLOYMENT, chainOf, isDeployed } from "./index";
+import { ABI, DEPLOYMENT, chainOf, chainTransport, isDeployed } from "./index";
 
 const WAD = 10n ** 18n;
 const SLIPPAGE_WAD = 5n * 10n ** 15n; // 0.5%, as in NightshiftVault
@@ -26,13 +26,13 @@ export function roleClients(role: Role) {
   if (!isDeployed || !key) return null;
   const chain = chainOf();
   const account = privateKeyToAccount(key as `0x${string}`);
-  const transport = http(DEPLOYMENT.rpcUrl);
+  const transport = chainTransport();
   return { account, pub: createPublicClient({ chain, transport }) as PublicClient, wallet: createWalletClient({ chain, account, transport }) };
 }
 
 export function publicClient() {
   if (!isDeployed) return null;
-  return createPublicClient({ chain: chainOf(), transport: http(DEPLOYMENT.rpcUrl) }) as PublicClient;
+  return createPublicClient({ chain: chainOf(), transport: chainTransport() }) as PublicClient;
 }
 
 /** Batched contract reads (one RPC round trip); falls back to sequential reads where Multicall3 isn't deployed. */

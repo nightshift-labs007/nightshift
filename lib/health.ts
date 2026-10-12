@@ -1,12 +1,16 @@
 import "server-only";
 import { formatEther, parseEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { ABI, DEPLOYMENT, isDeployed } from "@/lib/chain";
+import { ABI, DEPLOYMENT, isDeployed, isMainnet } from "@/lib/chain";
 import { publicClient } from "@/lib/chain/keeper";
 import { configProblems, configStatus, env } from "./env";
 
-const STALE_SEC = 15 * 60;
-const LOW: Record<string, bigint> = { updater: parseEther("0.0005"), keeper: parseEther("0.0005"), faucet: parseEther("0.001") };
+// alarm when an on-chain price is older than this; default 45 min to match the 30-minute keeper schedule (set 15 for 5-minute runs)
+const STALE_SEC = Number(process.env.PRICE_STALE_MINUTES ?? 45) * 60;
+// "low gas" lines: on Base mainnet gas costs fractions of a cent and the faucet never sends ETH, so they sit lower
+const LOW: Record<string, bigint> = isMainnet
+  ? { updater: parseEther("0.0003"), keeper: parseEther("0.0001"), faucet: parseEther("0.0001") }
+  : { updater: parseEther("0.0005"), keeper: parseEther("0.0005"), faucet: parseEther("0.001") };
 const addrOf = (k: string): Address | null => (/^0x[0-9a-fA-F]{64}$/.test(k) ? privateKeyToAccount(k as `0x${string}`).address : null);
 
 /** Operational health: role-wallet balances, on-chain price freshness, last Guardian action, configuration. */

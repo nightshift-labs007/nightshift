@@ -1,6 +1,8 @@
 // Deploys the Nightshift testnet stack and writes lib/chain/deployment.json.
 // Usage: DEPLOYER_PRIVATE_KEY=0x... npm run contracts:deploy
-// Optional: RPC_URL (default Base Sepolia), CHAIN_ID, ORACLE_URL (where to read starting prices)
+// Optional: RPC_URL (default Base Sepolia), CHAIN_ID, ORACLE_URL (where to read starting prices),
+// NEW_OWNER (hand every contract to this address at the end, e.g. the team's own wallet).
+// On Base mainnet (CHAIN_ID=8453) every asset is a clearly labelled demo token with no value ("dSPY", "dUSDG").
 // Role wallets (recommended): ORACLE_UPDATER_PRIVATE_KEY, KEEPER_PRIVATE_KEY, FAUCET_PRIVATE_KEY. The deployer stays the
 // owner and is never needed on the server: the updater pushes prices, the keeper runs the Guardian, the faucet mints.
 import fs from "node:fs";
@@ -15,7 +17,7 @@ if (!key) throw new Error("Set DEPLOYER_PRIVATE_KEY");
 
 const chain = defineChain({
   id: CHAIN_ID,
-  name: CHAIN_ID === 84532 ? "Base Sepolia" : `chain ${CHAIN_ID}`,
+  name: CHAIN_ID === 84532 ? "Base Sepolia" : CHAIN_ID === 8453 ? "Base" : `chain ${CHAIN_ID}`,
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: { default: { http: [RPC_URL] } },
 });
@@ -37,6 +39,9 @@ async function send(address, name, fn, args) {
   await pub.waitForTransactionReceipt({ hash });
 }
 
+const MAINNET = CHAIN_ID === 8453;
+const PREFIX = MAINNET ? "d" : "t";
+const label = (name) => (MAINNET ? name.replace("Nightshift Test", "Nightshift Demo") + " (no value)" : name);
 const ASSETS = [
   { token: "SPY", name: "Nightshift Test SPY", faucet: "10", lltv: "0.77" },
   { token: "QQQ", name: "Nightshift Test QQQ", faucet: "10", lltv: "0.77" },
@@ -50,9 +55,9 @@ if (balance === 0n) throw new Error("Deployer has no gas. Fund it from a faucet 
 const startBlock = await pub.getBlockNumber();
 
 console.log("Deploying:");
-const usdg = await deploy("TestToken", ["Nightshift Test USDG", "tUSDG", parseEther("1000")]);
+const usdg = await deploy("TestToken", [label("Nightshift Test USDG"), `${PREFIX}USDG`, parseEther("1000")]);
 const tokens = {};
-for (const a of ASSETS) tokens[a.token] = await deploy("TestToken", [a.name, `t${a.token}`, parseEther(a.faucet)]);
+for (const a of ASSETS) tokens[a.token] = await deploy("TestToken", [label(a.name), `${PREFIX}${a.token}`, parseEther(a.faucet)]);
 const oracle = await deploy("NightshiftOracle");
 const vault = await deploy("NightshiftVault", [usdg, oracle]);
 const verifier = await deploy("Groth16Verifier");
@@ -79,9 +84,19 @@ console.log("Authorising role wallets…");
 if (ROLES.updater) await send(oracle, "NightshiftOracle", "setUpdater", [ROLES.updater, true]);
 if (ROLES.faucet) for (const t of [usdg, ...Object.values(tokens)]) await send(t, "TestToken", "setMinter", [ROLES.faucet, true]);
 
-// split the deployer's remaining test ETH: updater 35%, keeper 25%, faucet 30%, deployer keeps ~10%
+// hand ownership to the team's wallet (owner powers: price override, markets, roles), then split the ETH
+const NEW_OWNER = process.env.NEW_OWNER?.trim();
+if (NEW_OWNER) {
+  if (!/^0x[0-9a-fA-F]{40}$/.test(NEW_OWNER)) throw new Error("NEW_OWNER is not an address");
+  console.log(`Transferring ownership to ${NEW_OWNER}…`);
+  for (const t of [usdg, ...Object.values(tokens)]) await send(t, "TestToken", "transferOwnership", [NEW_OWNER]);
+  await send(oracle, "NightshiftOracle", "transferOwnership", [NEW_OWNER]);
+  await send(vault, "NightshiftVault", "transferOwnership", [NEW_OWNER]);
+}
+
+// split the deployer's remaining ETH between the job wallets (the updater pays for every price push)
 const left = await pub.getBalance({ address: account.address });
-const share = { updater: 35n, keeper: 25n, faucet: 30n };
+const share = MAINNET ? { updater: 55n, keeper: 20n, faucet: 20n } : { updater: 35n, keeper: 25n, faucet: 30n };
 for (const [role, pct] of Object.entries(share)) {
   const to = ROLES[role];
   if (!to || to === account.address) continue;
@@ -96,10 +111,11 @@ const deployment = {
   chainId: chain.id,
   chainName: chain.name,
   rpcUrl: RPC_URL,
-  explorer: chain.id === 84532 ? "https://sepolia.basescan.org" : "",
+  explorer: chain.id === 84532 ? "https://sepolia.basescan.org" : chain.id === 8453 ? "https://basescan.org" : "",
+  symbolPrefix: PREFIX,
   deployedAt: new Date().toISOString(),
   startBlock: Number(startBlock),
-  owner: account.address,
+  owner: NEW_OWNER || account.address,
   keeper: ROLES.keeper ?? account.address,
   roles: { updater: ROLES.updater ?? account.address, keeper: ROLES.keeper ?? account.address, faucet: ROLES.faucet ?? account.address },
   contracts: { usdg, oracle, vault, verifier },

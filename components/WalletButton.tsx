@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createPublicClient, formatEther, http } from "viem";
 import { baseSepolia } from "viem/chains";
-import { DEPLOYMENT, chainOf, isDeployed } from "@/lib/chain";
+import { DEPLOYMENT, chainOf, chainTransport, isDeployed, isMainnet } from "@/lib/chain";
 import { useWallet, type WalletInfo } from "@/lib/wallet";
 import { toast } from "./Toast";
 
@@ -29,11 +29,11 @@ export function WalletButton() {
   const [eth, setEth] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // balance on the testnet the Vault runs on
+  // balance on the network the Vault runs on
   useEffect(() => {
     if (!w.account) return setEth(null);
     const chain = isDeployed ? chainOf() : baseSepolia;
-    const pub = createPublicClient({ chain, transport: http(isDeployed ? DEPLOYMENT.rpcUrl : "https://sepolia.base.org") });
+    const pub = createPublicClient({ chain, transport: isDeployed ? chainTransport() : http("https://sepolia.base.org") });
     let alive = true;
     const load = () => pub.getBalance({ address: w.account! }).then((b) => alive && setEth(Number(formatEther(b)))).catch(() => {});
     load();
@@ -155,7 +155,7 @@ export function WalletButton() {
               )}
             </div>
             <p className="wl-note">
-              Nightshift runs on {w.targetChain.name} (a test network: no real money). Your keys stay in your wallet; every action asks for your
+              Nightshift runs on {w.targetChain.name}{isMainnet ? " with demo assets that have no value; you pay a few cents of real ETH for gas." : " (a test network: no real money)."} Your keys stay in your wallet; every action asks for your
               approval.
             </p>
           </div>

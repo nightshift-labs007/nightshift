@@ -148,7 +148,7 @@ export function InspectReport() {
                 <span className="mono ins-n">04</span>
                 <h3>Guarding loans, proving, recording</h3>
                 <p>
-                  Guardian checks every loan on each update ({isDeployed ? "on-chain on Base Sepolia" : "paper mode; on-chain contracts built and tested"}). Cloak
+                  Guardian checks every loan on each update ({isDeployed ? "on-chain on Base" : "paper mode; on-chain contracts built and tested"}). Cloak
                   proofs are verified live. Ledger stamps predictions on Algorand before each open.
                 </p>
               </li>

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { formatEther, isAddress, parseEther, recoverMessageAddress, type Address } from "viem";
-import { ABI, DEPLOYMENT } from "@/lib/chain";
+import { ABI, DEPLOYMENT, isMainnet } from "@/lib/chain";
 import { roleClients } from "@/lib/chain/keeper";
 import { env } from "@/lib/env";
 import { take } from "@/lib/ratelimit";
@@ -53,11 +53,16 @@ export async function POST(req: NextRequest) {
   if (!(await take(`drip:ip:${ip}`, WINDOW_SEC))) return NextResponse.json({ error: "Test funds were already sent to this network today." }, { status: 429 });
 
   const sent: { what: string; tx: string }[] = [];
+  // number our own transactions: public RPCs are load-balanced, and a node that hasn't seen the previous
+  // transaction yet would hand back the same nonce ("replacement transaction underpriced")
+  let nonce = await c.pub.getTransactionCount({ address: c.account.address, blockTag: "pending" });
+  try {
   const faucetBal = await c.pub.getBalance({ address: c.account.address });
   const userBal = await c.pub.getBalance({ address: address as Address });
-  if (userBal < GAS_FLOOR) {
+  // on mainnet ETH is real money: the faucet only mints demo tokens and visitors bring their own few cents of gas
+  if (!isMainnet && userBal < GAS_FLOOR) {
     if (faucetBal < FAUCET_RESERVE + GAS_DRIP) return NextResponse.json({ error: "The demo gas faucet is empty. Please try again later." }, { status: 503 });
-    const tx = await c.wallet.sendTransaction({ to: address as Address, value: GAS_DRIP });
+    const tx = await c.wallet.sendTransaction({ to: address as Address, value: GAS_DRIP, nonce: nonce++ });
     sent.push({ what: `${formatEther(GAS_DRIP)} test ETH`, tx });
   }
   for (const [sym, amount] of Object.entries(TOKEN_DRIP)) {
@@ -65,9 +70,13 @@ export async function POST(req: NextRequest) {
     if (!t) continue;
     const bal = (await c.pub.readContract({ address: t.address, abi: ABI.token, functionName: "balanceOf", args: [address] })) as bigint;
     if (bal >= parseEther(amount)) continue;
-    const tx = await c.wallet.writeContract({ address: t.address, abi: ABI.token, functionName: "mint", args: [address, parseEther(amount)] });
-    sent.push({ what: `${amount} t${sym}`, tx });
+    const tx = await c.wallet.writeContract({ address: t.address, abi: ABI.token, functionName: "mint", args: [address, parseEther(amount)], nonce: nonce++ });
+    sent.push({ what: `${amount} ${DEPLOYMENT.symbolPrefix ?? (isMainnet ? "d" : "t")}${sym}`, tx });
   }
   if (sent.length) await c.pub.waitForTransactionReceipt({ hash: sent[sent.length - 1].tx as `0x${string}` });
+  } catch (e) {
+    console.error("drip failed", e);
+    return NextResponse.json({ error: "The faucet couldn't send right now. Please try again in a minute.", sent }, { status: 502 });
+  }
   return NextResponse.json({ sent });
 }

@@ -69,6 +69,16 @@ contract NightshiftVault {
         oracle = oracle_;
     }
 
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /// @notice Hands every owner power (prices override, markets, roles) to a new address, e.g. the team's own wallet.
+    function transferOwnership(address newOwner) external {
+        require(msg.sender == owner, "owner");
+        require(newOwner != address(0), "zero");
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+    }
+
     // ---------------------------------------------------------------- admin
 
     function setMarket(address collateral, uint256 lltv, bool enabled) external {

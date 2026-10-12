@@ -1,1 +1,45 @@
-{ "deployed": false }
+{
+  "deployed": true,
+  "chainId": 8453,
+  "chainName": "Base",
+  "rpcUrl": "https://mainnet.base.org",
+  "explorer": "https://basescan.org",
+  "symbolPrefix": "d",
+  "deployedAt": "2026-10-12T12:55:53.049Z",
+  "startBlock": 52510176,
+  "owner": "0x155CF8D8A187d9fa17C5f5F619662b920c130239",
+  "keeper": "0x5b9C8c979a0ba1097fFE50d6C27eF727731E5457",
+  "roles": {
+    "updater": "0x594F0e1D57f88f7FAd91d09002c25f3a1253C6b7",
+    "keeper": "0x5b9C8c979a0ba1097fFE50d6C27eF727731E5457",
+    "faucet": "0x460cE0bEac00D9e73986B266c290F674879044fb"
+  },
+  "contracts": {
+    "usdg": "0xc86322b80a84ebf428daea6976ac65e500776930",
+    "oracle": "0x5507ad4cba6bfe88e0702f703fffc05fa7d3a66e",
+    "vault": "0xb4ccde5d8497c568d8b41249bfa3b560d9ac1acc",
+    "verifier": "0xbf565f01a9534175d21aeb12f0a94052b8eed1be"
+  },
+  "tokens": {
+    "SPY": {
+      "address": "0x671df7bd033d8a8da2b0a63f1bdb4b13e4affd85",
+      "lltv": 0.77,
+      "adapter": "0x34741d5cd97dcf4b040d7a344168cd73771dd7ad"
+    },
+    "QQQ": {
+      "address": "0x13d2033b8c21e49f40ab90e9c04c0f8163f43437",
+      "lltv": 0.77,
+      "adapter": "0x15834d9c8cdcb5773235db6840e0ced62b4a0374"
+    },
+    "GLD": {
+      "address": "0x2a81fc5d4885d1a5f16494c0e4b369a0c72d2cb9",
+      "lltv": 0.77,
+      "adapter": "0x0bf1bca14ef5c815a89d59f0a813caa939ba9f36"
+    },
+    "IBIT": {
+      "address": "0x36c4b6e156304df0ea337e763bf4f22e876d9edf",
+      "lltv": 0.625,
+      "adapter": "0xda8cf5e8d8f31c85efc9227d4c29be53cc539139"
+    }
+  }
+}

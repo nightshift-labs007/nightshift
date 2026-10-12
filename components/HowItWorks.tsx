@@ -1,8 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
-import { isDeployed } from "@/lib/chain";
+import { isDeployed, isMainnet } from "@/lib/chain";
 import { verifiedCount } from "./Verified";
 
-const ONCHAIN = isDeployed ? "Live on testnet" : "Testnet-ready";
+const ONCHAIN = isDeployed ? (isMainnet ? "Live on Base · demo" : "Live on testnet") : "Testnet-ready";
 
 type Logo = { name: string; src: string; rel: string };
 

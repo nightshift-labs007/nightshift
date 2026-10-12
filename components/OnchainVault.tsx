@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPublicClient, createWalletClient, custom, formatEther, http, maxUint256, parseEther, type Address } from "viem";
-import { ABI, DEPLOYMENT, addrUrl, chainOf, isDeployed, txUrl } from "@/lib/chain";
+import { createPublicClient, createWalletClient, custom, formatEther, maxUint256, parseEther, type Address } from "viem";
+import { ABI, DEPLOYMENT, NETWORK, addrUrl, chainOf, chainTransport, isDeployed, isMainnet, sym, txUrl } from "@/lib/chain";
 import { useWallet } from "@/lib/wallet";
 import { toast } from "./Toast";
 import { WalletButton } from "./WalletButton";
@@ -14,7 +14,7 @@ function friendly(e: unknown): string {
   const err = e as { code?: number; shortMessage?: string; message?: string; cause?: { code?: number } };
   const msg = err.shortMessage ?? err.message ?? String(e);
   if (err.code === 4001 || err.cause?.code === 4001 || /user (rejected|denied)|rejected the request/i.test(msg)) return "Cancelled in your wallet.";
-  if (/insufficient funds|exceeds balance|gas required exceeds/i.test(msg)) return "Not enough test ETH for gas. Click Get test funds.";
+  if (/insufficient funds|exceeds balance|gas required exceeds/i.test(msg)) return isMainnet ? `Not enough ETH on ${NETWORK} for gas (a few cents is enough).` : "Not enough test ETH for gas. Click Get test funds.";
   const reasons: [RegExp, string][] = [
     [/over limit/, "That's more than your borrow limit at the current Oracle price."],
     [/low confidence/, "New borrowing is paused while the Oracle's confidence is below 40 (markets have been closed a long time). Try again later."],
@@ -39,7 +39,7 @@ const MAX_HF = 1e30;
 
 export function OnchainVault() {
   const chain = useMemo(() => (isDeployed ? chainOf() : null), []);
-  const pub = useMemo(() => (chain ? createPublicClient({ chain, transport: http(DEPLOYMENT.rpcUrl) }) : null), [chain]);
+  const pub = useMemo(() => (chain ? createPublicClient({ chain, transport: chainTransport() }) : null), [chain]);
   // one shared wallet connection for the whole site (lib/wallet.tsx)
   const wallet = useWallet();
   const account = wallet.account as Address | null;
@@ -139,16 +139,16 @@ export function OnchainVault() {
         toast(j.sent.length ? `Sent ${j.sent.map((s: { what: string }) => s.what).join(", ")}` : "You already have test funds.", "ok");
         j.sent.forEach((s: { what: string; tx: string }) => setTxs((x) => [{ label: `Faucet: ${s.what}`, hash: s.tx, at: Date.now() }, ...x].slice(0, 8)));
       } else if (kind === "deposit") {
-        await ensureAllowance(t, amt, `t${token}`);
+        await ensureAllowance(t, amt, sym(token));
         await write(`Deposit ${amount} t${token}`, DEPLOYMENT.contracts.vault, ABI.vault, "deposit", [t, amt]);
         toast(`Deposited ${amount} t${token}`, "ok");
       } else if (kind === "borrow") {
-        await write(`Borrow ${amount} tUSDG`, DEPLOYMENT.contracts.vault, ABI.vault, "borrow", [t, amt]);
-        toast(`Borrowed ${amount} tUSDG`, "ok");
+        await write(`Borrow ${amount} ${sym("USDG")}`, DEPLOYMENT.contracts.vault, ABI.vault, "borrow", [t, amt]);
+        toast(`Borrowed ${amount} ${sym("USDG")}`, "ok");
       } else if (kind === "repay") {
-        await ensureAllowance(DEPLOYMENT.contracts.usdg, amt, "tUSDG");
-        await write(`Repay ${amount} tUSDG`, DEPLOYMENT.contracts.vault, ABI.vault, "repay", [t, amt]);
-        toast(`Repaid ${amount} tUSDG`, "ok");
+        await ensureAllowance(DEPLOYMENT.contracts.usdg, amt, sym("USDG"));
+        await write(`Repay ${amount} ${sym("USDG")}`, DEPLOYMENT.contracts.vault, ABI.vault, "repay", [t, amt]);
+        toast(`Repaid ${amount} ${sym("USDG")}`, "ok");
       } else if (kind === "withdraw") {
         await write(`Withdraw ${amount} t${token}`, DEPLOYMENT.contracts.vault, ABI.vault, "withdraw", [t, amt]);
         toast(`Withdrew ${amount} t${token}`, "ok");
@@ -170,7 +170,7 @@ export function OnchainVault() {
       <div className="panel">
         <div className="unit">Testnet vault · deployment pending</div>
         <p className="small muted" style={{ marginBottom: 0 }}>
-          The smart contracts (vault, on-chain oracle, Morpho adapter, ZK verifier) are built and tested, and go live on Base Sepolia
+          The smart contracts (vault, on-chain oracle, Morpho adapter, ZK verifier) are built and tested, and go live on Base
           as soon as the deployer wallet is funded with free test ETH. Until then, use the paper vault above.
         </p>
       </div>
@@ -201,7 +201,7 @@ export function OnchainVault() {
             </a>{" "}
             ·{" "}
             <a href={addrUrl(DEPLOYMENT.contracts.usdg)} target="_blank" rel="noreferrer">
-              tUSDG
+              {sym("USDG")}
             </a>
           </p>
         </div>
@@ -219,7 +219,7 @@ export function OnchainVault() {
               </span>
               <Turnstile onToken={onCaptcha} />
               <button className="btn secondary small" onClick={() => run("drip")} disabled={!!busy}>
-                {busy === "drip" ? "Sending…" : "Get test funds"}
+                {busy === "drip" ? "Sending…" : isMainnet ? "Get demo tokens" : "Get test funds"}
               </button>
             </>
           )}
@@ -233,7 +233,7 @@ export function OnchainVault() {
             <ul className="balances">
               {["ETH", "USDG", ...tokens].map((k) => (
                 <li key={k}>
-                  <span className="tok">{k === "ETH" ? "ETH" : `t${k}`}</span>
+                  <span className="tok">{k === "ETH" ? "ETH" : sym(k)}</span>
                   <span className="mono">{fmt(bal[k] ?? 0, k === "ETH" ? 5 : 2)}</span>
                   <span className="muted mono">{k === "ETH" ? "gas" : k === "USDG" ? "borrowed" : "collateral"}</span>
                 </li>
@@ -274,16 +274,16 @@ export function OnchainVault() {
             <label className="field" htmlFor="oc-amount">
               Amount
             </label>
-            <input id="oc-amount" type="number" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 5 (tokens) or 1000 (tUSDG)" />
+            <input id="oc-amount" type="number" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`e.g. 5 (tokens) or 1000 (${sym("USDG")})`} />
             <div className="pos-actions" style={{ marginTop: 10 }}>
               <button className="tab" disabled={!!busy} onClick={() => run("deposit")}>
                 {busy === "deposit" ? "…" : `Deposit t${token}`}
               </button>
               <button className="tab" disabled={!!busy} onClick={() => run("borrow")}>
-                {busy === "borrow" ? "…" : "Borrow tUSDG"}
+                {busy === "borrow" ? "…" : `Borrow ${sym("USDG")}`}
               </button>
               <button className="tab" disabled={!!busy} onClick={() => run("repay")}>
-                {busy === "repay" ? "…" : "Repay tUSDG"}
+                {busy === "repay" ? "…" : `Repay ${sym("USDG")}`}
               </button>
               <button className="tab" disabled={!!busy} onClick={() => run("withdraw")}>
                 {busy === "withdraw" ? "…" : `Withdraw t${token}`}
