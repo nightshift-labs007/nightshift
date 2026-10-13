@@ -11,14 +11,14 @@ import { CARDS } from "./xtheorems";
  * graded shift report or the verification manifest, and a post is skipped when that data is simulated or missing.
  * No links in posts (X charges much more for them); nightshift.buzz lives in the bio.
  *
- * - theorem: every 20 minutes, one of the 24 Lean-proven rules as an equation, evaluated on live numbers
+ * - theorem: every hour, one of the 24 Lean-proven rules in plain English, checked on live numbers
  * - preopen / graded / weekend / fact: fixed New York times. The workflow calls each at its UTC time for both EDT
  *   and EST; a call only posts inside the slot's window, so exactly one of the two fires and nothing needs storing.
  */
 export type Slot = "theorem" | "preopen" | "graded" | "weekend" | "fact";
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 export const SLOTS: Record<Slot, { days: string[]; hour: number; minute: number; what: string; every?: number }> = {
-  theorem: { days: [], hour: 0, minute: 0, every: 20, what: "Every 20 min: a Lean-proven rule as an equation, checked on live numbers" },
+  theorem: { days: [], hour: 0, minute: 0, every: 60, what: "Hourly: a Lean-proven rule in plain English, checked on live numbers" },
   preopen: { days: WEEKDAYS, hour: 9, minute: 0, what: "Pre-open call: fair values before the bell" },
   graded: { days: WEEKDAYS, hour: 10, minute: 15, what: "The call graded against the actual open" },
   weekend: { days: ["Sat"], hour: 12, minute: 0, what: "Weekend: Bitcoin trades, the ETF doesn't" },
@@ -52,12 +52,12 @@ type Draft = { slot: Slot; text: string } | { slot: Slot; skip: string };
 type Manifest = { properties: { id: string; plain: string; status: string }[]; algorand: { manifestSha256: string } };
 const M = manifest as Manifest;
 
-/** Every 20 minutes: the next proven theorem (all 24 every 8 hours), evaluated on a rotating live token. */
+/** Every hour: the next proven theorem (all 24 once a day), evaluated on a rotating live token. */
 async function theorem(now: number): Promise<Draft> {
   const verified = new Map(M.properties.filter((p) => p.status === "verified").map((p) => [p.id, p]));
   const cards = CARDS.filter((c) => verified.has(c.id));
   if (!cards.length) return { slot: "theorem", skip: "no verified theorems" };
-  const tick = Math.floor(now / (20 * 60_000));
+  const tick = Math.floor(now / (SLOTS.theorem.every! * 60_000));
   const card = cards[tick % cards.length];
   const prop = verified.get(card.id)!;
   let live = "";
@@ -65,7 +65,7 @@ async function theorem(now: number): Promise<Draft> {
     const snap = await getOracleSnapshot();
     const quotes = snap.quotes.filter((q) => q.source === "live");
     if (quotes.length) {
-      const q = quotes[Math.floor(tick / cards.length) % quotes.length]; // a different token each 8-hour cycle
+      const q = quotes[Math.floor(tick / cards.length) % quotes.length]; // a different token each day
       live = card.live({ q, quotes });
     }
   }
