@@ -1,14 +1,14 @@
 name: keeper
 # Every 30 minutes: pushes Oracle prices on-chain and runs the Guardian. The run scheduled on the hour also posts
-# the X agent's hourly theorem (same job, so it costs no extra Actions minutes). Market posts live in x-agent.yml.
+# the X agent's hourly mix (same job, so it costs no extra Actions minutes). Market posts live in x-agent.yml.
 on:
   schedule:
-    - cron: "0 * * * *"   # keeper + hourly X theorem post
+    - cron: "0 * * * *"   # keeper + hourly X post
     - cron: "30 * * * *"  # keeper only
   workflow_dispatch:
     inputs:
       post:
-        description: "Also post the theorem to X"
+        description: "Also post the hourly X post"
         type: boolean
         default: false
 
@@ -24,11 +24,11 @@ jobs:
           code=$(curl -s -o out.json -w "%{http_code}" -m 90 -H "Authorization: Bearer $CRON_SECRET" https://nightshift.buzz/api/keeper)
           head -c 1500 out.json; echo
           test "$code" = "200"
-      - name: Post the hourly theorem to X
+      - name: Post the hourly X post
         if: always() && (github.event.schedule == '0 * * * *' || github.event.inputs.post == 'true')
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          code=$(curl -s -o x.json -w "%{http_code}" -m 90 -H "Authorization: Bearer $CRON_SECRET" "https://nightshift.buzz/api/x/post?slot=theorem")
+          code=$(curl -s -o x.json -w "%{http_code}" -m 90 -H "Authorization: Bearer $CRON_SECRET" "https://nightshift.buzz/api/x/post?slot=hourly")
           cat x.json; echo
           test "$code" = "200"

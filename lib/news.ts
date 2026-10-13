@@ -14,7 +14,10 @@ export type NewsResult = { at: string; model: string; scores: NewsScore[] };
 const TOKENS = ["SPY", "QQQ", "GLD", "IBIT"];
 const MODEL = process.env.NEWS_MODEL || "claude-opus-5-5";
 
-async function headlines(token: string): Promise<string[]> {
+const unescape = (s: string) => s.replace(/<!\[CDATA\[|\]\]>/g, "").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').trim();
+
+/** Latest Yahoo Finance headlines for a ticker, newest first, with publish times when the feed gives them. */
+export async function latestHeadlines(token: string): Promise<{ title: string; at: number | null }[]> {
   try {
     const res = await fetch(`https://feeds.finance.yahoo.com/rss/2.0/headline?s=${token}&region=US&lang=en-US`, {
       headers: { "User-Agent": "Mozilla/5.0" },
@@ -22,13 +25,22 @@ async function headlines(token: string): Promise<string[]> {
       signal: AbortSignal.timeout(6000),
     });
     const xml = await res.text();
-    const items = [...xml.matchAll(/<item>[\s\S]*?<title>([\s\S]*?)<\/title>[\s\S]*?<\/item>/g)].map((m) =>
-      m[1].replace(/<!\[CDATA\[|\]\]>/g, "").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').trim(),
-    );
-    return items.slice(0, 8);
+    return [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)]
+      .map((m) => {
+        const title = m[1].match(/<title>([\s\S]*?)<\/title>/)?.[1];
+        const date = m[1].match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1];
+        const at = date ? Date.parse(unescape(date)) : NaN;
+        return { title: title ? unescape(title) : "", at: Number.isFinite(at) ? at : null };
+      })
+      .filter((h) => h.title)
+      .slice(0, 8);
   } catch {
     return [];
   }
+}
+
+async function headlines(token: string): Promise<string[]> {
+  return (await latestHeadlines(token)).map((h) => h.title);
 }
 
 const SCHEMA = {

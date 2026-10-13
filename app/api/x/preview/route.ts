@@ -11,7 +11,7 @@ const when = (slot: Slot) => {
   return `${s.days.length === 5 ? "Mon-Fri" : s.days.join(", ")} ${String(s.hour).padStart(2, "0")}:${String(s.minute).padStart(2, "0")} ET`;
 };
 
-/** What the X agent would post right now (?theorems=1: the next 24 hourly theorem posts). Never posts, never calls X. */
+/** What the X agent would post right now (?mix=1: the next 24 hourly posts; ?theorems=1: the next 24 Q&As). Never posts, never calls X. */
 export async function GET(req: NextRequest) {
   const show = async (slot: Slot, now?: number) => {
     try {
@@ -21,6 +21,10 @@ export async function GET(req: NextRequest) {
       return { slot, error: String(e).slice(0, 200) };
     }
   };
+  if (req.nextUrl.searchParams.get("mix") === "1") {
+    const now = Date.now();
+    return NextResponse.json({ hourly: await Promise.all(Array.from({ length: 24 }, (_, k) => show("hourly", now + k * 60 * 60_000))) });
+  }
   if (req.nextUrl.searchParams.get("theorems") === "1") {
     const now = Date.now();
     return NextResponse.json({ theorems: await Promise.all(Array.from({ length: 24 }, (_, k) => show("theorem", now + k * 60 * 60_000))) });

@@ -5,20 +5,24 @@ import { getOracleSnapshot, type Quote } from "./oracle";
 import { etParts, etToUtcMs } from "./time";
 import { postToX, xConfigured, xLength, xPostingOn } from "./x";
 import { CARDS } from "./xtheorems";
+import { feature, marketUpdate, movers, news, onchain, trackRecord, type MixCtx } from "./xmix";
 
 /**
  * Nightshift's X agent. It never invents a number: every figure in a post comes from the Oracle, the
  * graded shift report or the verification manifest, and a post is skipped when that data is simulated or missing.
  * No links in posts (X charges much more for them); nightshift.buzz lives in the bio.
  *
- * - theorem: every hour, one of the 24 Lean-proven rules in plain English, checked on live numbers
+ * - hourly: a rotating mix (Q&A on a proven rule, market update, news, stock movers, track record, on-chain status,
+ *   product explainers); a type with no data right now hands its hour to the next type
+ * - theorem: just the Q&A, for a manual post
  * - preopen / graded / weekend / fact: fixed New York times. The workflow calls each at its UTC time for both EDT
  *   and EST; a call only posts inside the slot's window, so exactly one of the two fires and nothing needs storing.
  */
-export type Slot = "theorem" | "preopen" | "graded" | "weekend" | "fact";
+export type Slot = "hourly" | "theorem" | "preopen" | "graded" | "weekend" | "fact";
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 export const SLOTS: Record<Slot, { days: string[]; hour: number; minute: number; what: string; every?: number }> = {
-  theorem: { days: [], hour: 0, minute: 0, every: 60, what: "Hourly: a Lean-proven rule in plain English, checked on live numbers" },
+  hourly: { days: [], hour: 0, minute: 0, every: 60, what: "Hourly mix: Q&A, market update, news, movers, track record, on-chain, product" },
+  theorem: { days: [], hour: 0, minute: 0, every: 60, what: "A Lean-proven rule as a Q&A, checked on live numbers" },
   preopen: { days: WEEKDAYS, hour: 9, minute: 0, what: "Pre-open call: fair values before the bell" },
   graded: { days: WEEKDAYS, hour: 10, minute: 15, what: "The call graded against the actual open" },
   weekend: { days: ["Sat"], hour: 12, minute: 0, what: "Weekend: Bitcoin trades, the ETF doesn't" },
@@ -52,20 +56,19 @@ type Draft = { slot: Slot; text: string } | { slot: Slot; skip: string };
 type Manifest = { properties: { id: string; plain: string; status: string }[]; algorand: { manifestSha256: string } };
 const M = manifest as Manifest;
 
-/** Every hour: the next proven theorem (all 24 once a day), evaluated on a rotating live token. */
-async function theorem(now: number): Promise<Draft> {
+/** The n-th Q&A post: proven rules in order, each round on a different live token. */
+async function theorem(now: number, n = Math.floor(now / 3_600_000)): Promise<Draft> {
   const verified = new Map(M.properties.filter((p) => p.status === "verified").map((p) => [p.id, p]));
   const cards = CARDS.filter((c) => verified.has(c.id));
   if (!cards.length) return { slot: "theorem", skip: "no verified theorems" };
-  const tick = Math.floor(now / (SLOTS.theorem.every! * 60_000));
-  const card = cards[tick % cards.length];
+  const card = cards[n % cards.length];
   const prop = verified.get(card.id)!;
   let live = "";
   if (card.live) {
     const snap = await getOracleSnapshot();
     const quotes = snap.quotes.filter((q) => q.source === "live");
     if (quotes.length) {
-      const q = quotes[Math.floor(tick / cards.length) % quotes.length]; // a different token each day
+      const q = quotes[Math.floor(n / cards.length) % quotes.length]; // a different token each round
       live = card.live({ q, quotes });
     }
   }
@@ -75,6 +78,37 @@ async function theorem(now: number): Promise<Draft> {
   // too long? drop extra formula lines first, then the formula, and the live example last: it's the most concrete part
   const tries = [build(card.formula, true), build(card.formula.slice(0, 1), true), build([], true), build(card.formula.slice(0, 1), false)];
   return { slot: "theorem", text: tries.find((t) => xLength(t) <= 275) ?? fit(tries[3].split("\n")) };
+}
+
+// one 8-hour cycle, so each type comes round three times a day and the Q&A six times
+const MIX = ["qa", "market", "news", "movers", "qa", "track", "onchain", "feature"] as const;
+type MixType = (typeof MIX)[number];
+const MAKERS: Record<Exclude<MixType, "qa">, (c: MixCtx) => Promise<string[] | null>> = {
+  market: marketUpdate,
+  news,
+  movers,
+  track: trackRecord,
+  onchain,
+  feature,
+};
+
+async function hourly(now: number): Promise<Draft> {
+  const tick = Math.floor(now / 3_600_000);
+  for (let k = 0; k < MIX.length; k++) {
+    const t = tick + k;
+    const type = MIX[t % MIX.length];
+    // how many posts of this type came before: rotates headlines, tokens and explainers independently
+    const pos = t % MIX.length;
+    const n = Math.floor(t / MIX.length) * MIX.filter((x) => x === type).length + MIX.slice(0, pos).filter((x) => x === type).length;
+    if (type === "qa") {
+      const d = await theorem(now, n);
+      if ("text" in d) return { slot: "hourly", text: d.text };
+      continue;
+    }
+    const lines = await MAKERS[type]({ n, stamp: etStamp(now) }).catch(() => null);
+    if (lines) return { slot: "hourly", text: fit(lines) };
+  }
+  return { slot: "hourly", skip: "no data for any post type right now" };
 }
 
 async function preopen(now: number): Promise<Draft> {
@@ -137,6 +171,7 @@ function fact(now: number): Draft {
 }
 
 export async function draft(slot: Slot, now = Date.now()): Promise<Draft> {
+  if (slot === "hourly") return hourly(now);
   if (slot === "theorem") return theorem(now);
   if (slot === "preopen") return preopen(now);
   if (slot === "graded") return graded(now);
