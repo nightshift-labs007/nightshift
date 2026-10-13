@@ -29,9 +29,14 @@ export async function fetchChart(
     const ts: number[] = r?.timestamp ?? [];
     const q = r?.indicators?.quote?.[0] ?? {};
     const bars: Bar[] = [];
+    const metaPrice = r?.meta?.regularMarketPrice;
+    const metaTime = r?.meta?.regularMarketTime;
     for (let i = 0; i < ts.length; i++) {
       const o = q.open?.[i];
-      const c = q.close?.[i];
+      let c = q.close?.[i];
+      // After the close Yahoo often leaves today's daily close empty for a while; its regular-market price is that
+      // close. Without this the whole day is dropped and the "last close" silently falls back to the previous session.
+      if (typeof c !== "number" && i === ts.length - 1 && typeof metaPrice === "number" && typeof metaTime === "number" && metaTime >= ts[i]) c = metaPrice;
       if (typeof o === "number" && typeof c === "number") bars.push({ t: ts[i], o, c });
     }
     if (bars.length < (prePost ? 1 : 5)) return fallbackChart(symbol, interval, range);
