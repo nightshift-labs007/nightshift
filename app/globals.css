@@ -488,3 +488,22 @@ details > summary.xs { font-weight: 600; }
 .guardian-alert { border: 1px solid var(--border-strong); border-left-width: 3px; border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; line-height: 1.45; }
 .guardian-alert.warn { border-color: var(--amber); background: var(--amber-soft); }
 .guardian-alert.danger { border-color: var(--red-line); border-left-color: var(--red); background: var(--red-soft); }
+
+/* /docs (components/DocsPage.tsx) */
+.docs { display: flex; flex-direction: column; gap: 16px; max-width: 900px; }
+.docs-toc { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; }
+.docs-toc a { color: var(--text-3); text-decoration: none; border-bottom: 1px solid var(--border-strong); }
+.docs-toc a:hover { color: var(--text); }
+.docs-h { margin: 28px 0 0; font-size: 22px; scroll-margin-top: 90px; }
+.docs-q { padding: 20px 22px; scroll-margin-top: 90px; }
+.docs-q h3 { margin: 0 0 12px; font-size: 17px; line-height: 1.4; }
+.docs-q p, .docs-q li { color: var(--text-2); font-size: 15px; line-height: 1.6; }
+.docs-q ul { padding-left: 20px; margin: 0 0 10px; }
+.docs-q code { font-family: var(--mono); font-size: 13px; background: var(--surface-3); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.docs-part { margin-top: 10px; }
+.docs-part > .badge { margin-bottom: 6px; }
+.docs-part p { margin: 6px 0; }
+.docs-q table.contracts { margin-top: 8px; font-size: 13px; }
+.docs-status td.up { color: var(--green); }
+.docs-status td.amber { color: var(--amber); }
+.docs .contracts td.mono { overflow-wrap: anywhere; }

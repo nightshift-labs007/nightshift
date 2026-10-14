@@ -1,5 +1,5 @@
 import { GLOBAL_MARKETS, PAIRS, type Pair } from "./config";
-import { etParts, etToUtcMs, isWeekday } from "./time";
+import { closeMinutes, etParts, etToUtcMs, isWeekday } from "./time";
 
 export type Bar = { t: number; o: number; c: number }; // t = bar start, epoch seconds
 export type Chart = { symbol: string; bars: Bar[]; price: number };
@@ -100,7 +100,7 @@ export function toSessions(daily: Bar[]): Session[] {
     out.push({
       date,
       openT: etToUtcMs(date, 9, 30) / 1000,
-      closeT: etToUtcMs(date, 16, 0) / 1000,
+      closeT: etToUtcMs(date, Math.floor(closeMinutes(date) / 60), 0) / 1000,
       open: b.o,
       close: b.c,
     });

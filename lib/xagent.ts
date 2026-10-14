@@ -2,7 +2,7 @@ import "server-only";
 import manifest from "../public/verified/manifest.json";
 import { getShiftReports } from "./backtest";
 import { getOracleSnapshot, type Quote } from "./oracle";
-import { etParts, etToUtcMs } from "./time";
+import { etParts, etToUtcMs, isTradingDay } from "./time";
 import { postToX, xConfigured, xLength, xPostingOn } from "./x";
 import { CARDS } from "./xtheorems";
 import { feature, marketUpdate, movers, news, onchain, trackRecord, type MixCtx } from "./xmix";
@@ -184,6 +184,8 @@ export function inWindow(slot: Slot, now = Date.now()) {
   if (s.every) return true; // interval slots post on every call; the schedule sets the pace
   const p = etParts(now);
   if (!s.days.includes(p.weekday)) return false;
+  // the market posts are about today's open: no open on an NYSE holiday, so no post
+  if ((slot === "preopen" || slot === "graded") && !isTradingDay(p.date, p.weekday)) return false;
   const target = etToUtcMs(p.date, s.hour, s.minute);
   return now >= target - WINDOW_BEFORE_MIN * 60_000 && now <= target + WINDOW_AFTER_MIN * 60_000;
 }
