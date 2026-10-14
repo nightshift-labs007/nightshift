@@ -1,0 +1,21 @@
+{
+  "tool": "Slither 0.11.6 (Trail of Bits), 102 detectors",
+  "compiler": "solc 0.8.26, via-IR, optimizer 200 runs, EVM paris",
+  "scannedAt": "2026-10-14",
+  "scope": ["NightshiftVault.sol", "NightshiftOracle.sol (Oracle, MorphoOracleAdapter, NightshiftAggregatorV3)", "CloakRegistry.sol", "TestToken.sol", "SolvencyVerifier.sol (snarkjs-generated Groth16 verifier)"],
+  "summary": "Two real issues were found and fixed in the security-review upgrade: the Morpho adapter accepted stale prices, and repay/liquidate updated state after token transfers. Everything else is intended fixed-point math, deliberate use of the Oracle's tuple, timestamps for price age, or known false positives in the generated verifier. This is automated analysis, not an audit.",
+  "findings": [
+    { "severity": "Medium", "detector": "unused-return", "where": "MorphoOracleAdapter.price()", "status": "fixed", "note": "Ignored the price's update time, so a Morpho market could borrow or liquidate on an arbitrarily old price. The new adapter reverts on a missing price or one older than maxAge (1 day)." },
+    { "severity": "Medium", "detector": "reentrancy-no-eth", "where": "NightshiftVault.repay, NightshiftVault.liquidate", "status": "fixed", "note": "State was updated after token transfers. Not exploitable with Nightshift's tokens (no callbacks), but a hook-enabled token could re-enter. The new Vault updates state first and has a reentrancy guard on every state-changing function; a test with a malicious callback token confirms re-entry is refused." },
+    { "severity": "Medium", "detector": "divide-before-multiply", "where": "NightshiftVault.liquidate", "status": "fixed", "note": "A needless /WAD*WAD truncation in the seized amount; now a single division." },
+    { "severity": "Medium", "detector": "divide-before-multiply", "where": "NightshiftVault.protect, borrowLimit, _price; CloakRegistry.check", "status": "accepted", "note": "Intended 18-decimal fixed-point math and unit conversions. Rounding favours the protocol (proven as property V5); _price counts full hours on purpose for confidence decay." },
+    { "severity": "Medium", "detector": "incorrect-equality", "where": "NightshiftVault.healthFactor", "status": "accepted", "note": "debt == 0 means there is no loan, so health is unbounded. Intended." },
+    { "severity": "Medium", "detector": "unused-return", "where": "NightshiftAggregatorV3, CloakRegistry.check", "status": "accepted", "note": "Each reads only the fields of getPrice it needs (price and time, or confidence)." },
+    { "severity": "High", "detector": "incorrect-return", "where": "Groth16Verifier.verifyProof (generated)", "status": "false positive", "note": "snarkjs verifiers return from inline assembly by design; a well-known Slither false positive for this template. Verified behaviour: valid proofs pass, tampered proofs fail (tests)." },
+    { "severity": "Low", "detector": "timestamp", "where": "NightshiftVault._price, NightshiftOracle._set, adapters, CloakRegistry, TestToken.faucet", "status": "accepted", "note": "Timestamps measure price age (hours to days); a validator's few seconds of influence don't matter at that scale." },
+    { "severity": "Low", "detector": "reentrancy-benign / reentrancy-events / missing-zero-check", "where": "various", "status": "fixed or accepted", "note": "Event ordering after transfers is covered by the reentrancy guard; zero-address checks were added to the new adapters, feeds and registry." },
+    { "severity": "Informational", "detector": "assembly, naming-convention, solc-version", "where": "Groth16Verifier (generated)", "status": "accepted", "note": "Generated code, left as snarkjs emits it." }
+  ],
+  "before": { "High": 3, "Medium": 6, "Low": 10, "Informational": 36, "note": "deployed contracts before the upgrade (3 High are the verifier false positive)" },
+  "after": { "High": 3, "Medium": 9, "Low": 11, "Informational": 36, "note": "upgraded contracts: the Medium reentrancy findings are gone (one Low benign-reentrancy note remains on deposit, which is guarded); Medium items are the accepted cases above, counted per location" }
+}

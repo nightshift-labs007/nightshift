@@ -507,3 +507,10 @@ details > summary.xs { font-weight: 600; }
 .docs-status td.up { color: var(--green); }
 .docs-status td.amber { color: var(--amber); }
 .docs .contracts td.mono { overflow-wrap: anywhere; }
+
+/* Oracle card: confidence caps (event mode, stale anchor) */
+.oracle-flags { margin-top: 8px; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--amber-soft); color: var(--amber); font-size: 12.5px; line-height: 1.45; }
+.docs-box { margin: 10px 0; }
+.docs-box table.contracts td { vertical-align: top; }
+.docs-checks { list-style: none; padding-left: 0 !important; }
+.docs-checks li { font-size: 14px; }

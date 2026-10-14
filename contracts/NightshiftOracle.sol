@@ -87,17 +87,79 @@ contract NightshiftOracle {
 /// @title MorphoOracleAdapter: exposes one Nightshift feed through Morpho Blue's IOracle interface.
 /// @notice Morpho expects `price()` = collateral price in loan-token units, scaled by
 ///         1e36 * 10^(loanDecimals - collateralDecimals). Both tokens here have 18 decimals.
+///         Reverts on a missing or stale price, so a Morpho market can't borrow or liquidate on an old number.
 contract MorphoOracleAdapter {
     NightshiftOracle public immutable oracle;
     address public immutable collateral;
+    uint256 public immutable maxAge;
 
-    constructor(NightshiftOracle oracle_, address collateral_) {
+    constructor(NightshiftOracle oracle_, address collateral_, uint256 maxAge_) {
+        require(address(oracle_) != address(0) && collateral_ != address(0), "zero");
+        require(maxAge_ > 0, "maxAge");
         oracle = oracle_;
         collateral = collateral_;
+        maxAge = maxAge_;
     }
 
     function price() external view returns (uint256) {
-        (uint256 p, , ) = oracle.getPrice(collateral);
+        (uint256 p, , uint64 updatedAt) = oracle.getPrice(collateral);
+        require(p > 0, "no price");
+        require(block.timestamp - updatedAt <= maxAge, "stale price");
         return p * 1e18;
+    }
+}
+
+/// @title NightshiftAggregatorV3: one Nightshift feed through Chainlink's AggregatorV3Interface.
+/// @notice USD price with 8 decimals, like Chainlink's USD feeds. There is no round history: roundId is the update
+///         time, and getRoundData answers only for the latest round. `confidence()` adds Nightshift's 0-100 score.
+///         Consumers must check `updatedAt` for staleness, as with any Chainlink feed.
+contract NightshiftAggregatorV3 {
+    NightshiftOracle public immutable oracle;
+    address public immutable token;
+    string public description;
+    uint8 public constant decimals = 8;
+    uint256 public constant version = 1;
+
+    constructor(NightshiftOracle oracle_, address token_, string memory description_) {
+        require(address(oracle_) != address(0) && token_ != address(0), "zero");
+        oracle = oracle_;
+        token = token_;
+        description = description_;
+    }
+
+    function latestRoundData()
+        public
+        view
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+    {
+        (uint256 p, , uint64 t) = oracle.getPrice(token);
+        require(p > 0, "no price");
+        roundId = uint80(t);
+        answer = int256(p / 1e10); // 18 → 8 decimals
+        startedAt = t;
+        updatedAt = t;
+        answeredInRound = roundId;
+    }
+
+    function getRoundData(uint80 roundId_)
+        external
+        view
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+    {
+        (roundId, answer, startedAt, updatedAt, answeredInRound) = latestRoundData();
+        require(roundId_ == roundId, "no history");
+    }
+
+    function latestAnswer() external view returns (int256 answer) {
+        (, answer, , , ) = latestRoundData();
+    }
+
+    function latestTimestamp() external view returns (uint256 updatedAt) {
+        (, , , updatedAt, ) = latestRoundData();
+    }
+
+    /// @notice Nightshift's confidence in the current price, 0-100 (as pushed; it falls the longer markets are closed).
+    function confidence() external view returns (uint8 c) {
+        (, c, ) = oracle.getPrice(token);
     }
 }

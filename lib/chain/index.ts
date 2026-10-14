@@ -14,8 +14,13 @@ export type Deployment = {
   owner?: Address;
   roles?: { updater: Address; keeper: Address; faucet: Address };
   symbolPrefix?: string; // "t" = testnet tokens, "d" = demo tokens on mainnet
-  contracts: { usdg: Address; oracle: Address; vault: Address; verifier: Address };
-  tokens: Record<string, { address: Address; lltv: number; adapter: Address }>;
+  contracts: { usdg: Address; oracle: Address; vault: Address; verifier: Address; cloakRegistry?: Address };
+  /** adapter: Morpho Blue IOracle (refuses stale prices); feed: Chainlink-style AggregatorV3 (8 decimals) */
+  tokens: Record<string, { address: Address; lltv: number; adapter: Address; feed?: Address }>;
+  /** contracts replaced by the security-review upgrade (kept for reference; positions there are not shown) */
+  previous?: { vault: Address; adapters: Record<string, Address>; startBlock: number };
+  /** real Morpho Blue markets (demo tokens) priced by the adapters above; written by scripts/create-morpho-markets.mjs */
+  morpho?: { address: Address; irm: Address; createdAt: string; markets: Record<string, { id: `0x${string}`; lltv: number }>; e2e?: { label: string; hash: string }[] };
 };
 
 export const DEPLOYMENT = deployment as unknown as Deployment;
@@ -32,6 +37,8 @@ export const ABI = {
   vault: abis.NightshiftVault,
   verifier: abis.Groth16Verifier,
   adapter: abis.MorphoOracleAdapter,
+  feed: abis.NightshiftAggregatorV3,
+  cloakRegistry: abis.CloakRegistry,
 } as const;
 
 export function chainOf(d: Deployment = DEPLOYMENT): Chain {

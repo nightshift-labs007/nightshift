@@ -17,7 +17,11 @@ interface IERC20 {
 contract NightshiftVault {
     uint256 internal constant WAD = 1e18;
     uint256 public constant SLIPPAGE_WAD = 0.005e18; // Guardian sells collateral 0.5% below the Oracle price
-    uint256 public constant MAX_PRICE_AGE = 7 days;
+    /// @notice Prices older than this are refused (the keeper normally pushes every few minutes, weekends included).
+    uint256 public constant MAX_PRICE_AGE = 2 days;
+    /// @notice Confidence the Vault uses falls by this much per full hour since the last price update, so a stalled
+    ///         keeper shrinks borrow limits and then stops new borrowing (below MIN_BORROW_CONFIDENCE).
+    uint256 public constant CONFIDENCE_DECAY_PER_HOUR = 1;
     /// @notice No new borrowing while the Oracle is this unsure (existing loans can still repay, add collateral or be protected).
     uint256 public constant MIN_BORROW_CONFIDENCE = 40;
 
@@ -40,6 +44,15 @@ contract NightshiftVault {
 
     address public owner;
     IERC20 public immutable loanToken;
+    uint256 private locked = 1;
+
+    /// @dev One state-changing call at a time: token callbacks can't re-enter the Vault mid-update.
+    modifier nonReentrant() {
+        require(locked == 1, "reentrant");
+        locked = 2;
+        _;
+        locked = 1;
+    }
     NightshiftOracle public immutable oracle;
 
     mapping(address => Market) public markets;
@@ -95,7 +108,10 @@ contract NightshiftVault {
         uint64 updatedAt;
         (price, confidence, updatedAt) = oracle.getPrice(collateral);
         require(price > 0, "no price");
-        require(block.timestamp - updatedAt <= MAX_PRICE_AGE, "stale price");
+        uint256 age = block.timestamp - updatedAt;
+        require(age <= MAX_PRICE_AGE, "stale price");
+        uint256 decay = (age / 1 hours) * CONFIDENCE_DECAY_PER_HOUR;
+        confidence = decay >= confidence ? 0 : uint8(confidence - decay);
     }
 
     /// @notice Morpho Blue liquidation incentive factor: min(1.15, 1 / (0.3 * lltv + 0.7)).
@@ -155,7 +171,7 @@ contract NightshiftVault {
 
     // ---------------------------------------------------------------- borrower actions
 
-    function deposit(address collateral, uint256 amount) external {
+    function deposit(address collateral, uint256 amount) external nonReentrant {
         require(markets[collateral].enabled, "market");
         require(amount > 0, "amount");
         require(IERC20(collateral).transferFrom(msg.sender, address(this), amount), "transfer");
@@ -167,7 +183,7 @@ contract NightshiftVault {
         emit Deposit(msg.sender, collateral, amount);
     }
 
-    function borrow(address collateral, uint256 amount) external {
+    function borrow(address collateral, uint256 amount) external nonReentrant {
         require(markets[collateral].enabled, "market");
         (, uint8 confidence) = _price(collateral);
         require(confidence >= MIN_BORROW_CONFIDENCE, "low confidence");
@@ -178,15 +194,15 @@ contract NightshiftVault {
         emit Borrow(msg.sender, collateral, amount);
     }
 
-    function repay(address collateral, uint256 amount) external {
+    function repay(address collateral, uint256 amount) external nonReentrant {
         Position storage p = positions[msg.sender][collateral];
         if (amount > p.debt) amount = p.debt;
-        require(loanToken.transferFrom(msg.sender, address(this), amount), "transfer");
         p.debt -= amount;
+        require(loanToken.transferFrom(msg.sender, address(this), amount), "transfer");
         emit Repay(msg.sender, collateral, amount);
     }
 
-    function withdraw(address collateral, uint256 amount) external {
+    function withdraw(address collateral, uint256 amount) external nonReentrant {
         Position storage p = positions[msg.sender][collateral];
         require(amount <= p.collateral, "amount");
         p.collateral -= amount;
@@ -209,7 +225,7 @@ contract NightshiftVault {
     ///         when HF < trigger, sells just enough collateral to the vault (0.5% below the Oracle price)
     ///         to repay debt and restore HF to the target. Solves
     ///         k = (P*u*L - T*D) / (P*(L - T*(1 - s))).
-    function protect(address user, address collateral) external returns (uint256 sold, uint256 repaid) {
+    function protect(address user, address collateral) external nonReentrant returns (uint256 sold, uint256 repaid) {
         Rule memory r = rules[user][collateral];
         require(r.mode == 2, "not opted in");
         Position storage p = positions[user][collateral];
@@ -243,16 +259,16 @@ contract NightshiftVault {
     }
 
     /// @notice Morpho-style liquidation of an unhealthy position (HF < 1).
-    function liquidate(address user, address collateral, uint256 repayAmount) external returns (uint256 seized) {
+    function liquidate(address user, address collateral, uint256 repayAmount) external nonReentrant returns (uint256 seized) {
         require(healthFactor(user, collateral) < WAD, "healthy");
         Position storage p = positions[user][collateral];
         if (repayAmount > p.debt) repayAmount = p.debt;
         (uint256 price, ) = _price(collateral);
-        seized = (((repayAmount * lif(markets[collateral].lltv)) / WAD) * WAD) / price;
+        seized = (repayAmount * lif(markets[collateral].lltv)) / price;
         if (seized > p.collateral) seized = p.collateral;
-        require(loanToken.transferFrom(msg.sender, address(this), repayAmount), "transfer");
         p.debt -= repayAmount;
         p.collateral -= seized;
+        require(loanToken.transferFrom(msg.sender, address(this), repayAmount), "transfer");
         require(IERC20(collateral).transfer(msg.sender, seized), "transfer");
         emit Liquidated(user, collateral, msg.sender, repayAmount, seized);
     }

@@ -83,8 +83,8 @@ export const CARDS: Card[] = [
   {
     id: "V7",
     ask: "If you borrow up to Nightshift's limit, is the loan safe?",
-    answer: "Yes. Always.",
-    formula: ["borrow ≤ limit ⟹ healthy", "limit shrinks when price confidence drops"],
+    answer: "When you borrow, yes: provably healthy at that price. If the price later falls, the Guardian steps in.",
+    formula: ["borrow ≤ limit ⟹ healthy (at that price)", "limit shrinks when price confidence drops"],
     live: ({ q }) => `Now: 10 ${q.token} (confidence ${q.confidence}) → you can borrow up to ${$0(10 * q.fairValue * q.lltv * haircut(q.confidence))}.`,
   },
   {
@@ -104,7 +104,7 @@ export const CARDS: Card[] = [
   {
     id: "G3",
     ask: "When the Guardian rescues a loan, where does it land?",
-    answer: "Exactly on the safety level you chose. Not a guess.",
+    answer: "On the safety level you chose: exactly in the proven math, within a hair on-chain (integer rounding).",
     formula: ["health after rebalancing = your target"],
     live: (x) => { const g = guardian(x); return `Now: ${x.q.token} loan at 1.10, target 1.40 → use ${g.sell.toFixed(2)} → health ${g.after(g.sell).toFixed(2)}.`; },
   },
@@ -154,8 +154,8 @@ export const CARDS: Card[] = [
   {
     id: "O2",
     ask: "Does Nightshift get more confident the longer markets stay closed?",
-    answer: "Never. Confidence only goes down while markets are shut.",
-    formula: ["longer closed ⟹ lower confidence"],
+    answer: "Not from time alone: same signals + more hours closed = lower confidence. Signals agreeing more can lift it.",
+    formula: ["same signals, longer closed ⟹ lower confidence"],
     live: ({ quotes }) => `Confidence now: ${confs(quotes)}`,
   },
   {

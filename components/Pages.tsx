@@ -138,8 +138,13 @@ function Contracts() {
     ["Vault + Guardian", DEPLOYMENT.contracts.vault],
     ["Oracle", DEPLOYMENT.contracts.oracle],
     ["ZK verifier", DEPLOYMENT.contracts.verifier],
+    ...(DEPLOYMENT.contracts.cloakRegistry ? [["Cloak registry (proof + Oracle price)", DEPLOYMENT.contracts.cloakRegistry] as [string, string]] : []),
     [sym("USDG"), DEPLOYMENT.contracts.usdg],
-    ...Object.entries(DEPLOYMENT.tokens ?? {}).map(([s, t]) => [sym(s), (t as { address: string }).address] as [string, string]),
+    ...Object.entries(DEPLOYMENT.tokens ?? {}).flatMap(([s, t]) => [
+      [sym(s), t.address] as [string, string],
+      ...(t.feed ? [[`${sym(s)} / USD feed (Chainlink-style)`, t.feed] as [string, string]] : []),
+      [`${sym(s)} Morpho oracle adapter`, t.adapter] as [string, string],
+    ]),
   ];
   return (
     <div className="card panel">

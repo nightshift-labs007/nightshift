@@ -273,7 +273,12 @@ export function Cloak({ quotes }: { quotes: Quote[] }) {
                           toast(`The verifier contract on ${DEPLOYMENT.chainName} rejected this proof.`, "error");
                         } else if (v.accepted) {
                           setOnchain("valid");
-                          toast(`Verified on ${DEPLOYMENT.chainName}: the contract accepted the proof, and its price ($${(v.price!.proofCents / 100).toFixed(2)}) and LLTV match the on-chain Oracle and Vault.`, "ok");
+                          toast(
+                            v.enforcedBy === "CloakRegistry"
+                              ? `Verified on ${DEPLOYMENT.chainName} by the CloakRegistry contract: the proof is valid and its price ($${(v.price!.proofCents / 100).toFixed(2)}) and LLTV match the on-chain Oracle and Vault.`
+                              : `Verified on ${DEPLOYMENT.chainName}: the contract accepted the proof, and its price ($${(v.price!.proofCents / 100).toFixed(2)}) and LLTV match the on-chain Oracle and Vault.`,
+                            "ok",
+                          );
                         } else {
                           setOnchain("math-only");
                           const why = [

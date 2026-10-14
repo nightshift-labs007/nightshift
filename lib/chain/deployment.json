@@ -6,7 +6,7 @@
   "explorer": "https://basescan.org",
   "symbolPrefix": "d",
   "deployedAt": "2026-10-12T12:55:53.049Z",
-  "startBlock": 52510176,
+  "startBlock": 52612393,
   "owner": "0x155CF8D8A187d9fa17C5f5F619662b920c130239",
   "keeper": "0x5b9C8c979a0ba1097fFE50d6C27eF727731E5457",
   "roles": {
@@ -17,29 +17,46 @@
   "contracts": {
     "usdg": "0xc86322b80a84ebf428daea6976ac65e500776930",
     "oracle": "0x5507ad4cba6bfe88e0702f703fffc05fa7d3a66e",
-    "vault": "0xb4ccde5d8497c568d8b41249bfa3b560d9ac1acc",
-    "verifier": "0xbf565f01a9534175d21aeb12f0a94052b8eed1be"
+    "vault": "0x2aae4bcf7eec8cc842bacfcf9e13a54cba649071",
+    "verifier": "0xbf565f01a9534175d21aeb12f0a94052b8eed1be",
+    "cloakRegistry": "0xe3a3cd6ce59a3c5e9d5449189d58a90d1ca04341"
   },
   "tokens": {
     "SPY": {
       "address": "0x671df7bd033d8a8da2b0a63f1bdb4b13e4affd85",
       "lltv": 0.77,
-      "adapter": "0x34741d5cd97dcf4b040d7a344168cd73771dd7ad"
+      "adapter": "0x0c0b7d5d8bc355449b405a95b0c9340ddab0aea7",
+      "feed": "0xe48aecf355d5cd22665ec6f7aa6767ca9a9f2e6b"
     },
     "QQQ": {
       "address": "0x13d2033b8c21e49f40ab90e9c04c0f8163f43437",
       "lltv": 0.77,
-      "adapter": "0x15834d9c8cdcb5773235db6840e0ced62b4a0374"
+      "adapter": "0x58b906b7ed814ca0908324e5aae666b09b827d5b",
+      "feed": "0xd59903410ad53fdeedd678775ff0a1a76e9f0aaa"
     },
     "GLD": {
       "address": "0x2a81fc5d4885d1a5f16494c0e4b369a0c72d2cb9",
       "lltv": 0.77,
-      "adapter": "0x0bf1bca14ef5c815a89d59f0a813caa939ba9f36"
+      "adapter": "0x7f1c89ab95facabb360695480beeafbb30706645",
+      "feed": "0x3f18b88a652b4148af88dc9f739080ac91245bcb"
     },
     "IBIT": {
       "address": "0x36c4b6e156304df0ea337e763bf4f22e876d9edf",
       "lltv": 0.625,
-      "adapter": "0xda8cf5e8d8f31c85efc9227d4c29be53cc539139"
+      "adapter": "0x5118e7e20ac6ab2429695a45d584025e8054c0b7",
+      "feed": "0x146c622c99d5a1bbd89df2af3939861eef13946e"
     }
+  },
+  "upgradedAt": "2026-10-14T21:42:39.318Z",
+  "upgradeStartBlock": 52612393,
+  "previous": {
+    "vault": "0xb4ccde5d8497c568d8b41249bfa3b560d9ac1acc",
+    "adapters": {
+      "SPY": "0x34741d5cd97dcf4b040d7a344168cd73771dd7ad",
+      "QQQ": "0x15834d9c8cdcb5773235db6840e0ced62b4a0374",
+      "GLD": "0x0bf1bca14ef5c815a89d59f0a813caa939ba9f36",
+      "IBIT": "0xda8cf5e8d8f31c85efc9227d4c29be53cc539139"
+    },
+    "startBlock": 52510176
   }
 }

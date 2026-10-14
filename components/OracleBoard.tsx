@@ -55,6 +55,22 @@ export function OracleBoard({ snap }: { snap: OracleSnapshot | null }) {
               <span className="muted">{q.anchorName}</span>
               <span className={`mono ${q.anchorMovePct >= 0 ? "up" : "down"}`}>{signed(q.anchorMovePct)}</span>
             </div>
+            {q.beta && (
+              <div className="row" title="Overnight sensitivity to the anchor, measured from recent sessions and Blume-adjusted (0.67·β + 0.33); 1.0 when there are fewer than 10 sessions or R² is below 0.3.">
+                <span className="muted">Measured beta</span>
+                <span className="mono">
+                  {q.beta.value.toFixed(2)}
+                  {q.beta.fallback ? ` (fallback: ${q.beta.fallback})` : ` · R² ${q.beta.r2?.toFixed(2)} · ${q.beta.sessions} nights`}
+                </span>
+              </div>
+            )}
+            {!!q.flags?.length && (
+              <div className="oracle-flags">
+                {q.flags.map((f) => (
+                  <div key={f}>Confidence capped: {f}</div>
+                ))}
+              </div>
+            )}
 
             {q.agents.length > 0 && (
               <div className="agents">

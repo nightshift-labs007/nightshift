@@ -1,7 +1,8 @@
+import { overnightBeta, type BetaEstimate } from "./beta";
 import { AGENTS, NEWS_TILT, type AgentId } from "./config";
 import { loadAllPairs, loadFearGreed, loadGlobals, priceAt, toSessions, type PairData, type Source } from "./data";
 import { getNewsScores, type NewsResult } from "./news";
-import { marketStatus } from "./time";
+import { etParts, marketStatus } from "./time";
 import { learnWeights, type Learned } from "./weights";
 
 export type AgentReading = { id: AgentId; name: string; signal: string; estimate: number; weight: number };
@@ -20,6 +21,10 @@ export type Quote = {
   confidence: number; // 0-100
   anchorMovePct: number;
   agents: AgentReading[];
+  /** measured overnight beta to the anchor (falls back to 1.0 with few sessions or a weak fit) */
+  beta?: BetaEstimate;
+  /** reasons confidence was capped: a sharp move while closed (event mode) or stale anchor data */
+  flags?: string[];
   learned?: { sessions: number };
   news?: { score: number; reason: string; headlines: string[] } | null;
 };
@@ -34,6 +39,23 @@ export type OracleSnapshot = {
 
 const pct = (x: number) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(2)}%`;
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
+
+/** Futures (ES, NQ, GC) trade Sun 18:00 – Fri 17:00 New York time, with a daily 17:00–18:00 break. Bitcoin never stops. */
+function anchorShouldTrade(symbol: string, nowMs: number) {
+  if (symbol === "BTC-USD") return true;
+  const p = etParts(nowMs);
+  if (p.weekday === "Sat") return false;
+  if (p.weekday === "Sun") return p.hour >= 18;
+  if (p.weekday === "Fri") return p.hour < 17;
+  return p.hour !== 17;
+}
+const STALE_ANCHOR_HOURS = 2; // no anchor bar for this long while it should be trading → stale
+const STALE_GLOBAL_HOURS = 96; // a foreign market with no bar for 4 days (longer than any weekend) is dropped
+// Event mode: a sharp move while the market is closed (fair value vs last close). Thresholds per asset volatility.
+const EVENT_MOVE_PCT: Record<string, number> = { SPY: 3, QQQ: 3.5, GLD: 3, IBIT: 7 };
+const EVENT_CAP = 70; // confidence cap at the threshold…
+const SEVERE_EVENT_CAP = 55; // …and at twice the threshold
+const STALE_CAP = 60;
 
 function computeQuote(
   d: PairData,
@@ -67,6 +89,8 @@ function computeQuote(
     learned: { sessions: learned.sessions },
   };
   const ns = news?.scores.find((x) => x.token === pair.token) ?? null;
+  // overnight beta measured from completed sessions (Blume-adjusted; 1.0 when there are few sessions or R² < 0.3)
+  const beta = overnightBeta(completed, d.anchor.bars);
 
   if (inSession) {
     // Wall Street is open: the real market anchors the price, guardians stand by.
@@ -77,13 +101,23 @@ function computeQuote(
       driftPct: (d.etf.price / last.close - 1) * 100,
       confidence: 99,
       agents: [],
+      beta,
+      flags: [],
       news: ns,
     };
   }
 
-  const anchorEst = last.close * (1 + pair.beta * anchorMove);
+  const anchorEst = last.close * (1 + beta.value * anchorMove);
 
+  const flags: string[] = [];
+  const lastAnchorT = d.anchor.bars[d.anchor.bars.length - 1]?.t ?? 0;
+  const anchorAgeH = (nowS - lastAnchorT) / 3600;
+  const anchorStale = d.source === "live" && anchorShouldTrade(pair.anchor, nowS * 1000) && anchorAgeH > STALE_ANCHOR_HOURS;
+  if (anchorStale) flags.push(`${pair.anchorName} data is ${anchorAgeH.toFixed(1)}h old`);
+
+  // freshness: a foreign market whose data stopped updating drops out of the global signal
   const gMoves = globals
+    .filter((g) => (nowS - (g.chart.bars[g.chart.bars.length - 1]?.t ?? 0)) / 3600 <= STALE_GLOBAL_HOURS)
     .map((g) => {
       const then = priceAt(g.chart.bars, last.closeT);
       return then ? g.chart.price / then - 1 : NaN;
@@ -101,7 +135,7 @@ function computeQuote(
 
   const agents: AgentReading[] = [
     { id: "anchor", name: AGENTS.anchor.name, signal: `${pair.anchorName} ${pct(anchorMove)} since close`, estimate: anchorEst, weight: learned.anchor },
-    { id: "global", name: AGENTS.global.name, signal: `Asia/Europe avg ${pct(gMove)}`, estimate: globalEst, weight: learned.global },
+    { id: "global", name: AGENTS.global.name, signal: gMoves.length ? `Asia/Europe avg ${pct(gMove)}` : "no fresh data", estimate: globalEst, weight: gMoves.length ? learned.global : 0 },
     { id: "momentum", name: AGENTS.momentum.name, signal: `3h anchor trend ${pct(mom)}`, estimate: momentumEst, weight: learned.momentum },
     {
       id: "sentiment",
@@ -126,9 +160,19 @@ function computeQuote(
   const fair = agents.reduce((a, x) => a + x.weight * x.estimate, 0);
   const dispersionBps = (Math.sqrt(agents.reduce((a, x) => a + x.weight * (x.estimate - fair) ** 2, 0)) / fair) * 1e4;
   const hoursSinceClose = (nowS - last.closeT) / 3600;
-  const confidence = Math.round(
-    clamp(98 - hoursSinceClose * 0.3 - dispersionBps * 0.5 - (d.source === "simulated" ? 10 : 0), 35, 98),
-  );
+  // the proven formula (formal/Nightshift/Oracle.lean: O2, O2b, O3)…
+  const proven = Math.round(clamp(98 - hoursSinceClose * 0.3 - dispersionBps * 0.5 - (d.source === "simulated" ? 10 : 0), 35, 98));
+  // …then caps that can only lower it and stay ≥ 35, so O2, O2b and O3 still hold:
+  // event mode (a sharp move while closed) and stale anchor data
+  let cap = 98;
+  const movePct = Math.abs(fair / last.close - 1) * 100;
+  const threshold = EVENT_MOVE_PCT[pair.token] ?? 3;
+  if (movePct >= threshold) {
+    cap = Math.min(cap, movePct >= 2 * threshold ? SEVERE_EVENT_CAP : EVENT_CAP);
+    flags.push(`event mode: ${movePct.toFixed(1)}% move while the market is closed`);
+  }
+  if (anchorStale) cap = Math.min(cap, STALE_CAP);
+  const confidence = Math.min(proven, cap);
 
   return {
     ...base,
@@ -137,6 +181,8 @@ function computeQuote(
     driftPct: (fair / last.close - 1) * 100,
     confidence,
     agents,
+    beta,
+    flags,
     news: ns,
   };
 }

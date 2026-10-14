@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-10-14T18:14:12.182Z",
+  "seed": 7,
+  "scenarios": 1000,
+  "stepsPerScenario": 40,
+  "contracts": "fresh copies of NightshiftOracle and NightshiftVault (lib/chain/artifacts.json), Hardhat EVM",
+  "invariants": [
+    "G1: collateral used ≥ 0, collateral never increases",
+    "G2: collateral used ≤ the position's collateral; repaid ≤ debt",
+    "G3/G3b: when it acts and debt remains, health lands on the target (relative error ≤ 1e-9)",
+    "G4: never lowers health; refuses when the collateral at the slippage price can't cover the debt",
+    "G5/trigger: acts only when 1 ≤ health < trigger, otherwise refuses with the matching reason",
+    "Below health 1 the loan can always be liquidated"
+  ],
+  "stats": {
+    "scenarios": 1000,
+    "steps": 34708,
+    "protectCalls": 34720,
+    "protected": 2127,
+    "refusedHealthy": 32378,
+    "refusedInsolvent": 0,
+    "refusedLiquidatable": 215,
+    "liquidations": 213,
+    "oracleCapSkips": 1
+  },
+  "named": [
+    {
+      "name": "Monday gap: -20% open, Guardian rebalances to target or alerts",
+      "ok": true
+    },
+    {
+      "name": "Crash then recovery: acts once on the way down, never on the way up",
+      "ok": true
+    },
+    {
+      "name": "Straddling the trigger: no action at or above it",
+      "ok": true
+    },
+    {
+      "name": "Underwater loan: Guardian refuses to touch it",
+      "ok": true
+    },
+    {
+      "name": "Oracle cap: a single 20% update is skipped, the price is unchanged",
+      "ok": true
+    },
+    {
+      "name": "Stale price: past the maximum price age, the Guardian stops acting",
+      "ok": true
+    }
+  ],
+  "violations": [],
+  "violationCount": 0,
+  "passed": true
+}

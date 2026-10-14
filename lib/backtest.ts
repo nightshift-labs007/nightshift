@@ -1,3 +1,4 @@
+import { overnightBeta } from "./beta";
 import { loadAllPairs, priceAt, toSessions, type Source } from "./data";
 
 export type ShiftRow = {
@@ -38,7 +39,9 @@ export async function getShiftReports(maxRows = 10): Promise<ShiftReport[]> {
       const aClose = priceAt(anchor.bars, prev.closeT);
       const aOpen = priceAt(anchor.bars, s.openT);
       if (!aClose || !aOpen) continue;
-      const predictedOpen = prev.close * (1 + pair.beta * (aOpen / aClose - 1));
+      // the beta measured from earlier sessions only (no look-ahead), as the Oracle would have had that morning
+      const beta = overnightBeta(sessions.slice(0, i), anchor.bars).value;
+      const predictedOpen = prev.close * (1 + beta * (aOpen / aClose - 1));
       rows.push({
         date: s.date,
         prevClose: prev.close,

@@ -11,6 +11,8 @@ export type OnChainVerdict = {
   price: { ok: boolean; proofCents: number; onchainCents: number } | null; // proof's price vs NightshiftOracle on Base
   lltv: { ok: boolean; proofBps: number; onchainBps: number } | null; // proof's LLTV vs the Vault market on Base
   accepted: boolean; // all three hold: solvent at the real on-chain price and LLTV
+  enforcedBy: "CloakRegistry" | "browser"; // where the price/LLTV comparison ran
+  reason?: string; // the registry's reason when it refuses
 };
 
 /**
@@ -36,7 +38,7 @@ export async function verifyOnChain(proof: Proof, publicSignals: string[], token
   const math = (await pub.readContract({ address: DEPLOYMENT.contracts.verifier, abi: ABI.verifier as never, functionName: "verifyProof" as never, args: args as never })) as boolean;
 
   const t = token ? DEPLOYMENT.tokens[token] : undefined;
-  if (!t) return { math, price: null, lltv: null, accepted: false };
+  if (!t) return { math, price: null, lltv: null, accepted: false, enforcedBy: "browser" };
   const [[p], [, l]] = (await Promise.all([
     pub.readContract({ address: DEPLOYMENT.contracts.oracle, abi: ABI.oracle as never, functionName: "getPrice" as never, args: [t.address] as never }),
     pub.readContract({ address: DEPLOYMENT.contracts.vault, abi: ABI.vault as never, functionName: "markets" as never, args: [t.address] as never }),
@@ -48,5 +50,11 @@ export async function verifyOnChain(proof: Proof, publicSignals: string[], token
   const onchainBps = Number(l / 10n ** 14n);
   const price = { ok: onchainCents > 0 && Math.abs(proofCents / onchainCents - 1) <= ONCHAIN_PRICE_TOLERANCE, proofCents, onchainCents };
   const lltv = { ok: proofBps === onchainBps, proofBps, onchainBps };
-  return { math, price, lltv, accepted: math && price.ok && lltv.ok };
+  // With the CloakRegistry deployed, the contract itself enforces the price and LLTV (CloakRegistry.check)
+  const registry = DEPLOYMENT.contracts.cloakRegistry;
+  if (registry) {
+    const [ok, reason] = (await pub.readContract({ address: registry, abi: ABI.cloakRegistry as never, functionName: "check" as never, args: [t.address, ...args] as never })) as [boolean, string];
+    return { math, price, lltv, accepted: ok, enforcedBy: "CloakRegistry", reason: ok ? undefined : reason };
+  }
+  return { math, price, lltv, accepted: math && price.ok && lltv.ok, enforcedBy: "browser" };
 }
