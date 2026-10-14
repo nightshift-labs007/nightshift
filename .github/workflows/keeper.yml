@@ -1,10 +1,8 @@
 name: keeper
-# Every 30 minutes: pushes Oracle prices on-chain and runs the Guardian. The run scheduled on the hour also posts
-# the X agent's hourly mix (same job, so it costs no extra Actions minutes). Market posts live in x-agent.yml.
+# Manual backup only. The keeper (/api/keeper, every 10 minutes) and the hourly X post (/api/x/post?slot=hourly, on
+# the hour) are scheduled on cron-job.org, which fires on time; GitHub's scheduler skipped runs for hours at a time.
+# Run this by hand (Actions → keeper → Run workflow) if cron-job.org is ever down. Market posts live in x-agent.yml.
 on:
-  schedule:
-    - cron: "0 * * * *"   # keeper + hourly X post
-    - cron: "30 * * * *"  # keeper only
   workflow_dispatch:
     inputs:
       post:
@@ -25,7 +23,7 @@ jobs:
           head -c 1500 out.json; echo
           test "$code" = "200"
       - name: Post the hourly X post
-        if: always() && (github.event.schedule == '0 * * * *' || github.event.inputs.post == 'true')
+        if: always() && github.event.inputs.post == 'true'
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
