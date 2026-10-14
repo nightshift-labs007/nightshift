@@ -60,7 +60,7 @@ export function Cloak({ quotes }: { quotes: Quote[] }) {
   const [proved, setProved] = useState<Proved | null>(null);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [error, setError] = useState("");
-  const [onchain, setOnchain] = useState<"" | "checking" | "valid" | "invalid">("");
+  const [onchain, setOnchain] = useState<"" | "checking" | "valid" | "math-only" | "invalid">("");
 
   useEffect(() => setSalt(randomFieldSalt()), []);
   // "Prove with Cloak" from a Vault position card
@@ -267,16 +267,36 @@ export function Cloak({ quotes }: { quotes: Quote[] }) {
                     onClick={async () => {
                       setOnchain("checking");
                       try {
-                        const ok = await verifyOnChain(proved.proof, proved.publicSignals);
-                        setOnchain(ok ? "valid" : "invalid");
-                        toast(ok ? `Smart contract on ${DEPLOYMENT.chainName} verified the proof.` : "The smart contract rejected this proof.", ok ? "ok" : "error");
+                        const v = await verifyOnChain(proved.proof, proved.publicSignals, proved.token);
+                        if (!v || !v.math) {
+                          setOnchain("invalid");
+                          toast(`The verifier contract on ${DEPLOYMENT.chainName} rejected this proof.`, "error");
+                        } else if (v.accepted) {
+                          setOnchain("valid");
+                          toast(`Verified on ${DEPLOYMENT.chainName}: the contract accepted the proof, and its price ($${(v.price!.proofCents / 100).toFixed(2)}) and LLTV match the on-chain Oracle and Vault.`, "ok");
+                        } else {
+                          setOnchain("math-only");
+                          const why = [
+                            v.price && !v.price.ok ? `its price $${(v.price.proofCents / 100).toFixed(2)} differs from the on-chain Oracle's $${(v.price.onchainCents / 100).toFixed(2)}` : "",
+                            v.lltv && !v.lltv.ok ? `its LLTV ${v.lltv.proofBps / 100}% differs from the market's ${v.lltv.onchainBps / 100}%` : "",
+                          ].filter(Boolean).join(" and ");
+                          toast(`The math checks out on ${DEPLOYMENT.chainName}, but ${why || "the price couldn't be compared"}, so this doesn't prove solvency at the protocol's price.`, "warn");
+                        }
                       } catch (e) {
                         setOnchain("");
                         toast(`On-chain check failed: ${String(e).slice(0, 120)}`, "error");
                       }
                     }}
                   >
-                    {onchain === "checking" ? "Checking on-chain…" : onchain === "valid" ? "Verified on-chain ✓" : onchain === "invalid" ? "Rejected on-chain" : "Verify on-chain"}
+                    {onchain === "checking"
+                      ? "Checking on-chain…"
+                      : onchain === "valid"
+                        ? "Verified on-chain ✓ (proof + Oracle price)"
+                        : onchain === "math-only"
+                          ? "Math ✓, price ≠ on-chain Oracle"
+                          : onchain === "invalid"
+                            ? "Rejected on-chain"
+                            : "Verify on-chain"}
                   </button>
                 )}
               </>

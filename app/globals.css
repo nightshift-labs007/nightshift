@@ -480,3 +480,11 @@ details > summary.xs { font-weight: 600; }
 .module-logos img { width: 36px; height: 36px; padding: 7px; transition: border-color 0.15s, background 0.15s; }
 .module-logos li:hover img { border-color: var(--border-strong); background: var(--surface-2); }
 
+
+/* Guardian alerts in the wallet Vault (components/OnchainVault.tsx) */
+.guardian-alerts { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; }
+.guardian-alerts:empty { display: none; }
+.guardian-alerts .tab { align-self: flex-start; }
+.guardian-alert { border: 1px solid var(--border-strong); border-left-width: 3px; border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; line-height: 1.45; }
+.guardian-alert.warn { border-color: var(--amber); background: var(--amber-soft); }
+.guardian-alert.danger { border-color: var(--red-line); border-left-color: var(--red); background: var(--red-soft); }

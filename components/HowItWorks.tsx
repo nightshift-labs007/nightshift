@@ -40,7 +40,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
     href: "/app#guardian",
     status: ONCHAIN,
     tone: "paper",
-    what: "Re-checks every loan on each price update. Alerts you, or repays automatically, before the health factor reaches liquidation.",
+    what: "Re-checks every loan on each price update. Alerts you in the app, or rebalances the loan automatically, before the health factor reaches liquidation.",
     icon: "M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6zM9 12l2 2 4-4",
     logos: [{ name: "Morpho", src: "/logos/morpho.png", rel: "Liquidation rules" }],
   },

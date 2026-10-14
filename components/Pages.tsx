@@ -54,9 +54,14 @@ export function AppPage() {
           <SectionHead
             overline="Guardian"
             title="Loan monitoring that acts before liquidation."
-            lead="Set a trigger health factor on each loan. When the Oracle moves a loan below it, the Guardian alerts you or repays automatically by selling just enough collateral. If selling can't help, it only alerts."
+            lead="Set a trigger health factor on each loan. When the Oracle moves a loan below it, the Guardian alerts you in the app, or rebalances it automatically: it uses just enough collateral to repay debt and lift the loan back to your target. If that can't help, it only alerts."
           />
           {snap ? <GuardianConsole snap={snap} /> : <div className="skeleton">Loading guardian…</div>}
+          <p className="small muted" style={{ marginTop: 14, maxWidth: 820 }}>
+            <b>How a rebalance works in this demo:</b> the Vault itself takes the collateral at the Oracle price minus 0.5% and cancels the same
+            value of debt. Nothing is traded on a DEX. A production version would sell the collateral through a DEX, with real slippage.
+            Alerts appear in the app and, if you allow them, as browser notifications while the page is open; email and Telegram alerts are next.
+          </p>
         </div>
       </section>
     </PageShell>

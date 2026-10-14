@@ -66,7 +66,7 @@ export function GuardianConsole({ snap }: { snap: OracleSnapshot }) {
     else if (hf < p.guardian.trigger && p.guardian.mode === "auto") {
       const T = p.guardian.target;
       const k = Math.max(0, Math.min(p.units, (P * p.units * p.lltv - T * p.debt) / (P * (p.lltv - T * (1 - SLIPPAGE)))));
-      outcome = { text: `Auto-protect sells ${k.toFixed(3)} ${p.token} → HF ${T.toFixed(2)}`, tone: "accent" };
+      outcome = { text: `Auto-protect uses ${k.toFixed(3)} ${p.token} to repay → HF ${T.toFixed(2)}`, tone: "accent" };
     } else if (hf < p.guardian.trigger && p.guardian.mode === "alert") outcome = { text: hf < 1 ? "Alert, then liquidated" : "Alert sent", tone: hf < 1 ? "down" : "amber" };
     else if (hf < 1) outcome = { text: "Liquidated", tone: "down" };
     else outcome = { text: "Within rules", tone: "up" };

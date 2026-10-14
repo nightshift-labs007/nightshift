@@ -120,16 +120,16 @@ export async function feature({ n, stamp }: MixCtx): Promise<string[] | null> {
     async () => [
       "Meet the Guardian.",
       "",
-      "Set a safety level on your loan. If prices fall below it, the Guardian sells just enough collateral to bring the loan back to your target.",
+      "Set a safety level on your loan. If prices push it below that, the Guardian uses just enough collateral to repay debt and bring the loan back to your target.",
       "",
-      "If selling can't save it, it doesn't sell. It alerts you. Proven in Lean 4.",
+      "If that can't save it, it doesn't touch it and flags it in the app instead. Proven in Lean 4.",
     ],
     async () => [
       "Prove your loan is safe without showing its size.",
       "",
       "Nightshift Cloak makes a zero-knowledge proof in your browser: debt < collateral × price × LTV. Nothing else is revealed.",
       "",
-      "Verified by a contract on Base.",
+      "Checked on Base: the verifier contract checks the math, and the price must match the on-chain Oracle.",
     ],
     async () => [
       "Can we quietly edit our past predictions?",

@@ -20,7 +20,7 @@ function friendly(e: unknown): string {
     [/low confidence/, "New borrowing is paused while the Oracle's confidence is below 40 (markets have been closed a long time). Try again later."],
     [/"health"|reverted.*health|: health/, "That would leave your loan below the 1.10 health factor needed to withdraw."],
     [/stale price/, "The on-chain price is out of date; it refreshes within minutes."],
-    [/insolvent: alert only/, "Selling collateral can't restore this loan, so the Guardian only alerts. Repay or add collateral."],
+    [/insolvent: alert only/, "Using collateral to repay can't restore this loan, so the Guardian only alerts. Repay or add collateral."],
     [/levels/, "Guardian levels: trigger must be above 1.00, and target at least 0.05 above the trigger (max 5)."],
     [/allowance|"balance"|: balance/, "Not enough tokens for that amount."],
     [/"market"|: market/, "That market isn't enabled."],
@@ -30,7 +30,26 @@ function friendly(e: unknown): string {
 }
 import { usd } from "./useApi";
 
-type Pos = { token: string; collateral: number; debt: number; hf: number; limit: number; rule: { mode: number; trigger: number; target: number } };
+type Pos = { token: string; collateral: number; debt: number; hf: number; limit: number; price: number; rule: { mode: number; trigger: number; target: number } };
+
+const SLIPPAGE = 0.005; // NightshiftVault.SLIPPAGE_WAD
+
+/**
+ * What the Guardian means for this loan right now, mirroring NightshiftVault.protect: it acts only when
+ * 1 ≤ health < trigger, and refuses when the collateral at the slippage price can't cover the debt (G4).
+ * Alerts are delivered here in the app (and as browser notifications when allowed).
+ */
+function guardianAlert(p: Pos): { level: "warn" | "danger"; text: string } | null {
+  if (p.debt <= 0 || p.hf >= MAX_HF) return null;
+  const name = sym(p.token);
+  if (p.hf < 1) return { level: "danger", text: `${name} loan can be liquidated now (health ${p.hf.toFixed(2)} < 1.00). Repay or add collateral.` };
+  if (p.rule.mode === 0) return p.hf < 1.1 ? { level: "warn", text: `${name} loan health is ${p.hf.toFixed(2)} and the Guardian is off.` } : null;
+  if (p.hf >= p.rule.trigger) return null;
+  if (p.collateral * p.price * (1 - SLIPPAGE) <= p.debt)
+    return { level: "danger", text: `Guardian alert: using your ${name} to repay can't restore this loan, so the Guardian won't touch it. Repay or add collateral.` };
+  if (p.rule.mode === 1) return { level: "warn", text: `Guardian alert: ${name} loan health ${p.hf.toFixed(2)} is below your trigger ${p.rule.trigger.toFixed(2)}. Repay or add collateral.` };
+  return { level: "warn", text: `${name} loan health ${p.hf.toFixed(2)} is below your trigger ${p.rule.trigger.toFixed(2)}. The Guardian will rebalance it to ${p.rule.target.toFixed(2)} on the keeper's next run, or repay now.` };
+}
 type Tx = { label: string; hash: string; at: number };
 
 
@@ -75,7 +94,8 @@ export function OnchainVault() {
         /* stale price: leave defaults */
       }
       const [mode, trig, targ] = (await read(DEPLOYMENT.contracts.vault, ABI.vault, "rules", [account, t])) as [number, bigint, bigint];
-      ps.push({ token: sym, collateral: Number(formatEther(c)), debt: Number(formatEther(d)), hf, limit, rule: { mode, trigger: Number(formatEther(trig)), target: Number(formatEther(targ)) } });
+      const [price] = (await read(DEPLOYMENT.contracts.oracle, ABI.oracle, "getPrice", [t])) as [bigint, number, bigint];
+      ps.push({ token: sym, collateral: Number(formatEther(c)), debt: Number(formatEther(d)), hf, limit, price: Number(formatEther(price)), rule: { mode, trigger: Number(formatEther(trig)), target: Number(formatEther(targ)) } });
     }
     setBal(b);
     setPositions(ps);
@@ -86,6 +106,21 @@ export function OnchainVault() {
     const id = setInterval(refresh, 20_000);
     return () => clearInterval(id);
   }, [refresh]);
+
+  // Guardian alerts: a toast (and a browser notification when allowed) whenever a loan enters an alert state
+  const alerts = positions.map((p) => ({ p, a: guardianAlert(p) })).filter((x): x is { p: Pos; a: NonNullable<ReturnType<typeof guardianAlert>> } => !!x.a);
+  const seenAlerts = useRef(new Set<string>());
+  useEffect(() => {
+    const now = new Set(alerts.map(({ p, a }) => `${p.token}:${a.level}:${a.text.slice(0, 40)}`));
+    for (const { p, a } of alerts) {
+      const key = `${p.token}:${a.level}:${a.text.slice(0, 40)}`;
+      if (seenAlerts.current.has(key)) continue;
+      toast(a.text, "warn");
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification("Nightshift Guardian", { body: a.text });
+    }
+    seenAlerts.current = now;
+  }, [alerts.map(({ p, a }) => `${p.token}:${a.level}:${a.text.slice(0, 40)}`).join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [notify, setNotify] = useState(() => (typeof Notification !== "undefined" ? Notification.permission : "denied"));
 
   const switchChain = () => wallet.switchToTarget().catch((e) => toast(friendly(e), "warn"));
   const autoSwitched = useRef<string | null>(null);
@@ -227,6 +262,24 @@ export function OnchainVault() {
       </div>
 
       {account && !wrongChain && (
+        <div className="guardian-alerts" role="status" aria-live="polite">
+          {alerts.map(({ p, a }) => (
+            <div key={p.token} className={`guardian-alert ${a.level}`}>
+              {a.text}
+            </div>
+          ))}
+          {positions.some((p) => p.debt > 0) && typeof Notification !== "undefined" && notify !== "granted" && (
+            <button
+              className="tab"
+              onClick={() => Notification.requestPermission().then((r) => { setNotify(r); toast(r === "granted" ? "Browser alerts on: you'll be notified while this page is open." : "Browser alerts blocked.", r === "granted" ? "ok" : "warn"); })}
+            >
+              Get Guardian alerts as browser notifications
+            </button>
+          )}
+        </div>
+      )}
+
+      {account && !wrongChain && (
         <div className="vault-top">
           <div className="panel">
             <div className="unit">Wallet</div>
@@ -239,7 +292,11 @@ export function OnchainVault() {
                 </li>
               ))}
             </ul>
-            <p className="xs muted">New here? Click “Get test funds”: you receive a little test ETH for gas and test ETF tokens.</p>
+            <p className="xs muted">
+              {isMainnet
+                ? "New here? Click “Get demo tokens” for demo ETF tokens (no value). You need a few cents of ETH on Base for gas."
+                : "New here? Click “Get test funds”: you receive a little test ETH for gas and test ETF tokens."}
+            </p>
           </div>
 
           <div className="panel">
@@ -247,7 +304,7 @@ export function OnchainVault() {
             <div className="tabs" style={{ margin: "12px 0 0" }}>
               {tokens.map((s) => (
                 <button key={s} className={`tab ${s === token ? "on" : ""}`} onClick={() => setToken(s)}>
-                  t{s}
+                  {sym(s)}
                 </button>
               ))}
             </div>
@@ -256,7 +313,7 @@ export function OnchainVault() {
                 <div className="kv">
                   <span className="muted">Collateral · debt</span>
                   <span className="mono">
-                    {fmt(pos.collateral, 4)} t{token} · {usd(pos.debt)}
+                    {fmt(pos.collateral, 4)} {sym(token)} · {usd(pos.debt)}
                   </span>
                 </div>
                 <div className="kv">
@@ -277,7 +334,7 @@ export function OnchainVault() {
             <input id="oc-amount" type="number" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`e.g. 5 (tokens) or 1000 (${sym("USDG")})`} />
             <div className="pos-actions" style={{ marginTop: 10 }}>
               <button className="tab" disabled={!!busy} onClick={() => run("deposit")}>
-                {busy === "deposit" ? "…" : `Deposit t${token}`}
+                {busy === "deposit" ? "…" : `Deposit ${sym(token)}`}
               </button>
               <button className="tab" disabled={!!busy} onClick={() => run("borrow")}>
                 {busy === "borrow" ? "…" : `Borrow ${sym("USDG")}`}
@@ -286,7 +343,7 @@ export function OnchainVault() {
                 {busy === "repay" ? "…" : `Repay ${sym("USDG")}`}
               </button>
               <button className="tab" disabled={!!busy} onClick={() => run("withdraw")}>
-                {busy === "withdraw" ? "…" : `Withdraw t${token}`}
+                {busy === "withdraw" ? "…" : `Withdraw ${sym(token)}`}
               </button>
             </div>
             <div className="guardian-row">

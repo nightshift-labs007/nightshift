@@ -163,7 +163,7 @@ async function weekend(now: number): Promise<Draft> {
 function fact(now: number): Draft {
   const facts = [
     "Can Nightshift quietly edit its past predictions?\n\nNo. Every morning's prediction is recorded on the Algorand blockchain before the market opens, so the track record is public and permanent.",
-    "Can you prove your loan is safe without showing how big it is?\n\nOn Nightshift, yes. A zero-knowledge proof shows debt < collateral × price × LTV and reveals nothing else. Made in your browser, checked by a contract on Base.",
+    "Can you prove your loan is safe without showing how big it is?\n\nOn Nightshift, yes. A zero-knowledge proof shows debt < collateral × price × LTV and reveals nothing else. Made in your browser; checked on Base against the on-chain Oracle price.",
     "Does Nightshift's price feed work with Morpho, the lending protocol?\n\nYes. We tested it against a real Morpho market on a copy of Base: borrowing up to the limit works, one dollar more is refused, and a price drop triggers liquidation.",
   ];
   const week = Math.floor(now / (7 * 86_400_000));

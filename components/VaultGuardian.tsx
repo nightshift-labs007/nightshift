@@ -77,7 +77,7 @@ export function VaultGuardian({ quotes }: { quotes: Quote[] }) {
       gDebt = Math.max(0, debt - repaid);
       log.push({
         t: "SUN 21:01",
-        msg: `Guardian AUTO-DEFEND: sold ${k.toFixed(3)} ${q.token} at ~${usd(P * (1 - SLIPPAGE))}, repaid ${usd(repaid, 0)} USDG. HF restored to ${hf(gUnits, P, gDebt, l).toFixed(2)}.`,
+        msg: `Guardian AUTO-DEFEND: used ${k.toFixed(3)} ${q.token} (valued at ~${usd(P * (1 - SLIPPAGE))}) to repay ${usd(repaid, 0)} USDG. HF restored to ${hf(gUnits, P, gDebt, l).toFixed(2)}.`,
         tone: "accent",
       });
     }
