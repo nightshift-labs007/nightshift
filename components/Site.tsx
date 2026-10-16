@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { isMainnet } from "@/lib/chain";
 import { BrandMark } from "./BrandMark";
 import { Toaster } from "./Toast";
+import { WelcomeGuide } from "./WelcomeGuide";
 import { WalletButton } from "./WalletButton";
 
 /** Pages, by user goal. Stocks and Earn live on the landing page. */
@@ -79,6 +80,7 @@ export function SiteFooter() {
         </div>
       </footer>
       <Toaster />
+      <WelcomeGuide />
     </>
   );
 }

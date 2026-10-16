@@ -9,6 +9,7 @@ const LIVE = isDeployed ? (isMainnet ? "Live on Base · demo" : "Live on testnet
 import { CountUp } from "./CountUp";
 import { Earn } from "./Earn";
 import { HowItWorks } from "./HowItWorks";
+import { Integrations } from "./Integrations";
 import { SectionHead, SiteFooter, SiteNav } from "./Site";
 import { TopStocks } from "./Stocks";
 import { usd, useApi } from "./useApi";
@@ -120,6 +121,17 @@ export function Dashboard() {
               </div>
             </div>
             <HowItWorks />
+          </div>
+        </section>
+
+        <section className="block alt" id="integrations">
+          <div className="wrap">
+            <SectionHead
+              overline="Built with"
+              title="Five integrations, each doing one job."
+              lead="Nightshift prices tokenized ETFs overnight. These protocols make that price provable, usable for lending, private, on the record, and productive."
+            />
+            <Integrations />
           </div>
         </section>
 
