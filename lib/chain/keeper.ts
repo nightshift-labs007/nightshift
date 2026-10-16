@@ -36,7 +36,7 @@ export function publicClient() {
 }
 
 /** Batched contract reads (one RPC round trip); falls back to sequential reads where Multicall3 isn't deployed. */
-async function readMany(pub: PublicClient, calls: { address: Address; abi: unknown; functionName: string; args?: unknown[] }[]) {
+export async function readMany(pub: PublicClient, calls: { address: Address; abi: unknown; functionName: string; args?: unknown[] }[]) {
   if (!calls.length) return [];
   try {
     const res = await pub.multicall({ contracts: calls as never, multicallAddress: MULTICALL3, allowFailure: false });

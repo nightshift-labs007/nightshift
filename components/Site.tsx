@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { isMainnet } from "@/lib/chain";
 import { BrandMark } from "./BrandMark";
+import { ExplorePanel } from "./ExplorePanel";
+import { JoinPrompt } from "./Leaderboard";
 import { Toaster } from "./Toast";
 import { WelcomeGuide } from "./WelcomeGuide";
 import { WalletButton } from "./WalletButton";
@@ -16,13 +18,14 @@ export const NAV = [
   { href: "/proof", label: "Proof" },
   { href: "/transparency", label: "Transparency" },
   { href: "/docs", label: "Docs" },
+  { href: "/leaderboard", label: "Leaderboard" },
   { href: "/#stocks", label: "Stocks" },
   { href: "/#earn", label: "Earn" },
 ];
 
 export function SiteNav() {
   const path = usePathname();
-  const [menu, setMenu] = useState(false);
+  const [menu, setMenu] = useState(false); // the Explore panel
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8);
@@ -30,10 +33,14 @@ export function SiteNav() {
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
   }, []);
-  useEffect(() => setMenu(false), [path]);
   return (
-    <nav className={`nav ${menu ? "open" : ""} ${scrolled ? "scrolled" : ""}`} aria-label="Main">
+    <nav className={`nav ${scrolled ? "scrolled" : ""}`} aria-label="Main">
       <div className="wrap nav-inner">
+        <button className="xp-btn" onClick={() => setMenu(true)} aria-expanded={menu} aria-haspopup="dialog" aria-label="Explore pages and integrations" title="Explore pages and integrations">
+          <span />
+          <span />
+          <span />
+        </button>
         <Link className="brand" href="/">
           <BrandMark /> Nightshift
         </Link>
@@ -53,12 +60,8 @@ export function SiteNav() {
             Launch app
           </Link>
         )}
-        <button className="menu-btn" aria-expanded={menu} aria-controls="nav-links" onClick={() => setMenu(!menu)}>
-          <span />
-          <span />
-          <span className="sr-only">Menu</span>
-        </button>
       </div>
+      <ExplorePanel open={menu} setOpen={setMenu} />
     </nav>
   );
 }
@@ -81,6 +84,7 @@ export function SiteFooter() {
       </footer>
       <Toaster />
       <WelcomeGuide />
+      <JoinPrompt />
     </>
   );
 }
