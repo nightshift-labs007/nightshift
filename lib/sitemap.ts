@@ -8,6 +8,7 @@ export const PAGES = [
   { href: "/transparency", label: "Transparency", icon: "M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6zM9 12l2 2 4-4", what: "The 24 machine-checked proofs, the Algorand prediction ledger, and every contract address." },
   { href: "/docs", label: "Docs", icon: "M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h4", what: "Straight answers on how the oracle, Vault, Guardian and Cloak work, and what's still a demo." },
   { href: "/leaderboard", label: "Leaderboard", icon: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3", what: "Every wallet that joined or used Nightshift, ranked by what it has done on-chain." },
+  { href: "/profile", label: "Profile", icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6", what: "Your name, email and links, and the points you've collected. Your wallet is your login." },
   { href: "/#stocks", label: "Stocks", icon: "M4 20V10M10 20V4M16 20v-7M22 20H2", what: "The world's biggest stocks, priced after the bell by the same engine." },
   { href: "/#earn", label: "Earn", icon: "M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7", what: "A live view of a Sentora vault where idle USDG could earn a protected rate." },
 ] as const;

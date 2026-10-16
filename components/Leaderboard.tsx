@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { EIP1193Provider } from "viem";
 import { addrUrl } from "@/lib/chain";
@@ -20,7 +21,7 @@ const store = {
 };
 
 /** Signs the join message (free, no transaction) and asks the server to record it on Algorand. */
-async function join(provider: EIP1193Provider, account: string) {
+export async function join(provider: EIP1193Provider, account: string) {
   const issuedAt = new Date().toISOString();
   toast("Sign the message in your wallet. It's free and sends no transaction.");
   const signature = (await provider.request({ method: "personal_sign", params: [hex(joinMessage(account, issuedAt)) as `0x${string}`, account as `0x${string}`] })) as string;
@@ -32,7 +33,7 @@ async function join(provider: EIP1193Provider, account: string) {
   return j as { tx?: string };
 }
 
-function useBoard() {
+export function useBoard() {
   const [data, setData] = useState<Board | null>(null);
   const load = useCallback(async () => {
     const res = await fetch("/api/leaderboard", { cache: "no-store" }).catch(() => null);
@@ -50,6 +51,7 @@ function useBoard() {
 /** After a wallet connects, a small card offers to add it to the leaderboard (once per address). */
 export function JoinPrompt() {
   const w = useWallet();
+  const path = usePathname();
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -66,7 +68,8 @@ export function JoinPrompt() {
       .catch(() => {});
     return () => { alive = false; };
   }, [w.account]);
-  if (!show || !w.account) return null;
+  // the profile and leaderboard pages have their own Join button
+  if (!show || !w.account || path === "/profile" || path === "/leaderboard") return null;
   const dismiss = () => { store.set(SEEN(w.account!)); setShow(false); };
   return (
     <div className="join-prompt" role="dialog" aria-label="Join the leaderboard">
@@ -140,7 +143,7 @@ export function LeaderboardPage() {
           <div className="lb-join">
             {me?.joined ? (
               <p>
-                <b>You&apos;re #{me.rank}</b> with {me.points} points.{" "}
+                <b>You&apos;re #{me.rank}</b> with {me.points} points. <Link href="/profile">Edit your profile</Link> ·{" "}
                 {me.joinTx && <a href={me.joinTx} target="_blank" rel="noopener noreferrer">See your join on Algorand ↗</a>}
               </p>
             ) : (
@@ -171,7 +174,9 @@ export function LeaderboardPage() {
                     <tr key={r.address} className={me?.address === r.address ? "me" : ""}>
                       <td className="lb-rank">{r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : r.rank}</td>
                       <td className="mono">
+                        {r.name && <span className="lb-name">{r.name}</span>}
                         <a href={addrUrl(r.address)} target="_blank" rel="noopener noreferrer">{short(r.address)}</a>
+                        {r.x && <a className="lb-x" href={`https://x.com/${r.x}`} target="_blank" rel="noopener noreferrer">@{r.x}</a>}
                         {me?.address === r.address && <span className="lb-you">you</span>}
                       </td>
                       <td className="mono lb-points">{r.points}</td>

@@ -88,6 +88,9 @@ export function WalletButton() {
                 Switch to {w.targetChain.name}
               </button>
             )}
+            <a className="btn primary small" href="/profile" onClick={() => setMenu(false)}>
+              Your profile &amp; points
+            </a>
             <button
               className="tab"
               onClick={() => {

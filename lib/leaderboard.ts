@@ -3,6 +3,7 @@ import { formatEther, type Address } from "viem";
 import { ABI, DEPLOYMENT } from "@/lib/chain";
 import { publicClient, readMany } from "@/lib/chain/keeper";
 import { explorerTx, readJoins } from "@/lib/algorand";
+import { publicProfiles } from "@/lib/profile";
 
 /**
  * The leaderboard: every wallet that joined (a signed message, recorded on Algorand) or used the Vault on Base
@@ -21,6 +22,8 @@ export type LeaderRow = {
   guardian: boolean; // an auto-protect rule on any loan
   collateralUsd: number;
   debtUsd: number;
+  name?: string; // from the owner's profile, only if they chose to show it
+  x?: string;
 };
 export type Leaderboard = {
   updatedAt: string;
@@ -108,7 +111,11 @@ export async function getLeaderboard(): Promise<Leaderboard> {
     points: (r.joined ? POINTS.joined : 0) + r.markets.length * POINTS.perMarket + (r.borrowing ? POINTS.borrowing : 0) + (r.guardian ? POINTS.guardian : 0),
   }));
   scored.sort((a, b) => b.points - a.points || b.collateralUsd - a.collateralUsd || (a.joinedAt ?? Infinity) - (b.joinedAt ?? Infinity));
-  const ranked: LeaderRow[] = scored.map((r, i) => ({ ...r, rank: i + 1 }));
+  const shown = await publicProfiles(scored.map((r) => r.address)).catch(() => new Map());
+  const ranked: LeaderRow[] = scored.map((r, i) => {
+    const p = shown.get(r.address);
+    return { ...r, rank: i + 1, ...(p ? { name: p.name || undefined, x: p.x || undefined } : {}) };
+  });
 
   const data: Leaderboard = {
     updatedAt: new Date().toISOString(),
