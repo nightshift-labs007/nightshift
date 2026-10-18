@@ -4,6 +4,7 @@ import "./globals.css";
 import "./theme.css";
 import { WalletProvider } from "@/lib/wallet";
 import { AlwaysOnAudio } from "@/components/AlwaysOnAudio";
+import { Nyx } from "@/components/Nyx";
 
 const display = Unbounded({ subsets: ["latin"], weight: ["300", "400", "500"], variable: "--font-display", display: "swap" });
 const sans = Funnel_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <WalletProvider>
           <AlwaysOnAudio />
           {children}
+          <Nyx />
         </WalletProvider>
       </body>
     </html>

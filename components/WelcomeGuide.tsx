@@ -135,6 +135,12 @@ export function WelcomeGuide() {
     opener.current?.focus?.();
   }, [path]);
 
+  // Nyx (the voice assistant) can open the guide
+  useEffect(() => {
+    window.addEventListener("ns:guide-open", show);
+    return () => window.removeEventListener("ns:guide-open", show);
+  }, [show]);
+
   useEffect(() => {
     if (!auto || read(KEY(path))) return;
     const t = setTimeout(show, 900); // let the page settle first

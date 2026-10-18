@@ -538,3 +538,51 @@ input[type="range"] { accent-color: var(--mint); }
 .pf-link.danger:hover:not(:disabled) { color: var(--red); }
 .pf-link:disabled { opacity: .4; cursor: not-allowed; }
 @media (max-width: 560px) { .pf-actions { flex-wrap: wrap; } .pf-actions .btn { width: 100%; justify-content: center; } }
+
+/* ---------- Nyx, the voice assistant ---------- */
+/* toasts and the join card sit above the orb */
+.toaster { bottom: 96px !important; }
+.join-prompt { bottom: 96px; }
+.nyx-orb { position: fixed; z-index: 90; right: 22px; bottom: 22px; width: 60px; height: 60px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; display: grid; place-items: center; }
+.nyx-core { position: absolute; inset: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f3fff9 0%, var(--mint) 28%, #3d8f6c 62%, #0d2a20 100%); box-shadow: 0 0 18px rgba(196, 236, 217, .45), inset 0 0 10px rgba(0, 0, 0, .35); transition: transform .3s var(--ease); }
+.nyx-ring { position: absolute; inset: 2px; border-radius: 50%; border: 1px solid rgba(196, 236, 217, .45); animation: nyxBreathe 3.2s ease-in-out infinite; }
+.nyx-ring.r2 { inset: -4px; border-color: rgba(196, 236, 217, .18); animation-delay: -1.6s; }
+.nyx-orb:hover .nyx-core { transform: scale(1.06); }
+.nyx-orb:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; }
+.nyx-orb.listening .nyx-core { background: radial-gradient(circle at 35% 30%, #fff 0%, #ffd9a0 25%, #e0884a 60%, #3a1606 100%); box-shadow: 0 0 26px rgba(240, 160, 90, .7); }
+.nyx-orb.listening .nyx-ring { border-color: rgba(240, 170, 100, .7); animation: nyxPulse 1s ease-out infinite; }
+.nyx-orb.listening .nyx-ring.r2 { animation-delay: -.5s; }
+.nyx-orb.speaking .nyx-core { animation: nyxSpeak .5s ease-in-out infinite alternate; }
+@keyframes nyxBreathe { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.08); opacity: .4; } }
+@keyframes nyxPulse { from { transform: scale(1); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
+@keyframes nyxSpeak { from { transform: scale(1); } to { transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .nyx-ring, .nyx-orb .nyx-core { animation: none !important; } }
+.nyx-panel { position: fixed; z-index: 90; right: 22px; bottom: 94px; width: min(380px, calc(100vw - 32px)); max-height: min(560px, calc(100dvh - 120px)); display: flex; flex-direction: column; border-radius: var(--radius); border: 1px solid var(--border-strong); background: rgba(16, 20, 20, .97); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); box-shadow: var(--shadow-lg); animation: guideIn .25s var(--ease) both; }
+.nyx-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 12px 10px 16px; border-bottom: 1px solid var(--border); }
+.nyx-head b { font: 400 1rem var(--display); margin-right: 8px; }
+.nyx-status { font: 500 11px var(--mono); color: var(--text-4); }
+.nyx-status.on { color: #f0b070; }
+.nyx-tools { display: flex; align-items: center; gap: 6px; }
+.nyx-chip { padding: 4px 9px; border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-3); font: 500 11px var(--mono); cursor: pointer; }
+.nyx-chip.on { border-color: var(--green-line); color: var(--mint); background: var(--mint-soft); }
+.nyx-x { all: unset; cursor: pointer; font-size: 24px; line-height: 1; color: var(--text-3); padding: 0 6px; border-radius: 6px; }
+.nyx-x:hover, .nyx-x:focus-visible { color: var(--text); background: var(--surface-3); }
+.nyx-log { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
+.nyx-msg { margin: 0; max-width: 88%; padding: 9px 12px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+.nyx-msg.nyx { align-self: flex-start; background: var(--surface-3); color: var(--text); border-bottom-left-radius: 4px; }
+.nyx-msg.you { align-self: flex-end; background: var(--mint-soft); color: var(--mint); border: 1px solid var(--green-line); border-bottom-right-radius: 4px; }
+.nyx-msg.interim { opacity: .65; font-style: italic; }
+.nyx-suggest { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 10px; }
+.nyx-suggest button { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-2); font-size: 12.5px; cursor: pointer; }
+.nyx-suggest button:hover { border-color: var(--mint); color: var(--mint); }
+.nyx-input { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--border); }
+.nyx-input input { flex: 1; min-width: 0; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--bg-alt); color: var(--text); font: 400 14px var(--sans); }
+.nyx-input input:focus { outline: none; border-color: var(--mint); }
+.nyx-input button { width: 38px; border-radius: var(--radius-sm); border: 0; background: var(--mint); color: var(--mint-ink); font-weight: 700; cursor: pointer; }
+.nyx-input button:disabled { opacity: .35; cursor: default; }
+.nyx-foot { margin: 0; padding: 0 14px 10px; font-size: 11px; color: var(--text-4); }
+@media (max-width: 560px) {
+  .nyx-orb { right: 14px; bottom: 14px; width: 54px; height: 54px; }
+  .nyx-panel { right: 12px; left: 12px; width: auto; bottom: 80px; }
+  .toaster { bottom: 84px !important; }
+}

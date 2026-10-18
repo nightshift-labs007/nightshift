@@ -25,6 +25,12 @@ function WalletIcon({ w }: { w: WalletInfo }) {
 export function WalletButton() {
   const w = useWallet();
   const [open, setOpen] = useState(false);
+  // Nyx (the voice assistant) can open the wallet picker
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("ns:wallet-open", onOpen);
+    return () => window.removeEventListener("ns:wallet-open", onOpen);
+  }, []);
   const [menu, setMenu] = useState(false);
   const [eth, setEth] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);

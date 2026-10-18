@@ -52,6 +52,11 @@ export function AlwaysOnAudio() {
         /* storage unavailable */
       }
     };
+    // Nyx (the voice assistant) dips the music while it listens or speaks
+    const onDuck = (e: Event) => {
+      audio.volume = (e as CustomEvent<boolean>).detail ? 0.06 : 0.58;
+    };
+    window.addEventListener("ns:audio-duck", onDuck);
     const timer = setInterval(save, 1000);
     window.addEventListener("pagehide", save);
     return () => {
@@ -60,6 +65,7 @@ export function AlwaysOnAudio() {
       detach();
       window.removeEventListener("message", onMessage);
       window.removeEventListener("pagehide", save);
+      window.removeEventListener("ns:audio-duck", onDuck);
       audio.pause();
     };
   }, []);
