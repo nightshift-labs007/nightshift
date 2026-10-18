@@ -539,6 +539,15 @@ input[type="range"] { accent-color: var(--mint); }
 .pf-link:disabled { opacity: .4; cursor: not-allowed; }
 @media (max-width: 560px) { .pf-actions { flex-wrap: wrap; } .pf-actions .btn { width: 100%; justify-content: center; } }
 
+/* ---------- sound switch (above the Guide button) ---------- */
+.sound-fab { position: fixed; z-index: 70; left: 20px; bottom: 70px; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 8px; border-radius: 999px; border: 1px solid var(--border-strong); background: rgba(16, 20, 20, .88); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--text); font: 500 13px var(--mono); cursor: pointer; box-shadow: var(--shadow-lg); transition: border-color .15s; }
+.sound-fab svg { width: 24px; height: 24px; fill: none; stroke: var(--mint); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.sound-fab svg path:first-child { fill: var(--mint-soft); }
+.sound-fab.off svg { stroke: var(--text-4); }
+.sound-fab.off { color: var(--text-3); }
+.sound-fab:hover { border-color: var(--mint); }
+@media (max-width: 560px) { .sound-fab { left: 12px; bottom: 62px; padding: 0 8px; font-size: 0; gap: 0; } }
+
 /* ---------- Nyx, the voice assistant ---------- */
 /* toasts and the join card sit above the orb */
 .toaster { bottom: 96px !important; }

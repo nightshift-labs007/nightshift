@@ -267,17 +267,35 @@ export function Nyx() {
 
   // ---------------------------------------------------------------- listening
   const stopListening = useCallback(() => recRef.current?.stop(), []);
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
     const SR = getSR();
     setOpen(true);
-    if (!SR) return;
+    if (!SR) return say("This browser can't do speech recognition. Chrome, Edge or Safari can; here you can type to me instead.");
     if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
     recRef.current?.abort();
+    setListening(true); // show "Listening…" straight away, while the microphone opens
+
+    // ask for the microphone first, so a block or a missing mic gets a clear message instead of silence
+    if (navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((t) => t.stop());
+      } catch (err) {
+        setListening(false);
+        const name = (err as DOMException)?.name;
+        if (name === "NotAllowedError" || name === "SecurityError") return say("Microphone access is blocked. Click the lock or microphone icon in the address bar, allow the microphone for this site, then tap the orb again. Or just type to me.");
+        if (name === "NotFoundError" || name === "OverconstrainedError") return say("I can't find a microphone on this device. Plug one in, or type to me instead.");
+        if (name === "NotReadableError") return say("Another app is using your microphone. Close it, then tap the orb again.");
+        return say("I couldn't open the microphone. Try tapping the orb again, or type to me.");
+      }
+    }
+
     const rec = new SR();
-    rec.lang = "en-US";
+    rec.lang = navigator.language?.startsWith("en") ? navigator.language : "en-US";
     rec.interimResults = true;
     rec.continuous = false;
     rec.maxAlternatives = 1;
+    let heard = false, failed = false;
     rec.onresult = (e) => {
       let finalText = "", interimText = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -285,16 +303,35 @@ export function Nyx() {
         if (r.isFinal) finalText += r[0].transcript;
         else interimText += r[0].transcript;
       }
+      if (finalText || interimText) heard = true;
       setInterim(interimText);
       if (finalText) { setInterim(""); handleRef.current(finalText); }
     };
     rec.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") say("I can't hear you: microphone access is blocked. Allow it in your browser's address bar, or type to me instead.");
-      else if (e.error === "no-speech") say("I didn't hear anything. Tap the orb and try again.");
+      failed = true;
+      const msg: Record<string, string> = {
+        "not-allowed": "Microphone access is blocked. Allow the microphone for this site in the address bar, then tap the orb again.",
+        "service-not-allowed": "This browser won't let me use its speech service. Try Chrome or Edge, or type to me instead.",
+        "audio-capture": "I can't find a working microphone. Check it's plugged in and selected, or type to me.",
+        "network": "I can't reach the browser's speech service. Check your connection; in Brave, speech input isn't supported, so use Chrome or Edge, or type to me.",
+        "no-speech": "I didn't hear anything. Tap the orb, wait for it to turn orange, then speak.",
+        "language-not-supported": "Your browser's speech service doesn't support this language. Type to me instead.",
+      };
+      if (msg[e.error]) say(msg[e.error]);
+      else if (e.error !== "aborted") say(`Voice input stopped (${e.error}). Tap the orb to try again, or type to me.`);
     };
-    rec.onend = () => { setListening(false); setInterim(""); };
+    rec.onend = () => {
+      setListening(false);
+      setInterim("");
+      if (!heard && !failed) say("I didn't catch anything. Tap the orb, wait for it to turn orange, then speak.");
+    };
     recRef.current = rec;
-    try { rec.start(); setListening(true); } catch { setListening(false); }
+    try {
+      rec.start();
+    } catch {
+      setListening(false);
+      say("Voice input couldn't start. Tap the orb again in a moment.");
+    }
   }, [say]);
 
   // hold Space to talk, when not typing or on a control
