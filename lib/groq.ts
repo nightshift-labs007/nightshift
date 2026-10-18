@@ -41,7 +41,7 @@ export async function chat(messages: ChatMsg[], maxTokens = 400): Promise<string
     const res = await fetch(`${BASE}/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages, max_completion_tokens: maxTokens, temperature: 0.6, ...(model.startsWith("openai/gpt-oss") ? { reasoning_effort: "low" } : {}) }),
+      body: JSON.stringify({ model, messages, max_completion_tokens: maxTokens, temperature: 0.3, ...(model.startsWith("openai/gpt-oss") ? { reasoning_effort: "low" } : {}) }),
       signal: AbortSignal.timeout(20_000),
     }).catch(() => null);
     const j = (await res?.json().catch(() => null)) as { choices?: { message?: { content?: string } }[]; error?: { message?: string } } | null;
