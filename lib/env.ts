@@ -1,5 +1,4 @@
 import "server-only";
-import { TWELVEDATA_KEY } from "./keys";
 
 /**
  * Every setting the server reads, in one place. Nothing is strictly required: each feature turns
@@ -14,7 +13,7 @@ export const env = {
   keeperKey: v("KEEPER_PRIVATE_KEY"),
   faucetKey: v("FAUCET_PRIVATE_KEY"),
   anthropicKey: v("ANTHROPIC_API_KEY"),
-  twelveDataKey: TWELVEDATA_KEY,
+  twelveDataKey: v("TWELVEDATA_API_KEY"),
   // Vercel's Upstash integration may name these KV_REST_API_*: accept either
   upstashUrl: v("UPSTASH_REDIS_REST_URL") || v("KV_REST_API_URL"),
   upstashToken: v("UPSTASH_REDIS_REST_TOKEN") || v("KV_REST_API_TOKEN"),

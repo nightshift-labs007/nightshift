@@ -120,4 +120,10 @@ Every `git push` to `main` redeploys automatically. Pushes to other branches get
 - Yahoo Finance endpoints are unofficial. If they start blocking Vercel's IPs, the site keeps working on simulated data, labelled as such.
 
 ## Disclaimers
-Concept demonstration only. Oracle values are data, not investment advice. Vault and Guardian are simulations and the Cloak proves over demo positions; no funds are handled. Stock Tokens are not available to US persons.
+Demonstration only. The Vault, Guardian and Cloak run as **unaudited** contracts on Base with **demo tokens that have no value**: never send real tokens to them. Oracle values are data, not investment advice. Nightshift doesn't sell tokens, and Stock Tokens are not available to US persons. See `docs/AUDIT_SCOPE.md` for the trust assumptions.
+
+## Contributing
+Pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, the tests to run, and the ground rules (no secrets in commits, and no claims beyond what the proofs show).
+
+## License
+[Apache License 2.0](LICENSE). Third-party logos in `public/logos` belong to their owners (see [NOTICE](NOTICE)).

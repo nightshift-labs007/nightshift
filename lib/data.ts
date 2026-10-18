@@ -1,5 +1,4 @@
 import { GLOBAL_MARKETS, PAIRS, type Pair } from "./config";
-import { TWELVEDATA_KEY } from "./keys";
 import { closeMinutes, etParts, etToUtcMs, isWeekday } from "./time";
 
 export type Bar = { t: number; o: number; c: number }; // t = bar start, epoch seconds
@@ -61,7 +60,7 @@ const TD_INTERVAL = { "5m": "5min", "1h": "1h", "1d": "1day" } as const;
 const TD_SIZE: Record<string, number> = { "1d": 300, "5d": 130, "1mo": 35, "3mo": 70 };
 
 async function fallbackChart(symbol: string, interval: "5m" | "1h" | "1d", range: "1d" | "5d" | "1mo" | "3mo"): Promise<Chart | null> {
-  const key = TWELVEDATA_KEY;
+  const key = (process.env.TWELVEDATA_API_KEY ?? "").trim();
   const td = TD_SYMBOL[symbol];
   if (!key || !td) return null;
   try {
