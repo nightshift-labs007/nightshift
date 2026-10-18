@@ -557,9 +557,20 @@ export function Nyx() {
     if (!v && typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
   };
 
+  // the "Ask Nyx" tag says hello once, on the first visit, then stays as a small label
+  const [intro, setIntro] = useState(false);
+  useEffect(() => {
+    if (store.get("ns-nyx-intro")) return;
+    const on = setTimeout(() => setIntro(true), 2500);
+    const off = setTimeout(() => { setIntro(false); store.set("ns-nyx-intro", "1"); }, 10000);
+    return () => { clearTimeout(on); clearTimeout(off); };
+  }, []);
+
   const greeted = useRef(false);
   const openPanel = () => {
     setOpen(true);
+    setIntro(false);
+    store.set("ns-nyx-intro", "1");
     if (!greeted.current && !msgs.length) {
       greeted.current = true;
       setMsgs([{ who: "nyx", text: supported ? `I'm Nyx. Tap the orb or hold Space and ask me anything${ai ? ", about Nightshift or the world" : " about Nightshift"}.` : "I'm Nyx. Voice input isn't supported in this browser, but you can type to me." }]);
@@ -575,12 +586,15 @@ export function Nyx() {
               <b>Nyx</b>
               <span className={`nyx-status ${listening ? "on" : ""}`}>{listening ? "Listening… tap the orb when done" : thinking ? "Thinking…" : speaking ? "Speaking…" : ai ? "Ready · AI on" : "Ready"}</span>
             </div>
-            <div className="nyx-tools">
-              <button className={`nyx-chip ${voiceOn ? "on" : ""}`} onClick={toggleVoice} aria-pressed={voiceOn} title="Spoken replies">Voice {voiceOn ? "on" : "off"}</button>
-              <button className={`nyx-chip ${alertsOn ? "on" : ""}`} onClick={() => handle(alertsOn ? "turn off alerts" : "turn on alerts")} aria-pressed={alertsOn} title="Spoken alerts about your loans and big overnight moves">Alerts {alertsOn ? "on" : "off"}</button>
-              <button className="nyx-x" onClick={() => { setOpen(false); recRef.current?.abort(); if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel(); }} aria-label="Close Nyx">×</button>
-            </div>
+            <button className="nyx-x" onClick={() => { setOpen(false); recRef.current?.abort(); if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel(); }} aria-label="Close Nyx">×</button>
           </header>
+          <div className="nyx-tools nyx-toggles">
+            <button className={`nyx-chip nyx-voice ${voiceOn ? "on" : ""}`} onClick={toggleVoice} aria-pressed={voiceOn} title={voiceOn ? "Nyx reads replies aloud. Click to mute." : "Replies are text only. Click to hear them."}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" />{voiceOn ? <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" /> : <path d="M17 9l5 6M22 9l-5 6" />}</svg>
+              Voice replies {voiceOn ? "on" : "off"}
+            </button>
+            <button className={`nyx-chip ${alertsOn ? "on" : ""}`} onClick={() => handle(alertsOn ? "turn off alerts" : "turn on alerts")} aria-pressed={alertsOn} title="Spoken alerts about your loans and big overnight moves">Alerts {alertsOn ? "on" : "off"}</button>
+          </div>
           <div className="nyx-log" ref={logRef} aria-live="polite">
             {msgs.map((m, i) => <p key={i} className={`nyx-msg ${m.who}`}>{m.text}</p>)}
             {interim && <p className="nyx-msg you interim">{interim}…</p>}
@@ -594,8 +608,14 @@ export function Nyx() {
             <input value={text} onChange={(e) => setText(e.target.value)} placeholder={supported ? "Ask Nyx, or hold Space to talk" : "Ask Nyx anything…"} aria-label="Ask Nyx" maxLength={200} />
             <button type="submit" disabled={!text.trim()} aria-label="Send">→</button>
           </form>
-          <p className="nyx-foot">Nyx can't move money or give investment advice. {ai ? "Your voice and questions are processed by Groq." : `Voice is processed by your browser${supported ? " (some browsers send audio to their speech service)" : ""}.`}</p>
+          <p className="nyx-foot">Nyx can't move money or give personal financial advice. {ai ? "Your voice and questions are processed by Groq." : `Voice is processed by your browser${supported ? " (some browsers send audio to their speech service)" : ""}.`}</p>
         </div>
+      )}
+      {!open && (
+        <button className={`nyx-tag ${intro ? "intro" : ""}`} onClick={openPanel} aria-label="Open Nyx, the voice assistant">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z" /><path d="M8 9.5h8M8 12.5h5" /></svg>
+          <span>{intro ? "Hi, I'm Nyx. Ask me anything" : "Ask Nyx"}</span>
+        </button>
       )}
       <button
         ref={orbRef}
@@ -608,7 +628,9 @@ export function Nyx() {
         aria-label={listening ? "Stop listening" : "Talk to Nyx"}
         title="Talk to Nyx (or hold Space)"
       >
-        <span className="nyx-core" aria-hidden="true" />
+        <span className="nyx-core" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" /></svg>
+        </span>
         <span className="nyx-ring" aria-hidden="true" />
         <span className="nyx-ring r2" aria-hidden="true" />
       </button>
