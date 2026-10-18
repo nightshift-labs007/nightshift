@@ -562,6 +562,10 @@ input[type="range"] { accent-color: var(--mint); }
 .nyx-orb.listening .nyx-ring { border-color: rgba(240, 170, 100, .7); animation: nyxPulse 1s ease-out infinite; }
 .nyx-orb.listening .nyx-ring.r2 { animation-delay: -.5s; }
 .nyx-orb.speaking .nyx-core { animation: nyxSpeak .5s ease-in-out infinite alternate; }
+.nyx-orb.listening .nyx-core { transform: scale(calc(1 + var(--lvl, 0) * .35)); transition: transform .08s linear; }
+.nyx-orb.thinking .nyx-ring { border-color: transparent; border-top-color: var(--mint); animation: nyxSpin .9s linear infinite; }
+.nyx-orb.thinking .nyx-ring.r2 { border-top-color: transparent; border-bottom-color: rgba(196, 236, 217, .5); animation-duration: 1.4s; }
+@keyframes nyxSpin { to { transform: rotate(360deg); } }
 @keyframes nyxBreathe { 0%, 100% { transform: scale(1); opacity: .9; } 50% { transform: scale(1.08); opacity: .4; } }
 @keyframes nyxPulse { from { transform: scale(1); opacity: .9; } to { transform: scale(1.5); opacity: 0; } }
 @keyframes nyxSpeak { from { transform: scale(1); } to { transform: scale(1.1); } }

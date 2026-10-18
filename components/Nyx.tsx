@@ -5,16 +5,33 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPublicClient, formatEther, type Address, type PublicClient } from "viem";
 import { ABI, DEPLOYMENT, chainOf, chainTransport, isDeployed } from "@/lib/chain";
 import type { Leaderboard } from "@/lib/leaderboard";
-import { EXPLAIN, HELP, PAGE_HREF, PAGE_NAME, SUGGESTIONS, parse, type Intent } from "@/lib/nyx";
+import { EXPLAIN, HELP, PAGE_HREF, PAGE_NAME, SUGGESTIONS, normalize, parse, type Intent } from "@/lib/nyx";
 import type { OracleSnapshot, Quote } from "@/lib/oracle";
 import { healthFactor, useAccount } from "@/lib/paper";
 import { useWallet } from "@/lib/wallet";
 
 /**
- * Nyx: Nightshift's voice assistant. Speech in through the browser's speech recognition, speech out through its
- * speech synthesis, intents from lib/nyx.ts: no AI model and no keys. It reads prices, your loan and points, explains
- * how things work and moves between pages. It never moves money: borrowing and repaying stay in the user's wallet.
+ * Nyx: Nightshift's voice assistant. With Groq switched on (GROQ_API_KEY), it records your voice and transcribes it
+ * with Whisper, and answers open questions with an AI model grounded in Nightshift's facts and live prices. Without
+ * it, it uses the browser's speech recognition and the built-in answers in lib/nyx.ts. Live data (prices, your loan,
+ * points) and actions (going to a page) are always handled locally and instantly. It never moves money.
  */
+// intents answered from Nightshift's own data or carried out directly, never sent to the AI
+const LOCAL = new Set<Intent["kind"]>(["price", "movers", "market", "confidence", "accuracy", "loan", "points", "leaders", "go", "money", "wallet", "tour", "alerts", "stop", "time", "thanks"]);
+const ACTIONS = new Set<Intent["kind"]>(["go", "money", "wallet", "tour", "alerts", "stop"]);
+// questions that need reasoning even when they mention a token ("why is gold down?")
+const OPEN_QUESTION = /^(why|how come|should|would|could|what if|compare|tell me more|is it (a )?good|explain why|what do you think)\b/;
+// Whisper sometimes "hears" these in near-silence
+const PHANTOM = /^(thank you|thanks for watching|you|bye|okay)[.!]?$/i;
+const canRecord = () => typeof window !== "undefined" && typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
+
+function micError(err: unknown): string {
+  const name = (err as DOMException)?.name;
+  if (name === "NotAllowedError" || name === "SecurityError") return "Microphone access is blocked. Click the lock or microphone icon in the address bar, allow the microphone for this site, then tap the orb again. Or just type to me.";
+  if (name === "NotFoundError" || name === "OverconstrainedError") return "I can't find a microphone on this device. Plug one in, or type to me instead.";
+  if (name === "NotReadableError") return "Another app is using your microphone. Close it, then tap the orb again.";
+  return "I couldn't open the microphone. Try tapping the orb again, or type to me.";
+}
 type Msg = { who: "you" | "nyx"; text: string };
 type Loan = { token: string; hf: number; debt: number; guardian: number | null; source: "wallet" | "paper" };
 
@@ -75,12 +92,22 @@ export function Nyx() {
   const [voiceOn, setVoiceOn] = useState(true);
   const [alertsOn, setAlertsOn] = useState(false);
   const [supported, setSupported] = useState(false);
+  const [ai, setAi] = useState(false);
+  const [thinking, setThinking] = useState(false);
   const recRef = useRef<SR | null>(null);
+  const recorderRef = useRef<{ stop: () => void } | null>(null);
+  const orbRef = useRef<HTMLButtonElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<(t: string) => void>(() => {});
+  const msgsRef = useRef<Msg[]>([]);
+  msgsRef.current = msgs;
 
   useEffect(() => {
-    setSupported(!!getSR());
+    setSupported(!!getSR() || canRecord());
+    fetch("/api/nyx")
+      .then((r) => r.json())
+      .then((j: { ai?: boolean }) => setAi(!!j.ai))
+      .catch(() => {});
     setVoiceOn(store.get("ns-nyx-voice") !== "0");
     setAlertsOn(store.get("ns-nyx-alerts") === "1");
     if (typeof speechSynthesis !== "undefined") speechSynthesis.getVoices(); // warm the voice list
@@ -252,22 +279,135 @@ export function Nyx() {
     [getLoans, path, router, w.account],
   );
 
+  /** Open questions go to the AI, with a short note about the user's own loans and points when they ask about "my…". */
+  const askAI = useCallback(
+    async (question: string): Promise<string | null> => {
+      let me: string | undefined;
+      if (/\b(my|me|i|am i)\b/.test(normalize(question)) && (w.account || paper.positions.length)) {
+        const snap = await getSnap();
+        const loans = await getLoans(snap).catch(() => [] as Loan[]);
+        const board = w.account ? await getJson<Leaderboard>("/api/leaderboard") : null;
+        const row = board?.rows.find((r) => r.address === w.account?.toLowerCase());
+        me = [
+          w.account ? `Wallet connected.` : "No wallet connected (paper account only).",
+          loans.length ? loans.map((l) => `${l.source} ${l.token} loan: health factor ${l.hf.toFixed(2)}, debt ${l.debt.toFixed(2)} dUSDG, Guardian ${l.guardian ? `on at ${l.guardian.toFixed(2)}` : "off"}.`).join(" ") : "No open loans.",
+          row ? `Leaderboard: ${row.points} points, rank ${row.rank} of ${board!.totals.wallets}.` : w.account ? "Not on the leaderboard yet." : "",
+        ].join(" ");
+      }
+      const history = msgsRef.current.slice(-7, -1); // the turns before this question
+      const res = await fetch("/api/nyx/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question, history, me }) }).catch(() => null);
+      const j = (await res?.json().catch(() => null)) as { answer?: string; error?: string } | null;
+      if (res?.ok && j?.answer) return j.answer;
+      if (res?.status === 429 && j?.error) return j.error;
+      return null; // fall back to the built-in answer
+    },
+    [getLoans, paper.positions.length, w.account],
+  );
+
   const handle = useCallback(
     async (raw: string) => {
       const t = raw.trim();
       if (!t) return;
       setMsgs((m) => [...m, { who: "you" as const, text: t }].slice(-12));
       const intent = parse(t);
-      const reply = await answer(intent).catch(() => "Something went wrong on my side. Please try again.");
+      const open = OPEN_QUESTION.test(normalize(t).replace(/^(hey |hi |ok |okay )?(nyx|nix|nicks|knicks)[, ]*/, ""));
+      let reply: string | null = null;
+      if (ai && !ACTIONS.has(intent.kind) && (!LOCAL.has(intent.kind) || open)) {
+        setThinking(true);
+        reply = await askAI(t).catch(() => null);
+        setThinking(false);
+      }
+      if (reply === null) reply = await answer(intent).catch(() => "Something went wrong on my side. Please try again.");
       if (reply) say(reply);
     },
-    [answer, say],
+    [ai, answer, askAI, say],
   );
   handleRef.current = handle;
 
   // ---------------------------------------------------------------- listening
-  const stopListening = useCallback(() => recRef.current?.stop(), []);
-  const startListening = useCallback(async () => {
+  const stopListening = useCallback(() => {
+    if (recorderRef.current) recorderRef.current.stop();
+    else recRef.current?.stop();
+  }, []);
+
+  /**
+   * Whisper path: record the microphone, end the clip after ~1.6 s of quiet once speech has started (or on a tap /
+   * Space release), then transcribe it on the server. Works in every browser with a microphone.
+   */
+  const startRecording = useCallback(async () => {
+    setOpen(true);
+    if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
+    setListening(true);
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    } catch (err) {
+      setListening(false);
+      return say(micError(err));
+    }
+    const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find((m) => MediaRecorder.isTypeSupported?.(m)) ?? "";
+    const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    const chunks: Blob[] = [];
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+
+    // a simple voice-activity check on the microphone level
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    ctx.createMediaStreamSource(stream).connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    const t0 = performance.now();
+    let spoke = false, lastVoice = t0, floor = 0.008, done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearInterval(timer);
+      if (rec.state !== "inactive") rec.stop();
+    };
+    const timer = setInterval(() => {
+      analyser.getFloatTimeDomainData(buf);
+      let sum = 0;
+      for (const v of buf) sum += v * v;
+      const rms = Math.sqrt(sum / buf.length);
+      const now = performance.now();
+      if (now - t0 < 350) floor = Math.min(0.04, Math.max(floor, rms)); // room noise, measured before you speak
+      if (rms > Math.max(0.015, floor * 2.5)) { spoke = true; lastVoice = now; }
+      orbRef.current?.style.setProperty("--lvl", Math.min(1, rms * 9).toFixed(3));
+      if ((spoke && now - lastVoice > 1600) || (!spoke && now - t0 > 8000) || now - t0 > 30000) finish();
+    }, 80);
+
+    rec.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      ctx.close().catch(() => {});
+      recorderRef.current = null;
+      orbRef.current?.style.setProperty("--lvl", "0");
+      setListening(false);
+      if (!spoke) return say("I didn't hear anything. Tap the orb, wait for it to turn orange, then speak.");
+      setThinking(true);
+      setInterim("Listening back…");
+      try {
+        const form = new FormData();
+        form.append("audio", new Blob(chunks, { type: rec.mimeType || mime || "audio/webm" }), "clip");
+        const res = await fetch("/api/nyx/transcribe", { method: "POST", body: form });
+        const j = (await res.json().catch(() => ({}))) as { text?: string; error?: string };
+        setInterim("");
+        setThinking(false);
+        if (!res.ok) return say(j.error ?? "I couldn't make that out. Please try again.");
+        const heard = (j.text ?? "").trim();
+        if (!heard || PHANTOM.test(heard)) return say("I couldn't make out any words. Try again, a little closer to the microphone.");
+        handleRef.current(heard);
+      } catch {
+        setInterim("");
+        setThinking(false);
+        say("I couldn't reach my hearing service. Check your connection and try again.");
+      }
+    };
+    recorderRef.current = { stop: finish };
+    rec.start(250);
+  }, [say]);
+
+  /** Browser speech-recognition path, used when the AI isn't switched on or recording isn't available. */
+  const startBrowserSpeech = useCallback(async () => {
     const SR = getSR();
     setOpen(true);
     if (!SR) return say("This browser can't do speech recognition. Chrome, Edge or Safari can; here you can type to me instead.");
@@ -282,11 +422,7 @@ export function Nyx() {
         stream.getTracks().forEach((t) => t.stop());
       } catch (err) {
         setListening(false);
-        const name = (err as DOMException)?.name;
-        if (name === "NotAllowedError" || name === "SecurityError") return say("Microphone access is blocked. Click the lock or microphone icon in the address bar, allow the microphone for this site, then tap the orb again. Or just type to me.");
-        if (name === "NotFoundError" || name === "OverconstrainedError") return say("I can't find a microphone on this device. Plug one in, or type to me instead.");
-        if (name === "NotReadableError") return say("Another app is using your microphone. Close it, then tap the orb again.");
-        return say("I couldn't open the microphone. Try tapping the orb again, or type to me.");
+        return say(micError(err));
       }
     }
 
@@ -345,6 +481,8 @@ export function Nyx() {
     }
   }, [say]);
 
+  const startListening = useCallback(() => (ai && canRecord() ? startRecording() : startBrowserSpeech()), [ai, startRecording, startBrowserSpeech]);
+
   // hold Space to talk, when not typing or on a control
   useEffect(() => {
     const editable = (el: Element | null) => !!el && (/^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(el.tagName) || (el as HTMLElement).isContentEditable);
@@ -353,7 +491,7 @@ export function Nyx() {
       e.preventDefault();
       startListening();
     };
-    const up = (e: KeyboardEvent) => { if (e.code === "Space" && recRef.current) stopListening(); };
+    const up = (e: KeyboardEvent) => { if (e.code === "Space" && (recRef.current || recorderRef.current)) stopListening(); };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
@@ -404,7 +542,7 @@ export function Nyx() {
     setOpen(true);
     if (!greeted.current && !msgs.length) {
       greeted.current = true;
-      setMsgs([{ who: "nyx", text: supported ? "I'm Nyx. Tap the orb or hold Space and ask me anything about Nightshift." : "I'm Nyx. Voice input isn't supported in this browser, but you can type to me." }]);
+      setMsgs([{ who: "nyx", text: supported ? `I'm Nyx. Tap the orb or hold Space and ask me anything${ai ? ", about Nightshift or the world" : " about Nightshift"}.` : "I'm Nyx. Voice input isn't supported in this browser, but you can type to me." }]);
     }
   };
 
@@ -415,7 +553,7 @@ export function Nyx() {
           <header className="nyx-head">
             <div>
               <b>Nyx</b>
-              <span className={`nyx-status ${listening ? "on" : ""}`}>{listening ? "Listening… tap the orb when done" : speaking ? "Speaking…" : "Ready"}</span>
+              <span className={`nyx-status ${listening ? "on" : ""}`}>{listening ? "Listening… tap the orb when done" : thinking ? "Thinking…" : speaking ? "Speaking…" : ai ? "Ready · AI on" : "Ready"}</span>
             </div>
             <div className="nyx-tools">
               <button className={`nyx-chip ${voiceOn ? "on" : ""}`} onClick={toggleVoice} aria-pressed={voiceOn} title="Spoken replies">Voice {voiceOn ? "on" : "off"}</button>
@@ -436,11 +574,12 @@ export function Nyx() {
             <input value={text} onChange={(e) => setText(e.target.value)} placeholder={supported ? "Ask Nyx, or hold Space to talk" : "Ask Nyx anything…"} aria-label="Ask Nyx" maxLength={200} />
             <button type="submit" disabled={!text.trim()} aria-label="Send">→</button>
           </form>
-          <p className="nyx-foot">Nyx can't move money. Voice is processed by your browser{supported ? " (some browsers send audio to their speech service)" : ""}.</p>
+          <p className="nyx-foot">Nyx can't move money or give investment advice. {ai ? "Your voice and questions are processed by Groq." : `Voice is processed by your browser${supported ? " (some browsers send audio to their speech service)" : ""}.`}</p>
         </div>
       )}
       <button
-        className={`nyx-orb ${listening ? "listening" : ""} ${speaking ? "speaking" : ""}`}
+        ref={orbRef}
+        className={`nyx-orb ${listening ? "listening" : ""} ${speaking ? "speaking" : ""} ${thinking ? "thinking" : ""}`}
         onClick={() => {
           if (!open) openPanel();
           if (listening) stopListening();
