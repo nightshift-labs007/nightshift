@@ -292,20 +292,28 @@ export function Nyx() {
 
     const rec = new SR();
     rec.lang = navigator.language?.startsWith("en") ? navigator.language : "en-US";
+    // keep listening through short pauses: the sentence is sent after ~2 s of quiet, or when the orb is tapped
+    // again / Space is released (both call stop, and onend sends what was heard)
     rec.interimResults = true;
-    rec.continuous = false;
+    rec.continuous = true;
     rec.maxAlternatives = 1;
-    let heard = false, failed = false;
+    let heard = false, failed = false, sentence = "";
+    let quiet: ReturnType<typeof setTimeout> | undefined;
+    const SILENCE_MS = 2000, FIRST_WORD_MS = 8000, MAX_MS = 30000;
+    const stopSoon = (ms: number) => { clearTimeout(quiet); quiet = setTimeout(() => rec.stop(), ms); };
+    const hardStop = setTimeout(() => rec.stop(), MAX_MS);
+    stopSoon(FIRST_WORD_MS);
     rec.onresult = (e) => {
       let finalText = "", interimText = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      for (let i = 0; i < e.results.length; i++) {
         const r = e.results[i];
         if (r.isFinal) finalText += r[0].transcript;
         else interimText += r[0].transcript;
       }
-      if (finalText || interimText) heard = true;
-      setInterim(interimText);
-      if (finalText) { setInterim(""); handleRef.current(finalText); }
+      sentence = `${finalText} ${interimText}`.replace(/\s+/g, " ").trim();
+      if (sentence) heard = true;
+      setInterim(sentence);
+      stopSoon(SILENCE_MS);
     };
     rec.onerror = (e) => {
       failed = true;
@@ -321,9 +329,12 @@ export function Nyx() {
       else if (e.error !== "aborted") say(`Voice input stopped (${e.error}). Tap the orb to try again, or type to me.`);
     };
     rec.onend = () => {
+      clearTimeout(quiet);
+      clearTimeout(hardStop);
       setListening(false);
       setInterim("");
-      if (!heard && !failed) say("I didn't catch anything. Tap the orb, wait for it to turn orange, then speak.");
+      if (sentence) handleRef.current(sentence);
+      else if (!heard && !failed) say("I didn't catch anything. Tap the orb, wait for it to turn orange, then speak.");
     };
     recRef.current = rec;
     try {
@@ -404,7 +415,7 @@ export function Nyx() {
           <header className="nyx-head">
             <div>
               <b>Nyx</b>
-              <span className={`nyx-status ${listening ? "on" : ""}`}>{listening ? "Listening…" : speaking ? "Speaking…" : "Ready"}</span>
+              <span className={`nyx-status ${listening ? "on" : ""}`}>{listening ? "Listening… tap the orb when done" : speaking ? "Speaking…" : "Ready"}</span>
             </div>
             <div className="nyx-tools">
               <button className={`nyx-chip ${voiceOn ? "on" : ""}`} onClick={toggleVoice} aria-pressed={voiceOn} title="Spoken replies">Voice {voiceOn ? "on" : "off"}</button>
