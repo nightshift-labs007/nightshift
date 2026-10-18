@@ -9,6 +9,12 @@ const cases = [
   ["Hey Nyx, what's bitcoin trading at", { kind: "price", token: "IBIT" }],
   ["what is the S&P 500 worth", { kind: "price", token: "SPY" }],
   ["show me all the prices", { kind: "price" }],
+  // stocks on the board, and assets Nyx does not cover
+  ["What was the last price for Apple and Tesla?", { kind: "stock" }],
+  ["how much is nvidia worth", { kind: "stock" }],
+  ["what is google trading at", { kind: "stock" }],
+  ["price of ethereum", { kind: "unknown" }],
+  ["how much is a tesla car", { kind: "stock" }],
   ["how are the markets", { kind: "price" }],
   // market + movers + confidence + accuracy
   ["is the market open", { kind: "market" }],

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { chat, groqEnabled, type ChatMsg } from "@/lib/groq";
 import { forSpeech, systemPrompt } from "@/lib/nyx-brain";
+import { knowledge } from "@/lib/nyx-knowledge";
 import { getOracleSnapshot } from "@/lib/oracle";
 import { allow } from "@/lib/ratelimit";
 
@@ -20,9 +21,11 @@ export async function POST(req: NextRequest) {
     .map((m) => ({ role: m.who === "you" ? ("user" as const) : ("assistant" as const), content: String(m.text ?? "").slice(0, 600) }))
     .filter((m) => m.content);
   const me = typeof body.me === "string" ? body.me.slice(0, 600) : null;
-  const snap = await getOracleSnapshot().catch(() => null);
+  // the previous question too, so a follow-up like "and Tesla?" still gets the right sections
+  const lastAsked = [...history].reverse().find((m) => m.role === "user")?.content ?? "";
+  const [snap, kb] = await Promise.all([getOracleSnapshot().catch(() => null), knowledge(`${question} ${lastAsked}`).catch(() => "")]);
   try {
-    const answer = forSpeech(await chat([{ role: "system", content: systemPrompt(snap, me) }, ...history, { role: "user", content: question }]));
+    const answer = forSpeech(await chat([{ role: "system", content: systemPrompt(snap, me, kb) }, ...history, { role: "user", content: question }]));
     return NextResponse.json({ answer: answer || "I'm not sure how to answer that one." });
   } catch {
     return NextResponse.json({ error: "My thoughts are a little slow right now. Please try again." }, { status: 502 });

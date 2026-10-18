@@ -7,6 +7,7 @@ import { ABI, DEPLOYMENT, chainOf, chainTransport, isDeployed } from "@/lib/chai
 import type { Leaderboard } from "@/lib/leaderboard";
 import { EXPLAIN, HELP, PAGE_HREF, PAGE_NAME, SUGGESTIONS, normalize, parse, type Intent } from "@/lib/nyx";
 import type { OracleSnapshot, Quote } from "@/lib/oracle";
+import type { StockBoard } from "@/lib/stocks";
 import { healthFactor, useAccount } from "@/lib/paper";
 import { useWallet } from "@/lib/wallet";
 
@@ -17,7 +18,7 @@ import { useWallet } from "@/lib/wallet";
  * points) and actions (going to a page) are always handled locally and instantly. It never moves money.
  */
 // intents answered from Nightshift's own data or carried out directly, never sent to the AI
-const LOCAL = new Set<Intent["kind"]>(["price", "movers", "market", "confidence", "accuracy", "loan", "points", "leaders", "go", "money", "wallet", "tour", "alerts", "stop", "time", "thanks"]);
+const LOCAL = new Set<Intent["kind"]>(["price", "stock", "movers", "market", "confidence", "accuracy", "loan", "points", "leaders", "go", "money", "wallet", "tour", "alerts", "stop", "time", "thanks"]);
 const ACTIONS = new Set<Intent["kind"]>(["go", "money", "wallet", "tour", "alerts", "stop"]);
 // questions that need reasoning even when they mention a token ("why is gold down?")
 const OPEN_QUESTION = /^(why|how come|should|would|could|what if|compare|tell me more|is it (a )?good|explain why|what do you think)\b/;
@@ -182,6 +183,18 @@ export function Nyx() {
             return `${quoteLine(q)}${event}${sim}`;
           }
           return `${snap.market.open ? "The market is open." : "Wall Street is closed, so here are my overnight prices."} ${snap.quotes.map((q) => `${spokenToken(q.token)}, ${usd(q.fairValue)}, ${move(q.driftPct)}.`).join(" ")}`;
+        }
+        case "stock": {
+          const b = await getJson<StockBoard>("/api/stocks");
+          if (!b?.stocks?.length) return "I can't reach the stock board right now. It's on the home page under Top stocks.";
+          const lines = intent.tickers.map((t) => {
+            const q = b.stocks.find((s) => s.ticker === t);
+            if (!q) return `I don't have ${t} right now.`;
+            if (q.marketOpen) return `${q.name} is trading at ${usd(q.price)}, ${move(q.dayChangePct)} today.`;
+            const ah = q.extended ? `, and its latest after-hours trade was ${usd(q.extended.price)}` : "";
+            return `${q.name} last closed at ${usd(q.lastClose)}. My overnight fair value is ${usd(q.fairValue)}, ${move(q.driftPct)}${ah}.`;
+          });
+          return lines.join(" ");
         }
         case "movers": {
           const snap = await getSnap();

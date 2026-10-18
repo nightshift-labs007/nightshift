@@ -9,6 +9,7 @@ export type Topic =
   | "morpho" | "sentora" | "points" | "vault" | "demo" | "beta";
 export type Intent =
   | { kind: "price"; token?: Token }
+  | { kind: "stock"; tickers: string[] }
   | { kind: "movers" }
   | { kind: "market" }
   | { kind: "confidence"; token?: Token }
@@ -81,6 +82,31 @@ const TOKENS: [RegExp, Token][] = [
   [/\b(ibit|bitcoin|btc|i ?bit|eye bit)\b/, "IBIT"],
 ];
 export const findToken = (t: string): Token | undefined => TOKENS.find(([re]) => re.test(t))?.[1];
+
+/** The stocks on the homepage stock board (lib/stocks.ts), by name, ticker and common nicknames. */
+const STOCKS: [RegExp, string][] = [
+  [/\b(apple|aapl)\b/, "AAPL"],
+  [/\b(nvidia|nvda)\b/, "NVDA"],
+  [/\b(microsoft|msft)\b/, "MSFT"],
+  [/\b(tesla|tsla)\b/, "TSLA"],
+  [/\b(alphabet|google|googl|goog)\b/, "GOOGL"],
+  [/\b(amazon|amzn)\b/, "AMZN"],
+  [/\b(meta|facebook|fb)\b/, "META"],
+  [/\b(broadcom|avgo)\b/, "AVGO"],
+  [/\b(tsmc|taiwan semi\w*|tsm)\b/, "TSM"],
+  [/\b(berkshire( hathaway)?|brk)\b/, "BRK-B"],
+  [/\b(jp ?morgan( chase)?|jpm)\b/, "JPM"],
+  [/\b(eli lilly|lilly|lly)\b/, "LLY"],
+  [/\b(visa)\b/, "V"],
+  [/\b(mastercard|master card)\b/, "MA"],
+  [/\b(oracle|orcl)\b/, "ORCL"],
+  [/\b(netflix|nflx)\b/, "NFLX"],
+  [/\b(amd|advanced micro devices)\b/, "AMD"],
+  [/\b(walmart|wal mart|wmt)\b/, "WMT"],
+  [/\b(costco|cost)\b/, "COST"],
+  [/\b(exxon( mobil)?|xom)\b/, "XOM"],
+];
+export const findStocks = (t: string): string[] => STOCKS.filter(([re]) => re.test(t)).map(([, s]) => s);
 
 const PAGES: [RegExp, Page][] = [
   [/\b(guardian)\b/, "guardian"],
@@ -172,10 +198,15 @@ export function parse(raw: string): Intent {
   if (has(t, /\b(who.?s|top|best|leading|winning)\b.*\b(leader ?board|players?|users?)\b|\bleader ?board\b/)) return { kind: "leaders" };
   if (has(t, /\b(accura\w*|track record|how good|how right|hit rate|graded)\b/)) return { kind: "accuracy" };
   if (has(t, /\b(market|nyse|wall street|exchange)\b/) && has(t, /\b(open|closed|close|status|hours)\b/)) return { kind: "market" };
-  if (has(t, /\b(moved|moving|movers?|biggest|most|winners?|losers?)\b/)) return { kind: "movers" };
+  // individual stocks on the stock board (Apple, Tesla…)
+  const stocks = findStocks(t);
+  if (stocks.length && !findToken(t)) return { kind: "stock", tickers: stocks };
+  if (has(t, /\b(moved|moving|movers?|biggest|most|winners?|losers?)\b/) && !has(t, /\bstocks?\b/)) return { kind: "movers" };
   if (has(t, /\b(confidence|confident|sure|certain)\b/)) return { kind: "confidence", token: findToken(t) };
   const token = findToken(t);
-  if (token || has(t, /\b(price|prices|worth|trading|quote|value|how much|markets?)\b/)) return { kind: "price", token };
+  if (token) return { kind: "price", token };
+  // "all prices" only for a general question; an asset Nyx doesn't recognise goes to the AI, which knows the full list
+  if (has(t, /\b(all (the )?prices|prices|the markets?|markets tonight|everything|overview|all (the )?(tokens|etfs))\b/) && !has(t, /\bstocks?\b/)) return { kind: "price" };
 
   if (has(t, /^(hi|hey|hello|good (morning|evening|afternoon|night)|yo|sup)\b/)) return { kind: "greet" };
   const topic = TOPICS.find(([re]) => re.test(t));

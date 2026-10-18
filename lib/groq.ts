@@ -32,14 +32,25 @@ export async function transcribe(audio: Blob, filename: string): Promise<string>
 
 export type ChatMsg = { role: "system" | "user" | "assistant"; content: string };
 
+// The free tier allows 8,000 tokens a minute per model, so when one model is busy (429) the next one answers.
+const FALLBACKS = ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
+
 export async function chat(messages: ChatMsg[], maxTokens = 400): Promise<string> {
-  const res = await fetch(`${BASE}/chat/completions`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key()}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: CHAT_MODEL, messages, max_completion_tokens: maxTokens, temperature: 0.6, reasoning_effort: "low" }),
-    signal: AbortSignal.timeout(20_000),
-  });
-  const j = (await res.json().catch(() => null)) as { choices?: { message?: { content?: string } }[]; error?: { message?: string } } | null;
-  if (!res.ok || !j) throw new Error(`chat failed: ${j?.error?.message ?? res.status}`);
-  return (j.choices?.[0]?.message?.content ?? "").trim();
+  let lastError = "";
+  for (const model of [CHAT_MODEL, ...FALLBACKS.filter((m) => m !== CHAT_MODEL)]) {
+    const res = await fetch(`${BASE}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model, messages, max_completion_tokens: maxTokens, temperature: 0.6, ...(model.startsWith("openai/gpt-oss") ? { reasoning_effort: "low" } : {}) }),
+      signal: AbortSignal.timeout(20_000),
+    }).catch(() => null);
+    const j = (await res?.json().catch(() => null)) as { choices?: { message?: { content?: string } }[]; error?: { message?: string } } | null;
+    if (res?.ok && j) {
+      const text = (j.choices?.[0]?.message?.content ?? "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+      if (text) return text;
+    }
+    lastError = j?.error?.message ?? String(res?.status ?? "network");
+    if (res && res.status !== 429 && res.status < 500) break; // a real error, not "busy": don't retry
+  }
+  throw new Error(`chat failed: ${lastError}`);
 }
