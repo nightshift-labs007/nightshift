@@ -20,6 +20,7 @@ export type Intent =
   | { kind: "points" }
   | { kind: "leaders" }
   | { kind: "money" } // borrow, repay, deposit, withdraw: voice never moves funds
+  | { kind: "invest" } // "where should I invest?", "is Tesla a good buy?": trend data and principles, never a pick
   | { kind: "wallet" }
   | { kind: "tour" }
   | { kind: "alerts"; on: boolean }
@@ -173,8 +174,11 @@ export function parse(raw: string): Intent {
   if (has(t, /\b(tour|walk me through|show me around|guide|getting started|im new|i am new|new here)\b/)) return { kind: "tour" };
   if (has(t, /\b(connect|link)\b.*\bwallet\b/)) return { kind: "wallet" };
 
-  // money moves: never done by voice
-  if (has(t, /\b(borrow|repay|deposit|withdraw|lend|swap|buy|sell|liquidate)\b/) && !has(t, /\b(what|how|why|explain|mean)\b/)) return { kind: "money" };
+  // investing questions: answered with trend data and general principles, never a personal pick
+  if (has(t, /\b(invest\w*|good (buy|investment|time to buy)|worth buying|should i (buy|sell|invest|hold|put)|best (stock|etf|investment|thing|asset|pick)s?|best to (buy|invest)|(which|what) (stock|etf|asset|token)s? (is|are|should|to)|recommend\w*|suggest\w*|portfolio|where (to|should i) put|trending|trends?|outlook|forecast|bullish|bearish|make money|returns?)\b/)) return { kind: "invest" };
+
+  // money moves: never done by voice (commands only, not questions about them)
+  if (has(t, /\b(borrow|repay|deposit|withdraw|lend|swap|buy|sell|liquidate)\b/) && !has(t, /\b(what|which|how|why|explain|mean|should|where|best|good|worth)\b/)) return { kind: "money" };
 
   // the user's own account
   if (has(t, /\b(my|me|i)\b/) && has(t, /\b(loans?|positions?|health|safe|debt|collateral)\b/)) return { kind: "loan" };

@@ -254,6 +254,13 @@ export function Nyx() {
           return `Opening ${PAGE_NAME[intent.page]}.`;
         case "explain":
           return EXPLAIN[intent.topic];
+        case "invest": {
+          // without the AI: the board's past trends plus the basics, never a pick
+          const b = await getJson<StockBoard>("/api/stocks");
+          const top = b?.stocks?.length ? [...b.stocks].sort((x, y) => y.ret3mPct - x.ret3mPct).slice(0, 2) : [];
+          const trend = top.length ? `Over the last three months the strongest names on my stock board were ${top.map((s) => `${s.name}, ${move(s.ret3mPct)}`).join(", and ")}. That's past performance, not a forecast. ` : "";
+          return `${trend}A common starting point is a broad index fund like an S&P 500 ETF, which spreads your money across hundreds of companies. Keep an emergency fund first, match risk to how long you can stay invested, and only invest what you can afford to lose. This is information, not financial advice.`;
+        }
         case "money":
           if (path !== "/app") router.push("/app");
           return "For your safety, I never move money by voice. I've opened the App: choose the amount there, and confirm in your wallet.";

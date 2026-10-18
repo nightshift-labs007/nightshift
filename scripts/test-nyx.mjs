@@ -52,6 +52,13 @@ const cases = [
   ["borrow 100 dollars", { kind: "money" }],
   ["repay my loan", { kind: "money" }],
   ["deposit 5 spy", { kind: "money" }],
+  // investing questions: trend data and principles, never a pick
+  ["Suggest me where should I invest my $1000?", { kind: "invest" }],
+  ["what should I buy with 500 dollars", { kind: "invest" }],
+  ["which stock is best to buy now", { kind: "invest" }],
+  ["is tesla a good investment", { kind: "invest" }],
+  ["what is trending right now", { kind: "invest" }],
+  ["buy 5 spy", { kind: "money" }],
   // misc
   ["what can you do", { kind: "help" }],
   ["who are you", { kind: "who" }],

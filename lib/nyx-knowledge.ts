@@ -55,6 +55,25 @@ const SECTIONS: Section[] = [
     },
   },
   {
+    // investing questions: past trends from the stock board, clearly labelled, for an educational answer
+    re: /\b(invest\w*|buy|portfolio|recommend\w*|suggest\w*|trend\w*|outlook|forecast|returns?|best|worth buying|put my money|make money|bullish|bearish)\b/,
+    build: async () => {
+      const b = await within(getStockBoard());
+      if (!b?.stocks?.length) return null;
+      const s = b.stocks;
+      const by = (k: "ret1mPct" | "ret3mPct" | "vol30Pct" | "offHighPct", dir: 1 | -1) => [...s].sort((a, c) => dir * (c[k] - a[k]));
+      const list = (xs: typeof s, k: "ret1mPct" | "ret3mPct" | "vol30Pct") => xs.slice(0, 3).map((x) => `${x.name} ${k === "vol30Pct" ? `${x[k].toFixed(0)}% a year` : sign(x[k])}`).join(", ");
+      const nearHigh = s.filter((x) => x.offHighPct > -2).map((x) => x.name);
+      return `Trend data for investing questions (PAST performance from the stock board, not a forecast or recommendation):
+- Best 3-month: ${list(by("ret3mPct", 1), "ret3mPct")}. Weakest 3-month: ${list(by("ret3mPct", -1), "ret3mPct")}.
+- Best 1-month: ${list(by("ret1mPct", 1), "ret1mPct")}. Weakest 1-month: ${list(by("ret1mPct", -1), "ret1mPct")}.
+- Steadiest (lowest 30-day volatility): ${list(by("vol30Pct", -1), "vol30Pct")}. Most volatile: ${list(by("vol30Pct", 1), "vol30Pct")}.
+- At or near their 3-month high: ${nearHigh.length ? nearHigh.join(", ") : "none"}.
+- Tonight's overnight read: futures ${b.futures.map((f) => `${f.name} ${sign(f.movePct)}`).join(", ")}.
+- Broad index ETFs on Nightshift: SPY tracks the S&P 500 (500 large US companies), QQQ the Nasdaq-100 (tech-heavy), GLD gold, IBIT bitcoin (much more volatile).`;
+    },
+  },
+  {
     re: /\b(accura\w*|track record|graded|predict\w*|ledger|algorand|miss\w*|how (good|right)|hit rate|backtest|frozen)\b/,
     build: async () => {
       const [rep, stamps] = await Promise.all([within(getShiftReports()), within((async () => { const a = ledgerAddress(); return a ? readStamps(a, 5) : null; })())]);
