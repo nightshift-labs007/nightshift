@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { isTeamWallet } from "@/lib/team-wallets";
 import type { Transactions, TxKind, TxRow } from "@/lib/transactions";
 import { PageHero, PageShell } from "./Site";
 import { useApi } from "./useApi";
@@ -35,7 +34,6 @@ function Row({ r }: { r: TxRow }) {
       <td><span className="lb-badge">{r.title}</span></td>
       <td className="tx-detail">{r.detail}</td>
       <td className="mono">
-        {r.actor && isTeamWallet(r.actor) && <span className="lb-badge" title="A wallet the Nightshift team runs to exercise the live contracts">Team</span>}{" "}
         {r.actor ? (
           r.actorUrl ? <a href={r.actorUrl} target="_blank" rel="noopener noreferrer">{r.bot ? NAMES[r.bot] : short(r.actor)}</a> : short(r.actor)
         ) : "–"}
