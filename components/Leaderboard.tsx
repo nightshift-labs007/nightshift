@@ -183,6 +183,7 @@ export function LeaderboardPage() {
                       <td className="mono lb-points">{r.points}</td>
                       <td>
                         <div className="lb-badges">
+                          {r.team && <span className="lb-badge" title="A wallet the Nightshift team runs to exercise the live contracts">Team demo wallet</span>}
                           {r.service && <span className="lb-badge" title={r.service.job}>{r.service.job}</span>}
                           {BADGES.filter(([k]) => r[k]).map(([k, label, tip]) => <span key={k} className="lb-badge" title={tip}>{label}</span>)}
                           {r.markets.map((m) => <span key={m} className="lb-badge token" title={`Deposited ${m}`}>{m}</span>)}

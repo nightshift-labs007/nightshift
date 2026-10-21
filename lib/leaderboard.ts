@@ -4,6 +4,7 @@ import { ABI, DEPLOYMENT, addrUrl } from "@/lib/chain";
 import { publicClient, readMany } from "@/lib/chain/keeper";
 import { explorerAccount, explorerTx, ledgerAddress, readJoins } from "@/lib/algorand";
 import { getTransactions, type BotId } from "@/lib/transactions";
+import { isTeamWallet } from "@/lib/team-wallets";
 import { publicProfiles } from "@/lib/profile";
 
 /**
@@ -25,6 +26,7 @@ export type LeaderRow = {
   debtUsd: number;
   name?: string; // from the owner's profile, only if they chose to show it
   x?: string;
+  team?: boolean; // a wallet the Nightshift team runs to exercise the live contracts
   service?: { job: string; chain: "Base" | "Algorand"; lastActive: number | null }; // Nightshift's own automated wallets, scored by transactions sent
 };
 export type Leaderboard = {
@@ -137,7 +139,7 @@ export async function getLeaderboard(): Promise<Leaderboard> {
   const shown = await publicProfiles(scored.map((r) => r.address)).catch(() => new Map());
   const ranked: LeaderRow[] = all.map((r, i) => {
     const p = shown.get(r.address);
-    return { ...r, rank: i + 1, ...(p ? { name: p.name || undefined, x: p.x || undefined } : {}) };
+    return { ...r, rank: i + 1, ...(isTeamWallet(r.address) ? { team: true } : {}), ...(p ? { name: p.name || undefined, x: p.x || undefined } : {}) };
   });
   const members = ranked.filter((r) => !r.service);
 
