@@ -15,6 +15,15 @@ The ask: show a footprint on-chain that the product works (Vaults, Borrow, Earn 
 | **Team demo wallets** | `scripts/demo-activity.mjs`, `lib/team-wallets.ts` | Three wallets ran the full Vault loop on Base mainnet: faucet, deposit, borrow, Guardian rule on, repay, withdraw (about 24 real transactions, demo assets only). They are labelled "Team demo wallet" on the leaderboard and "Team" on Transactions. Private keys are in the git-ignored `.env.local` and are not in the repo. |
 | **Proof of activity panel** | `/transparency#activity`, `ActivityProof` in `components/Transactions.tsx` | A count and a latest-transaction link for every flow, counted from Base and Algorand. States that part of the activity is the team's labelled wallets. |
 
+## Earn footprint
+
+A team Ethereum wallet (`0xF86fC0d9346CFac2ce7ea9C72150dD656700A205`) deposited 9 PYUSD into the Sentora Protected RWA vault (`0xd000E6BcAd5457E8F4de67eDdeFe50BCC4B3d743`) and holds about 8.686 vault shares. Real funds, funded by the team. The Earn panel shows the live position with Etherscan links, and both transactions appear on Transactions (filter: Earn) and in the Transparency activity panel.
+
+- Approve: `0xfce2fac8…84f8`; deposit: `0x8827492e…6a92` (Etherscan).
+- Exit: instant redemption costs a fee of about 0.2% (about $0.02 on 9 PYUSD); the normal route has no fee but takes about 3 days (request, then claim). The vault is run by Sentora's owner and operator; Nightshift is an ordinary depositor.
+- Script: `node --env-file=.env.local scripts/earn-deposit.mjs <amount>`. Real money; it approves exactly the deposit amount.
+- For users nothing changes: Nightshift still does not hold anyone's funds, and Earn links out to Sentora to deposit.
+
 ## Team demo wallets (public addresses)
 
 - `0x00d1fc81629c9309F10F76827ce02bEE758fB700`: SPY loop
@@ -26,7 +35,6 @@ Each holds an open, healthy loan (health factor about 7) with Guardian protectio
 ## Known limits
 
 - **Base history is short on free RPCs.** Free public Base nodes only serve recent logs (about the last few hours when tested), so Base transaction rows, counts and service scores cover that window. The pages state the start time. Set `BASE_RPC_URL` to a keyed archive RPC (for example Alchemy) in Vercel to reach back to launch. Algorand history is complete.
-- **Earn has no on-chain footprint of ours.** Earn is a read-only view of a Sentora vault on Ethereum mainnet. Nightshift never touches those funds. A deposit would need real PYUSD and Ethereum gas, and is not done. Describe Earn as a live data view, not a transacting product.
 - The previous Vault (before the security upgrade) is not included in the Transactions list.
 
 ## Deliberately not done
