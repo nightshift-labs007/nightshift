@@ -23,11 +23,14 @@ export type TxRow = {
   at: number; // unix seconds
   href: string; // explorer link
 };
+export type Flow = { count: number; latest: { id: string; at: number; href: string; chain: TxRow["chain"] } };
 export type BotStat = { actions: number; last: number | null };
 export type Transactions = {
   updatedAt: string;
   rows: TxRow[];
   bots: Record<BotId, BotStat>;
+  /** per kind of transaction: how many there are in the period covered, and the latest one */
+  flows: Partial<Record<TxKind, Flow>>;
   /** unix seconds the Base counts start from, or null when they cover everything since launch */
   baseSince: number | null;
   sources: { base: "ok" | "unavailable"; algorand: "ok" | "unavailable" };
@@ -205,12 +208,20 @@ export async function getTransactions(): Promise<Transactions> {
   const [baseRes, algoRes] = await Promise.allSettled([baseRows(), algorandRows()]);
   const base = baseRes.status === "fulfilled" ? baseRes.value : null;
   const algo = algoRes.status === "fulfilled" ? algoRes.value : null;
-  const rows = [...(base?.rows ?? []), ...(algo?.rows ?? [])].sort((a, b) => b.at - a.at).slice(0, FEED_LIMIT);
+  const every = [...(base?.rows ?? []), ...(algo?.rows ?? [])].sort((a, b) => b.at - a.at);
+  const rows = every.slice(0, FEED_LIMIT);
+  const flows: Transactions["flows"] = {};
+  for (const r of every) {
+    const f = flows[r.kind];
+    if (f) f.count++;
+    else flows[r.kind] = { count: 1, latest: { id: r.id, at: r.at, href: r.href, chain: r.chain } }; // newest first, so the first seen is the latest
+  }
   const none: BotStat = { actions: 0, last: null };
   const data: Transactions = {
     updatedAt: new Date().toISOString(),
     rows,
     bots: { updater: base?.bots.updater ?? none, keeper: base?.bots.keeper ?? none, faucet: base?.bots.faucet ?? none, ledger: algo?.stat ?? none },
+    flows,
     baseSince: base?.since ?? null,
     sources: { base: base ? "ok" : "unavailable", algorand: algo ? "ok" : "unavailable" },
   };

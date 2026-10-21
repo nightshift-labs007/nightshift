@@ -94,3 +94,48 @@ export function TransactionsPage() {
     </PageShell>
   );
 }
+
+const FLOWS: [TxKind, string, string][] = [
+  ["deposit", "Deposits", "Collateral locked in the Vault"],
+  ["borrow", "Borrows", "USDG borrowed against it"],
+  ["repay", "Repayments", "Loans paid back"],
+  ["withdraw", "Withdrawals", "Collateral taken back out"],
+  ["rule", "Guardian rules", "Auto-protection switched on"],
+  ["protect", "Guardian saves", "Loans the Guardian rescued"],
+  ["price", "Oracle updates", "Fair values pushed on-chain"],
+  ["attest", "Cloak proofs", "Solvency proofs attested on-chain"],
+  ["faucet", "Faucet drips", "Demo tokens minted"],
+  ["prediction", "Predictions locked", "Pre-open values stamped on Algorand"],
+  ["join", "Leaderboard joins", "Sign-ups recorded on Algorand"],
+];
+
+/** Counts and the latest explorer link for each kind of transaction: the on-chain footprint of every flow. */
+export function ActivityProof() {
+  const { data } = useApi<Transactions & { error?: string }>("/api/transactions", 60_000);
+  if (!data) return <div className="skeleton">Reading Base and Algorand…</div>;
+  if (data.error) return <p className="muted">Couldn&apos;t load the activity right now.</p>;
+  return (
+    <>
+      <div className="lb-stats">
+        {FLOWS.map(([k, label, what]) => {
+          const f = data.flows[k];
+          return (
+            <div key={k} className="lb-stat" title={what}>
+              <span>{label}</span>
+              <b>{f?.count ?? 0}</b>
+              {f ? (
+                <a className="small mono" href={f.latest.href} target="_blank" rel="noopener noreferrer">latest · {ago(f.latest.at)} ↗</a>
+              ) : (
+                <span className="small muted">none yet</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="small muted">
+        Counted straight from Base and Algorand{data.baseSince ? <>, from {new Date(data.baseSince * 1000).toLocaleString()} on Base (as far back as the public node can see) and since the start on Algorand</> : null}.
+        Some of this is the team exercising the live contracts from labelled demo wallets. <a href="/transactions">See every transaction →</a>
+      </p>
+    </>
+  );
+}
