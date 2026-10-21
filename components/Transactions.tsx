@@ -17,6 +17,7 @@ const FILTERS: [string, string, TxKind[] | null][] = [
   ["cloak", "Cloak", ["attest"]],
   ["algorand", "Algorand", ["prediction", "join"]],
   ["faucet", "Faucet", ["faucet"]],
+  ["earn", "Earn", ["earn"]],
 ];
 
 export function ago(unix: number, now = Date.now()) {
@@ -68,7 +69,7 @@ export function TransactionsPage() {
             ))}
           </div>
           {!data ? (
-            <div className="skeleton">Reading Base and Algorand…</div>
+            <div className="skeleton">Reading Base, Ethereum and Algorand…</div>
           ) : data.error ? (
             <p className="muted">Couldn&apos;t load transactions right now. Try again in a minute.</p>
           ) : rows.length === 0 ? (
@@ -107,6 +108,7 @@ const FLOWS: [TxKind, string, string][] = [
   ["faucet", "Faucet drips", "Demo tokens minted"],
   ["prediction", "Predictions locked", "Pre-open values stamped on Algorand"],
   ["join", "Leaderboard joins", "Sign-ups recorded on Algorand"],
+  ["earn", "Earn deposit", "The team's Sentora vault deposit on Ethereum"],
 ];
 
 /** Counts and the latest explorer link for each kind of transaction: the on-chain footprint of every flow. */

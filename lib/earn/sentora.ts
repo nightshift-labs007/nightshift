@@ -1,4 +1,5 @@
 import "server-only";
+import { EARN_TXS, EARN_WALLET } from "@/lib/team-wallets";
 import { createPublicClient, http, parseAbi } from "viem";
 import { mainnet } from "viem/chains";
 
@@ -48,6 +49,8 @@ export type SentoraEarn = {
   dataAt: string | null; // timestamp of the latest data point
   stale: boolean;
   depositUrl: string;
+  /** the team's own small position in this vault, read live from the chain */
+  team: { wallet: string; shares: number; valuePyusd: number; txs: { id: string; title: string }[] } | null;
 };
 
 /** APY = (P_now / P_then) ^ (365 / d) − 1, with d the actual elapsed days between the two share prices. */
@@ -83,8 +86,9 @@ const VAULT_ABI = parseAbi([
   "function asset() view returns (address)",
   "function getSharePrice() view returns (uint256)",
   "function getTotalAssets() view returns (uint256)",
+  "function lpTokenAddress() view returns (address)",
 ]);
-const ERC20_ABI = parseAbi(["function decimals() view returns (uint8)"]);
+const ERC20_ABI = parseAbi(["function decimals() view returns (uint8)", "function balanceOf(address) view returns (uint256)"]);
 
 async function fromChain(address: `0x${string}`) {
   const client = createPublicClient({ chain: mainnet, transport: http(CONFIG.rpcUrl, { timeout: 8000 }) });
@@ -95,7 +99,12 @@ async function fromChain(address: `0x${string}`) {
     client.readContract({ address, abi: VAULT_ABI, functionName: "getTotalAssets" }),
   ]);
   const scale = 10 ** assetDec;
-  return { sharePrice: Number(price) / scale, tvl: Number(total) / scale };
+  const sharePrice = Number(price) / scale;
+  // the team wallet's vault shares (the vault's own LP token, same decimals as the asset)
+  const lp = await client.readContract({ address, abi: VAULT_ABI, functionName: "lpTokenAddress" });
+  const shares = Number(await client.readContract({ address: lp, abi: ERC20_ABI, functionName: "balanceOf", args: [EARN_WALLET] })) / scale;
+  const team = shares > 0 ? { wallet: EARN_WALLET, shares, valuePyusd: shares * sharePrice, txs: EARN_TXS.map((t) => ({ id: t.id, title: t.title })) } : null;
+  return { sharePrice, tvl: Number(total) / scale, team };
 }
 
 // last good read, kept per server instance; reads are also cached by the fetch layer for 10 minutes
@@ -110,12 +119,14 @@ export async function getSentoraEarn(): Promise<SentoraEarn> {
     let nowT = Date.parse(latest.t);
     let tvl: number | null = latest.tvl;
     let source: SentoraEarn["source"] = "defillama";
+    let team: SentoraEarn["team"] = null;
     if (CONFIG.vaultAddress) {
       try {
         const chain = await fromChain(CONFIG.vaultAddress);
         nowP = chain.sharePrice;
         nowT = Date.now();
         tvl = chain.tvl;
+        team = chain.team;
         source = "onchain+defillama";
       } catch {
         // RPC hiccup: DefiLlama's latest point still gives a current share price
@@ -144,6 +155,7 @@ export async function getSentoraEarn(): Promise<SentoraEarn> {
       updatedAt: new Date().toISOString(),
       dataAt: new Date(nowT).toISOString(),
       depositUrl: depositUrl(),
+      team,
     };
     lastGood = data;
     return { ...data, stale: false };
@@ -164,6 +176,7 @@ export async function getSentoraEarn(): Promise<SentoraEarn> {
       dataAt: null,
       stale: true,
       depositUrl: depositUrl(),
+      team: null,
     };
   }
 }

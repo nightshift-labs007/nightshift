@@ -2,6 +2,7 @@ import "server-only";
 import { decodeEventLog, formatEther, zeroAddress, type Address, type Log } from "viem";
 import { ABI, DEPLOYMENT, addrUrl, txUrl } from "@/lib/chain";
 import { publicClient } from "@/lib/chain/keeper";
+import { EARN_TXS, EARN_WALLET } from "@/lib/team-wallets";
 import { explorerTx, ledgerAddress, readJoins, readStamps } from "@/lib/algorand";
 
 /**
@@ -10,10 +11,10 @@ import { explorerTx, ledgerAddress, readJoins, readStamps } from "@/lib/algorand
  * site: each row is read back from a public chain and links to its explorer, so the list can't be edited.
  */
 export type BotId = "updater" | "keeper" | "faucet" | "ledger";
-export type TxKind = "deposit" | "borrow" | "repay" | "withdraw" | "protect" | "liquidation" | "rule" | "price" | "attest" | "faucet" | "prediction" | "join";
+export type TxKind = "deposit" | "borrow" | "repay" | "withdraw" | "protect" | "liquidation" | "rule" | "price" | "attest" | "faucet" | "prediction" | "join" | "earn";
 export type TxRow = {
   id: string; // tx hash (Base) or tx id (Algorand)
-  chain: "Base" | "Algorand";
+  chain: "Base" | "Algorand" | "Ethereum";
   kind: TxKind;
   title: string;
   detail: string;
@@ -208,7 +209,11 @@ export async function getTransactions(): Promise<Transactions> {
   const [baseRes, algoRes] = await Promise.allSettled([baseRows(), algorandRows()]);
   const base = baseRes.status === "fulfilled" ? baseRes.value : null;
   const algo = algoRes.status === "fulfilled" ? algoRes.value : null;
-  const every = [...(base?.rows ?? []), ...(algo?.rows ?? [])].sort((a, b) => b.at - a.at);
+  // the team's Sentora deposit on Ethereum: two fixed transactions, verifiable on Etherscan
+  const earn: TxRow[] = EARN_TXS.map((t) => ({
+    id: t.id, chain: "Ethereum", kind: "earn", title: t.title, detail: t.detail, actor: EARN_WALLET, actorUrl: `https://etherscan.io/address/${EARN_WALLET}`, bot: null, at: t.at, href: `https://etherscan.io/tx/${t.id}`,
+  }));
+  const every = [...(base?.rows ?? []), ...(algo?.rows ?? []), ...earn].sort((a, b) => b.at - a.at);
   const rows = every.slice(0, FEED_LIMIT);
   const flows: Transactions["flows"] = {};
   for (const r of every) {

@@ -131,6 +131,18 @@ export function Earn() {
 
           <ApySpark points={data.history} />
 
+          {data.team && (
+            <p className="earn-src mono">
+              Nightshift&apos;s own position: {data.team.shares.toFixed(4)} shares (~{data.team.valuePyusd.toFixed(2)} {data.vault.asset}), held by a team wallet.{" "}
+              {data.team.txs.map((t, i) => (
+                <span key={t.id}>
+                  {i > 0 && " · "}
+                  <a href={`https://etherscan.io/tx/${t.id}`} target="_blank" rel="noopener noreferrer">{t.title} ↗</a>
+                </span>
+              ))}
+            </p>
+          )}
+
           <a className="btn earn-cta" href={data.depositUrl} target="_blank" rel="noopener noreferrer">
             Deposit on Sentora <span>↗</span>
           </a>
