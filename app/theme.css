@@ -479,12 +479,9 @@ input[type="range"] { accent-color: var(--mint); }
 .lb-you { margin-left: 8px; padding: 2px 7px; border-radius: 999px; background: var(--mint); color: var(--mint-ink); font: 600 10px var(--mono); text-transform: uppercase; }
 .lb-badges { display: flex; flex-wrap: wrap; gap: 5px; }
 .lb-badge { padding: 3px 8px; border-radius: 999px; border: 1px solid var(--green-line); color: var(--green); font: 500 11px var(--mono); }
-.lb-badge.bot { border-color: var(--mint); color: var(--mint); }
 .tx-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
 .tx-toggle { margin-left: auto; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
 .tx-detail { max-width: 420px; color: var(--text-2); overflow-wrap: anywhere; }
-.lb-bots { margin-top: 28px; }
-.lb-bots h3 { margin: 0 0 6px; }
 .lb-badge.token { border-color: var(--border-strong); color: var(--text-3); }
 .lb-scoring { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .lb-scoring .card { padding: 18px; }

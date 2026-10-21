@@ -176,20 +176,23 @@ export function LeaderboardPage() {
                       <td className="lb-rank">{r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : r.rank}</td>
                       <td className="mono">
                         {r.name && <span className="lb-name">{r.name}</span>}
-                        <a href={addrUrl(r.address)} target="_blank" rel="noopener noreferrer">{short(r.address)}</a>
+                        <a href={r.service?.chain === "Algorand" ? `https://lora.algokit.io/testnet/account/${r.address}` : addrUrl(r.address)} target="_blank" rel="noopener noreferrer">{short(r.address)}</a>
                         {r.x && <a className="lb-x" href={`https://x.com/${r.x}`} target="_blank" rel="noopener noreferrer">@{r.x}</a>}
                         {me?.address === r.address && <span className="lb-you">you</span>}
                       </td>
                       <td className="mono lb-points">{r.points}</td>
                       <td>
                         <div className="lb-badges">
+                          {r.service && <span className="lb-badge" title={r.service.job}>{r.service.job}</span>}
                           {BADGES.filter(([k]) => r[k]).map(([k, label, tip]) => <span key={k} className="lb-badge" title={tip}>{label}</span>)}
                           {r.markets.map((m) => <span key={m} className="lb-badge token" title={`Deposited ${m}`}>{m}</span>)}
                         </div>
                       </td>
                       <td className="mono num">{r.collateralUsd ? usd(r.collateralUsd, 0) : "–"}</td>
                       <td className="small">
-                        {r.joinedAt ? (
+                        {r.service ? (
+                          <span className="muted">{r.service.lastActive ? ago(r.service.lastActive) : "–"}</span>
+                        ) : r.joinedAt ? (
                           <a href={r.joinTx ?? "#"} target="_blank" rel="noopener noreferrer">{new Date(r.joinedAt * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" })} ↗</a>
                         ) : <span className="muted">on-chain only</span>}
                       </td>
@@ -197,37 +200,6 @@ export function LeaderboardPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}
-          {data && data.bots.length > 0 && (
-            <div className="lb-bots">
-              <h3>Bots</h3>
-              <p className="small muted" style={{ marginTop: 0 }}>
-                Nightshift&apos;s own automated services, ranked apart from people. One point per transaction they&apos;ve sent. Every one is on the{" "}
-                <Link href="/transactions">Transactions</Link> page.
-                {data.botsSince && <> Base counts cover the period since {new Date(data.botsSince * 1000).toLocaleString()}, as far back as the public node can see.</>}
-              </p>
-              <div className="lb-table-wrap">
-                <table className="lb-table">
-                  <thead>
-                    <tr><th>#</th><th>Bot</th><th>Job</th><th className="num">Points</th><th>Last active</th></tr>
-                  </thead>
-                  <tbody>
-                    {data.bots.map((b) => (
-                      <tr key={b.id}>
-                        <td className="lb-rank">{b.rank}</td>
-                        <td className="mono">
-                          <span className="lb-name">{b.name} <span className="lb-badge bot">Bot</span></span>
-                          {b.address && b.href ? <a href={b.href} target="_blank" rel="noopener noreferrer">{short(b.address)} · {b.chain}</a> : <span className="muted">{b.chain}</span>}
-                        </td>
-                        <td className="small">{b.job}</td>
-                        <td className="mono num lb-points">{b.actions}</td>
-                        <td className="small">{b.last ? ago(b.last) : <span className="muted">–</span>}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
             </div>
           )}
           {data && (data.sources.joins !== "ok" || data.sources.vault !== "ok") && (

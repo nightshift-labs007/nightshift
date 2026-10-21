@@ -25,34 +25,21 @@ export type LeaderRow = {
   debtUsd: number;
   name?: string; // from the owner's profile, only if they chose to show it
   x?: string;
-};
-/** An automated service that acts on Nightshift by itself. Scored by how many transactions it has sent, shown apart from people. */
-export type BotRow = {
-  rank: number;
-  id: BotId;
-  name: string;
-  job: string;
-  address: string | null;
-  chain: "Base" | "Algorand";
-  actions: number; // its points: one per transaction
-  last: number | null; // unix seconds of its latest transaction
-  href: string | null;
+  service?: { job: string; chain: "Base" | "Algorand"; lastActive: number | null }; // Nightshift's own automated wallets, scored by transactions sent
 };
 export type Leaderboard = {
   updatedAt: string;
   rows: LeaderRow[];
-  bots: BotRow[];
-  botsSince: number | null; // Base counts start here (unix seconds), or null when they cover everything
   totals: { wallets: number; joined: number; depositors: number; borrowers: number; guardians: number; collateralUsd: number };
   scoring: Record<string, number>;
   sources: { joins: "ok" | "unavailable"; vault: "ok" | "unavailable" };
 };
 
-const BOTS: Record<BotId, { name: string; job: string; chain: BotRow["chain"] }> = {
-  updater: { name: "Oracle Updater", job: "Pushes the Oracle's fair values on-chain when they move or go stale.", chain: "Base" },
-  keeper: { name: "Guardian Keeper", job: "Calls protect() on loans whose health fell under their owner's Guardian trigger.", chain: "Base" },
-  faucet: { name: "Faucet", job: "Mints demo tokens to wallets that ask for them.", chain: "Base" },
-  ledger: { name: "Ledger", job: "Stamps each pre-open prediction and every leaderboard join on Algorand.", chain: "Algorand" },
+const SERVICES: Record<BotId, { name: string; job: string; chain: "Base" | "Algorand" }> = {
+  updater: { name: "Oracle Updater", job: "Oracle price updates", chain: "Base" },
+  keeper: { name: "Guardian Keeper", job: "Guardian loan protection", chain: "Base" },
+  faucet: { name: "Faucet", job: "Demo token faucet", chain: "Base" },
+  ledger: { name: "Ledger", job: "Algorand prediction ledger", chain: "Algorand" },
 };
 
 export const POINTS = { joined: 10, perMarket: 20, borrowing: 30, guardian: 25 };
@@ -133,37 +120,37 @@ export async function getLeaderboard(): Promise<Leaderboard> {
     ...r,
     points: (r.joined ? POINTS.joined : 0) + r.markets.length * POINTS.perMarket + (r.borrowing ? POINTS.borrowing : 0) + (r.guardian ? POINTS.guardian : 0),
   }));
-  scored.sort((a, b) => b.points - a.points || b.collateralUsd - a.collateralUsd || (a.joinedAt ?? Infinity) - (b.joinedAt ?? Infinity));
+  const roles = DEPLOYMENT.roles;
+  const wallet: Record<BotId, string | null> = { updater: roles?.updater ?? null, keeper: roles?.keeper ?? null, faucet: roles?.faucet ?? null, ledger: ledgerAddress() };
+  const services = (Object.keys(SERVICES) as BotId[]).flatMap((id) => {
+    const address = wallet[id];
+    if (!address) return [];
+    const stat = txRes.status === "fulfilled" ? txRes.value.bots[id] : { actions: 0, last: null };
+    const { name, job, chain } = SERVICES[id];
+    return [{
+      address: address.toLowerCase(), joined: false, joinedAt: null, joinTx: null, markets: [], borrowing: false, guardian: false, collateralUsd: 0, debtUsd: 0,
+      points: stat.actions, name, service: { job, chain, lastActive: stat.last },
+    }];
+  });
+  const all = [...scored, ...services];
+  all.sort((a, b) => b.points - a.points || b.collateralUsd - a.collateralUsd || (a.joinedAt ?? Infinity) - (b.joinedAt ?? Infinity));
   const shown = await publicProfiles(scored.map((r) => r.address)).catch(() => new Map());
-  const ranked: LeaderRow[] = scored.map((r, i) => {
+  const ranked: LeaderRow[] = all.map((r, i) => {
     const p = shown.get(r.address);
     return { ...r, rank: i + 1, ...(p ? { name: p.name || undefined, x: p.x || undefined } : {}) };
   });
-
-  const roles = DEPLOYMENT.roles;
-  const wallet: Record<BotId, string | null> = { updater: roles?.updater ?? null, keeper: roles?.keeper ?? null, faucet: roles?.faucet ?? null, ledger: ledgerAddress() };
-  const bots: BotRow[] = (Object.keys(BOTS) as BotId[])
-    .map((id) => {
-      const stat = txRes.status === "fulfilled" ? txRes.value.bots[id] : { actions: 0, last: null };
-      const address = wallet[id];
-      const href = address ? (BOTS[id].chain === "Base" ? addrUrl(address) : explorerAccount(address)) : null;
-      return { id, ...BOTS[id], address, ...stat, href, rank: 0 };
-    })
-    .sort((a, b) => b.actions - a.actions)
-    .map((b, i) => ({ ...b, rank: i + 1 }));
+  const members = ranked.filter((r) => !r.service);
 
   const data: Leaderboard = {
     updatedAt: new Date().toISOString(),
     rows: ranked,
-    bots,
-    botsSince: txRes.status === "fulfilled" ? txRes.value.baseSince : null,
     totals: {
-      wallets: ranked.length,
-      joined: ranked.filter((r) => r.joined).length,
-      depositors: ranked.filter((r) => r.markets.length).length,
-      borrowers: ranked.filter((r) => r.borrowing).length,
-      guardians: ranked.filter((r) => r.guardian).length,
-      collateralUsd: ranked.reduce((s, r) => s + r.collateralUsd, 0),
+      wallets: members.length,
+      joined: members.filter((r) => r.joined).length,
+      depositors: members.filter((r) => r.markets.length).length,
+      borrowers: members.filter((r) => r.borrowing).length,
+      guardians: members.filter((r) => r.guardian).length,
+      collateralUsd: members.reduce((s, r) => s + r.collateralUsd, 0),
     },
     scoring: POINTS,
     sources: { joins: joinsRes.status === "fulfilled" ? "ok" : "unavailable", vault: posRes.status === "fulfilled" ? "ok" : "unavailable" },

@@ -6,7 +6,7 @@ import { PageHero, PageShell } from "./Site";
 import { useApi } from "./useApi";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-const BOT_NAMES = { updater: "Oracle Updater", keeper: "Guardian Keeper", faucet: "Faucet", ledger: "Ledger" } as const;
+const NAMES = { updater: "Oracle Updater", keeper: "Guardian Keeper", faucet: "Faucet", ledger: "Ledger" } as const;
 
 const FILTERS: [string, string, TxKind[] | null][] = [
   ["all", "All", null],
@@ -33,9 +33,8 @@ function Row({ r }: { r: TxRow }) {
       <td><span className="lb-badge">{r.title}</span></td>
       <td className="tx-detail">{r.detail}</td>
       <td className="mono">
-        {r.bot && <span className="lb-badge bot" title="An automated service">Bot</span>}{" "}
         {r.actor ? (
-          r.actorUrl ? <a href={r.actorUrl} target="_blank" rel="noopener noreferrer">{r.bot ? BOT_NAMES[r.bot] : short(r.actor)}</a> : short(r.actor)
+          r.actorUrl ? <a href={r.actorUrl} target="_blank" rel="noopener noreferrer">{r.bot ? NAMES[r.bot] : short(r.actor)}</a> : short(r.actor)
         ) : "–"}
       </td>
       <td className="small">{r.chain}</td>
@@ -47,11 +46,10 @@ function Row({ r }: { r: TxRow }) {
 export function TransactionsPage() {
   const { data } = useApi<Transactions & { error?: string }>("/api/transactions", 60_000);
   const [filter, setFilter] = useState("all");
-  const [hideBots, setHideBots] = useState(false);
   const rows = useMemo(() => {
     const kinds = FILTERS.find(([k]) => k === filter)?.[2];
-    return (data?.rows ?? []).filter((r) => (!kinds || kinds.includes(r.kind)) && !(hideBots && r.bot));
-  }, [data, filter, hideBots]);
+    return (data?.rows ?? []).filter((r) => (!kinds || kinds.includes(r.kind)));
+  }, [data, filter]);
 
   return (
     <PageShell>
@@ -66,9 +64,6 @@ export function TransactionsPage() {
             {FILTERS.map(([k, label]) => (
               <button key={k} role="tab" aria-selected={filter === k} className={`btn small ${filter === k ? "primary" : "secondary"}`} onClick={() => setFilter(k)}>{label}</button>
             ))}
-            <label className="tx-toggle small">
-              <input type="checkbox" checked={hideBots} onChange={(e) => setHideBots(e.target.checked)} /> Hide bots
-            </label>
           </div>
           {!data ? (
             <div className="skeleton">Reading Base and Algorand…</div>
@@ -90,8 +85,7 @@ export function TransactionsPage() {
             <p className="small muted">{data.sources.base !== "ok" ? "Base" : "Algorand"} data is temporarily unavailable; it will fill in on the next refresh.</p>
           )}
           <p className="small muted" style={{ marginTop: 14 }}>
-            Showing the latest {data?.rows.length ?? "…"} transactions, newest first.{data?.baseSince && <> Base history starts {new Date(data.baseSince * 1000).toLocaleString()}, as far back as the public node can see; Algorand goes back to the start.</>} Demo assets only. Bots are Nightshift&apos;s own automated services; see how they rank on the{" "}
-            <a href="/leaderboard">Leaderboard</a>.
+            Showing the latest {data?.rows.length ?? "…"} transactions, newest first.{data?.baseSince && <> Base history starts {new Date(data.baseSince * 1000).toLocaleString()}, as far back as the public node can see; Algorand goes back to the start.</>} Demo assets only.
           </p>
         </div>
       </section>
