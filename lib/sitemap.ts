@@ -6,6 +6,7 @@ export const PAGES = [
   { href: "/oracle", label: "Oracle", icon: "M4 18 9 12l4 3 7-9M15 6h5v5", what: "Live overnight fair value and confidence for SPY, QQQ, GLD and IBIT, with charts, the API and the morning shift report." },
   { href: "/proof", label: "Proof", icon: "M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6zM12 9.5a2.5 2.5 0 1 0 0 5", what: "Make a zero-knowledge proof that a loan is solvent without revealing it, and verify it on-chain." },
   { href: "/transparency", label: "Transparency", icon: "M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6zM9 12l2 2 4-4", what: "The 24 machine-checked proofs, the Algorand prediction ledger, and every contract address." },
+  { href: "/transactions", label: "Transactions", icon: "M4 8h13l-3-3M20 16H7l3 3", what: "Every transaction in one list: loans, Guardian saves, Oracle updates and Algorand stamps, each linked to its explorer." },
   { href: "/docs", label: "Docs", icon: "M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h4", what: "Straight answers on how the oracle, Vault, Guardian and Cloak work, and what's still a demo." },
   { href: "/leaderboard", label: "Leaderboard", icon: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3", what: "Every wallet that joined or used Nightshift, ranked by what it has done on-chain." },
   { href: "/profile", label: "Profile", icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6", what: "Your name, email and links, and the points you've collected. Your wallet is your login." },

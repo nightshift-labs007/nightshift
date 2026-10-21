@@ -1,8 +1,9 @@
 import "server-only";
 import { formatEther, type Address } from "viem";
-import { ABI, DEPLOYMENT } from "@/lib/chain";
+import { ABI, DEPLOYMENT, addrUrl } from "@/lib/chain";
 import { publicClient, readMany } from "@/lib/chain/keeper";
-import { explorerTx, readJoins } from "@/lib/algorand";
+import { explorerAccount, explorerTx, ledgerAddress, readJoins } from "@/lib/algorand";
+import { getTransactions, type BotId } from "@/lib/transactions";
 import { publicProfiles } from "@/lib/profile";
 
 /**
@@ -25,12 +26,33 @@ export type LeaderRow = {
   name?: string; // from the owner's profile, only if they chose to show it
   x?: string;
 };
+/** An automated service that acts on Nightshift by itself. Scored by how many transactions it has sent, shown apart from people. */
+export type BotRow = {
+  rank: number;
+  id: BotId;
+  name: string;
+  job: string;
+  address: string | null;
+  chain: "Base" | "Algorand";
+  actions: number; // its points: one per transaction
+  last: number | null; // unix seconds of its latest transaction
+  href: string | null;
+};
 export type Leaderboard = {
   updatedAt: string;
   rows: LeaderRow[];
+  bots: BotRow[];
+  botsSince: number | null; // Base counts start here (unix seconds), or null when they cover everything
   totals: { wallets: number; joined: number; depositors: number; borrowers: number; guardians: number; collateralUsd: number };
   scoring: Record<string, number>;
   sources: { joins: "ok" | "unavailable"; vault: "ok" | "unavailable" };
+};
+
+const BOTS: Record<BotId, { name: string; job: string; chain: BotRow["chain"] }> = {
+  updater: { name: "Oracle Updater", job: "Pushes the Oracle's fair values on-chain when they move or go stale.", chain: "Base" },
+  keeper: { name: "Guardian Keeper", job: "Calls protect() on loans whose health fell under their owner's Guardian trigger.", chain: "Base" },
+  faucet: { name: "Faucet", job: "Mints demo tokens to wallets that ask for them.", chain: "Base" },
+  ledger: { name: "Ledger", job: "Stamps each pre-open prediction and every leaderboard join on Algorand.", chain: "Algorand" },
 };
 
 export const POINTS = { joined: 10, perMarket: 20, borrowing: 30, guardian: 25 };
@@ -61,7 +83,7 @@ export async function getLeaderboard(): Promise<Leaderboard> {
   const pub = publicClient();
   const symOf = new Map(Object.entries(DEPLOYMENT.tokens ?? {}).map(([s, t]) => [t.address.toLowerCase(), s]));
 
-  const [joinsRes, posRes] = await Promise.allSettled([
+  const [joinsRes, posRes, txRes] = await Promise.allSettled([
     readJoins(),
     (async () => {
       const vaults = [DEPLOYMENT.contracts.vault, DEPLOYMENT.previous?.vault].filter(Boolean) as Address[];
@@ -76,6 +98,7 @@ export async function getLeaderboard(): Promise<Leaderboard> {
       const guarded = new Set(cur.filter((_, i) => rules[i]?.[0] === 2).map((p) => p.user));
       return { all, guarded, priceOf };
     })(),
+    getTransactions(),
   ]);
 
   const rows = new Map<string, Omit<LeaderRow, "rank" | "points">>();
@@ -117,9 +140,23 @@ export async function getLeaderboard(): Promise<Leaderboard> {
     return { ...r, rank: i + 1, ...(p ? { name: p.name || undefined, x: p.x || undefined } : {}) };
   });
 
+  const roles = DEPLOYMENT.roles;
+  const wallet: Record<BotId, string | null> = { updater: roles?.updater ?? null, keeper: roles?.keeper ?? null, faucet: roles?.faucet ?? null, ledger: ledgerAddress() };
+  const bots: BotRow[] = (Object.keys(BOTS) as BotId[])
+    .map((id) => {
+      const stat = txRes.status === "fulfilled" ? txRes.value.bots[id] : { actions: 0, last: null };
+      const address = wallet[id];
+      const href = address ? (BOTS[id].chain === "Base" ? addrUrl(address) : explorerAccount(address)) : null;
+      return { id, ...BOTS[id], address, ...stat, href, rank: 0 };
+    })
+    .sort((a, b) => b.actions - a.actions)
+    .map((b, i) => ({ ...b, rank: i + 1 }));
+
   const data: Leaderboard = {
     updatedAt: new Date().toISOString(),
     rows: ranked,
+    bots,
+    botsSince: txRes.status === "fulfilled" ? txRes.value.baseSince : null,
     totals: {
       wallets: ranked.length,
       joined: ranked.filter((r) => r.joined).length,
@@ -132,6 +169,6 @@ export async function getLeaderboard(): Promise<Leaderboard> {
     sources: { joins: joinsRes.status === "fulfilled" ? "ok" : "unavailable", vault: posRes.status === "fulfilled" ? "ok" : "unavailable" },
   };
   // don't cache a result with a failed source for long: try again on the next request
-  if (data.sources.joins === "ok" && data.sources.vault === "ok") cache = { at: Date.now(), data };
+  if (data.sources.joins === "ok" && data.sources.vault === "ok" && txRes.status === "fulfilled") cache = { at: Date.now(), data };
   return data;
 }

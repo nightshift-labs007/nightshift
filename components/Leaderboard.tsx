@@ -10,6 +10,7 @@ import type { Leaderboard as Board, LeaderRow } from "@/lib/leaderboard";
 import { useWallet } from "@/lib/wallet";
 import { PageHero, PageShell, SectionHead } from "./Site";
 import { toast } from "./Toast";
+import { ago } from "./Transactions";
 import { usd } from "./useApi";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -196,6 +197,37 @@ export function LeaderboardPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          {data && data.bots.length > 0 && (
+            <div className="lb-bots">
+              <h3>Bots</h3>
+              <p className="small muted" style={{ marginTop: 0 }}>
+                Nightshift&apos;s own automated services, ranked apart from people. One point per transaction they&apos;ve sent. Every one is on the{" "}
+                <Link href="/transactions">Transactions</Link> page.
+                {data.botsSince && <> Base counts cover the period since {new Date(data.botsSince * 1000).toLocaleString()}, as far back as the public node can see.</>}
+              </p>
+              <div className="lb-table-wrap">
+                <table className="lb-table">
+                  <thead>
+                    <tr><th>#</th><th>Bot</th><th>Job</th><th className="num">Points</th><th>Last active</th></tr>
+                  </thead>
+                  <tbody>
+                    {data.bots.map((b) => (
+                      <tr key={b.id}>
+                        <td className="lb-rank">{b.rank}</td>
+                        <td className="mono">
+                          <span className="lb-name">{b.name} <span className="lb-badge bot">Bot</span></span>
+                          {b.address && b.href ? <a href={b.href} target="_blank" rel="noopener noreferrer">{short(b.address)} · {b.chain}</a> : <span className="muted">{b.chain}</span>}
+                        </td>
+                        <td className="small">{b.job}</td>
+                        <td className="mono num lb-points">{b.actions}</td>
+                        <td className="small">{b.last ? ago(b.last) : <span className="muted">–</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
           {data && (data.sources.joins !== "ok" || data.sources.vault !== "ok") && (

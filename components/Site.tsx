@@ -17,6 +17,7 @@ export const NAV = [
   { href: "/oracle", label: "Oracle" },
   { href: "/proof", label: "Proof" },
   { href: "/transparency", label: "Transparency" },
+  { href: "/transactions", label: "Transactions" },
   { href: "/docs", label: "Docs" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/#stocks", label: "Stocks" },

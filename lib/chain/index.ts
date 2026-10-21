@@ -10,6 +10,7 @@ export type Deployment = {
   explorer: string;
   deployedAt: string;
   startBlock: number;
+  upgradeStartBlock?: number;
   keeper: Address;
   owner?: Address;
   roles?: { updater: Address; keeper: Address; faucet: Address };
