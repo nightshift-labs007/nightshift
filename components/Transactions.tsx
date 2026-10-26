@@ -17,6 +17,7 @@ const FILTERS: [string, string, TxKind[] | null][] = [
   ["algorand", "Algorand", ["prediction", "join"]],
   ["faucet", "Faucet", ["faucet"]],
   ["earn", "Earn", ["earn"]],
+  ["stack", "Stack", ["stack"]],
 ];
 
 export function ago(unix: number, now = Date.now()) {
@@ -107,6 +108,7 @@ const FLOWS: [TxKind, string, string][] = [
   ["prediction", "Predictions locked", "Pre-open values stamped on Algorand"],
   ["join", "Leaderboard joins", "Sign-ups recorded on Algorand"],
   ["earn", "Earn deposit", "The team's Sentora vault deposit on Ethereum"],
+  ["stack", "Stack transactions", "Recurring buys: plans created, buys made, windows skipped"],
 ];
 
 /** Counts and the latest explorer link for each kind of transaction: the on-chain footprint of every flow. */

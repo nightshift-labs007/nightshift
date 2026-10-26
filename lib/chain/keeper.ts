@@ -118,3 +118,61 @@ export async function runGuardian() {
   }
   return { checked: count, protected: actions, alerts };
 }
+
+const MAX_STACK_ACTIONS = 12; // transactions per keeper run (execute or skip), so a big backlog never outruns the function's time limit
+const planStatus = { Active: 0 } as const;
+type PlanRow = { owner: Address; asset: Address; amountPerRun: bigint; budget: bigint; spent: bigint; nextRun: number; expiry: number; interval: number; window: number; runs: number; maxPremiumBps: number; minConfidence: number; status: number };
+
+const reasonOf = (e: unknown) => {
+  const x = e as { cause?: { reason?: string }; shortMessage?: string };
+  return (x.cause?.reason ?? x.shortMessage ?? String(e)).slice(0, 120);
+};
+
+/**
+ * Nightshift Stack: runs every recurring buy whose window is open. execute() is permissionless and the contract
+ * enforces the fair-price guard itself, so this only *tries*: each plan is simulated first and sent only if it would
+ * succeed. A plan the guard holds back (price too high, Oracle stale or unsure) is simply left for the next run; a plan
+ * whose window closed without a fill is rolled to its next slot with skip(), as the contract allows anyone to do.
+ */
+export async function runStack() {
+  const stack = DEPLOYMENT.stack;
+  if (!stack) return { skipped: "Stack is not deployed" };
+  const c = roleClients("keeper");
+  if (!c) return { skipped: "keeper not configured" };
+  const count = Number(await c.pub.readContract({ address: stack.plan, abi: ABI.stackPlan, functionName: "planCount" }));
+  const now = Math.floor(Date.now() / 1000);
+  const executed: { planId: number; tx: string }[] = [];
+  const rolled: { planId: number; tx: string }[] = [];
+  const waiting: { planId: number; reason: string }[] = [];
+  let actions = 0;
+  let nonce = await c.pub.getTransactionCount({ address: c.account.address, blockTag: "pending" });
+  for (let off = 0; off < count && actions < MAX_STACK_ACTIONS; off += 100) {
+    const rows = (await c.pub.readContract({ address: stack.plan, abi: ABI.stackPlan, functionName: "getPlans", args: [BigInt(off), 100n] })) as PlanRow[];
+    for (let i = 0; i < rows.length && actions < MAX_STACK_ACTIONS; i++) {
+      const p = rows[i];
+      const planId = off + i;
+      if (p.status !== planStatus.Active) continue;
+      if (now < p.nextRun) continue; // not yet
+      try {
+        if (now > p.nextRun + p.window) {
+          // the window closed without a fill: roll to the next slot (spends nothing)
+          const hash = await c.wallet.writeContract({ address: stack.plan, abi: ABI.stackPlan, functionName: "skip", args: [BigInt(planId)], nonce: nonce++ });
+          await c.pub.waitForTransactionReceipt({ hash });
+          rolled.push({ planId, tx: hash });
+          actions++;
+          continue;
+        }
+        if (now > p.expiry || p.spent + p.amountPerRun > p.budget) continue; // finished: nothing left to run
+        // simulate first: only a buy the contract's guard will accept is sent
+        await c.pub.simulateContract({ address: stack.plan, abi: ABI.stackPlan, functionName: "execute", args: [BigInt(planId)], account: c.account, nonce });
+        const hash = await c.wallet.writeContract({ address: stack.plan, abi: ABI.stackPlan, functionName: "execute", args: [BigInt(planId)], nonce: nonce++ });
+        await c.pub.waitForTransactionReceipt({ hash });
+        executed.push({ planId, tx: hash });
+        actions++;
+      } catch (e) {
+        waiting.push({ planId, reason: reasonOf(e) });
+      }
+    }
+  }
+  return { checked: count, executed, rolled, waiting };
+}

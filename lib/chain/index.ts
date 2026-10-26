@@ -42,6 +42,8 @@ export const ABI = {
   adapter: abis.MorphoOracleAdapter,
   feed: abis.NightshiftAggregatorV3,
   cloakRegistry: abis.CloakRegistry,
+  stackPlan: abis.StackPlan,
+  stackPool: abis.StackDemoPool,
 } as const;
 
 export function chainOf(d: Deployment = DEPLOYMENT): Chain {

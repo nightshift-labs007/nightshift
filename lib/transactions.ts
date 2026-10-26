@@ -11,7 +11,7 @@ import { explorerTx, ledgerAddress, readJoins, readStamps } from "@/lib/algorand
  * site: each row is read back from a public chain and links to its explorer, so the list can't be edited.
  */
 export type BotId = "updater" | "keeper" | "faucet" | "ledger";
-export type TxKind = "deposit" | "borrow" | "repay" | "withdraw" | "protect" | "liquidation" | "rule" | "price" | "attest" | "faucet" | "prediction" | "join" | "earn";
+export type TxKind = "deposit" | "borrow" | "repay" | "withdraw" | "protect" | "liquidation" | "rule" | "price" | "attest" | "faucet" | "prediction" | "join" | "earn" | "stack";
 export type TxRow = {
   id: string; // tx hash (Base) or tx id (Algorand)
   chain: "Base" | "Algorand" | "Ethereum";
@@ -42,7 +42,7 @@ const CHUNK = 9_000; // blocks per getLogs: the free public RPCs refuse ranges o
 const MAX_BACK_STEPS = 40; // ~8 days of history per request
 const BLOCK_SECONDS = 2; // Base
 
-type Ev = { addr: string; block: bigint; hash: string; index: number; name: string; args: Record<string, unknown>; contract: "vault" | "oracle" | "cloak" | "token" };
+type Ev = { addr: string; block: bigint; hash: string; index: number; name: string; args: Record<string, unknown>; contract: "vault" | "oracle" | "cloak" | "token" | "stack" };
 
 const fmt = (v: bigint, d = 4) => Number(formatEther(v)).toLocaleString("en-US", { maximumFractionDigits: d });
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -70,17 +70,19 @@ async function scanBase() {
   const head = await pub.getBlockNumber();
   const start = BigInt(DEPLOYMENT.upgradeStartBlock ?? DEPLOYMENT.startBlock);
   const { vault, oracle, cloakRegistry } = DEPLOYMENT.contracts;
+  const stackPlan = DEPLOYMENT.stack?.plan;
   const tokens = Object.values(DEPLOYMENT.tokens ?? {}).map((t) => t.address);
   const mint = ABI.token.find((x) => x.type === "event" && x.name === "Transfer")!;
   const abiOf = new Map<string, [Ev["contract"], readonly unknown[]]>([
     [vault.toLowerCase(), ["vault", ABI.vault]],
     [oracle.toLowerCase(), ["oracle", ABI.oracle]],
     ...(cloakRegistry ? [[cloakRegistry.toLowerCase(), ["cloak", ABI.cloakRegistry]] as [string, [Ev["contract"], readonly unknown[]]]] : []),
+    ...(stackPlan ? [[stackPlan.toLowerCase(), ["stack", ABI.stackPlan]] as [string, [Ev["contract"], readonly unknown[]]]] : []),
     ...tokens.map((t) => [t.toLowerCase(), ["token", ABI.token]] as [string, [Ev["contract"], readonly unknown[]]]),
   ]);
   const chunk = async (from: bigint, to: bigint) => {
     const [ours, mints] = await Promise.all([
-      withRetry(() => pub.getLogs({ address: [vault, oracle, ...(cloakRegistry ? [cloakRegistry] : [])], fromBlock: from, toBlock: to })),
+      withRetry(() => pub.getLogs({ address: [vault, oracle, ...(cloakRegistry ? [cloakRegistry] : []), ...(stackPlan ? [stackPlan] : [])], fromBlock: from, toBlock: to })),
       // only mints (from the zero address) are the faucet; user-to-user transfers are not Nightshift's business
       withRetry(() => pub.getLogs({ address: tokens, event: mint as never, args: { from: zeroAddress } as never, fromBlock: from, toBlock: to }) as Promise<Log[]>),
     ]);
@@ -160,6 +162,15 @@ async function baseRows(): Promise<{ rows: TxRow[]; bots: Pick<Record<BotId, Bot
       case "Liquidated": add(`${ev.hash}:${ev.index}`, { ev, row: { ...base, kind: "liquidation", title: "Liquidation", detail: `${fmt(a.repaidDebt, 2)} USDG repaid, ${fmt(a.seizedCollateral)} ${sym(a.collateral)} seized` } }); break;
       case "PriceUpdated":
         add(ev.hash, { ev, row: { actor: roles?.updater ?? null, actorUrl: roles?.updater ? addrUrl(roles.updater) : null, bot: "updater", kind: "price", title: "Oracle price update", detail: `${sym(a.token)} ${fmt(a.price, 2)}` } });
+        break;
+      case "PlanCreated":
+        add(`${ev.hash}:${ev.index}`, { ev, row: { ...base, actor: String(a.owner), actorUrl: addrUrl(String(a.owner)), kind: "stack", title: "Stack plan", detail: `${fmt(a.amountPerRun, 2)} USDG of ${sym(a.asset)} every ${Number(a.interval) % 86400 === 0 ? `${Number(a.interval) / 86400} day(s)` : `${Number(a.interval) / 3600} hour(s)`}` } });
+        break;
+      case "Executed":
+        add(`${ev.hash}:${ev.index}`, { ev, row: { ...base, actor: String(a.owner), actorUrl: addrUrl(String(a.owner)), kind: "stack", title: "Stack buy", detail: `${fmt(a.spent, 2)} USDG bought ${fmt(a.bought, 4)} ${sym(a.asset)}, ${(Number(a.premiumBps) / 100).toFixed(2)}% over fair value` } });
+        break;
+      case "Skipped":
+        add(`${ev.hash}:${ev.index}`, { ev, row: { ...base, actor: String(a.owner), actorUrl: addrUrl(String(a.owner)), kind: "stack", title: "Stack skip", detail: "Window passed without a fair-price fill; rolled to the next run" } });
         break;
       case "Attested": add(`${ev.hash}:${ev.index}`, { ev, row: { actor: a.by ? String(a.by) : null, actorUrl: a.by ? addrUrl(String(a.by)) : null, bot: null, kind: "attest", title: "Cloak proof attested", detail: `${sym(a.token)} solvency proof, priced at $${(Number(a.priceCents) / 100).toFixed(2)}` } }); break;
       case "Transfer":
