@@ -23,6 +23,8 @@ export type TxRow = {
   bot: BotId | null; // set when an automated service sent it
   at: number; // unix seconds
   href: string; // explorer link
+  /** a Stack buy, in numbers (for the Stack tab) */
+  stack?: { asset: string; spent: number; bought: number; premiumBps: number };
 };
 export type Flow = { count: number; latest: { id: string; at: number; href: string; chain: TxRow["chain"] } };
 export type BotStat = { actions: number; last: number | null };
@@ -167,7 +169,7 @@ async function baseRows(): Promise<{ rows: TxRow[]; bots: Pick<Record<BotId, Bot
         add(`${ev.hash}:${ev.index}`, { ev, row: { ...base, actor: String(a.owner), actorUrl: addrUrl(String(a.owner)), kind: "stack", title: "Stack plan", detail: `${fmt(a.amountPerRun, 2)} USDG of ${sym(a.asset)} every ${Number(a.interval) % 86400 === 0 ? `${Number(a.interval) / 86400} day(s)` : `${Number(a.interval) / 3600} hour(s)`}` } });
         break;
       case "Executed":
-        add(`${ev.hash}:${ev.index}`, { ev, row: { ...base, actor: String(a.owner), actorUrl: addrUrl(String(a.owner)), kind: "stack", title: "Stack buy", detail: `${fmt(a.spent, 2)} USDG bought ${fmt(a.bought, 4)} ${sym(a.asset)}, ${(Number(a.premiumBps) / 100).toFixed(2)}% over fair value` } });
+        add(`${ev.hash}:${ev.index}`, { ev, row: { ...base, actor: String(a.owner), actorUrl: addrUrl(String(a.owner)), kind: "stack", title: "Stack buy", detail: `${fmt(a.spent, 2)} USDG bought ${fmt(a.bought, 4)} ${sym(a.asset)}, ${(Number(a.premiumBps) / 100).toFixed(2)}% over fair value`, stack: { asset: sym(a.asset), spent: Number(formatEther(a.spent)), bought: Number(formatEther(a.bought)), premiumBps: Number(a.premiumBps) } } });
         break;
       case "Skipped":
         add(`${ev.hash}:${ev.index}`, { ev, row: { ...base, actor: String(a.owner), actorUrl: addrUrl(String(a.owner)), kind: "stack", title: "Stack skip", detail: "Window passed without a fair-price fill; rolled to the next run" } });

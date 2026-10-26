@@ -36,6 +36,7 @@ export function AppPage() {
   const pick = (t: "borrow" | "stack") => {
     setTab(t);
     window.history.replaceState(null, "", t === "stack" ? "#stack" : window.location.pathname);
+    window.dispatchEvent(new HashChangeEvent("hashchange")); // replaceState is silent; tell the guide which tab is showing
   };
   return (
     <PageShell>

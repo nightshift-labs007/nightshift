@@ -88,7 +88,10 @@ export function StackTab() {
   const [bal, setBal] = useState<{ usdg: number; eth: number } | null>(null);
   const [caps, setCaps] = useState<Record<string, number>>(FALLBACK_CAP);
   const [perRunCap, setPerRunCap] = useState(1000);
-  const [lastBuy, setLastBuy] = useState<Record<string, string>>({});
+  type Score = { buys: number; spent: number; bought: number; premiumBps: number; last: number };
+  const [score, setScore] = useState<Record<string, Score>>({});
+  const [skips, setSkips] = useState(0);
+  const [since, setSince] = useState<number | null>(null);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
 
@@ -146,16 +149,24 @@ export function StackTab() {
     } catch {
       /* a flaky RPC: keep what we have, the next refresh retries */
     }
-    // the latest buy per metal, from the public record (best effort)
+    // what you actually paid versus fair value, from the public record of your buys (best effort: the free node
+    // only sees recent history, so this says how far back it covers)
     try {
       const j = await fetch("/api/transactions", { cache: "no-store" }).then((r) => r.json());
-      const mine = (j.rows ?? []).filter((r: { kind: string; title: string; actor: string | null }) => r.kind === "stack" && r.title === "Stack buy" && r.actor?.toLowerCase() === account.toLowerCase());
-      const out: Record<string, string> = {};
-      for (const s of ["GLD", "SLV"]) {
-        const r = mine.find((x: { detail: string }) => x.detail.includes(` ${s},`));
-        if (r) out[s] = `${r.detail} · ${new Date(r.at * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+      const mine = (j.rows ?? []).filter((r: { kind: string; actor: string | null }) => r.kind === "stack" && r.actor?.toLowerCase() === account.toLowerCase());
+      const out: Record<string, Score> = {};
+      for (const r of mine as { title: string; at: number; stack?: { asset: string; spent: number; bought: number; premiumBps: number } }[]) {
+        if (r.title !== "Stack buy" || !r.stack) continue;
+        const s = (out[r.stack.asset] ??= { buys: 0, spent: 0, bought: 0, premiumBps: 0, last: 0 });
+        s.premiumBps = (s.premiumBps * s.spent + r.stack.premiumBps * r.stack.spent) / (s.spent + r.stack.spent || 1); // weighted by what was spent
+        s.buys += 1;
+        s.spent += r.stack.spent;
+        s.bought += r.stack.bought;
+        s.last = Math.max(s.last, r.at);
       }
-      setLastBuy(out);
+      setScore(out);
+      setSkips((mine as { title: string }[]).filter((r) => r.title === "Stack skip").length);
+      setSince(j.baseSince ?? null);
     } catch {
       /* not critical */
     }
@@ -393,10 +404,21 @@ export function StackTab() {
                     <span><i>Spent</i><b>{fmt(p.spent, 2)} {sym("USDG")}</b></span>
                     <span><i>Will spend at most</i><b>{fmt(p.budget, 0)} {sym("USDG")}</b></span>
                   </div>
-                  {lastBuy[p.asset] && <p className="small muted stack-last">Latest buy: {lastBuy[p.asset]}</p>}
+                  {score[p.asset] && (
+                    <p className="small stack-last">
+                      Bought <b>{fmt(score[p.asset].bought, 4)} {p.asset}</b> for {fmt(score[p.asset].spent, 2)} {sym("USDG")}, at an average of {fmt(score[p.asset].spent / score[p.asset].bought, 2)} each.
+                      You paid <b>{(score[p.asset].premiumBps / 100).toFixed(2)}%</b> over fair value (your limit is {(p.maxPremiumBps / 100).toFixed(2)}%).
+                    </p>
+                  )}
                 </div>
               );
             })
+          )}
+          {(skips > 0 || since) && (
+            <p className="small muted">
+              {skips > 0 ? `${skips} scheduled buy${skips === 1 ? " was" : "s were"} skipped because no fair price came in time, so that money stayed in your wallet. ` : ""}
+              {since ? `Totals count from ${new Date(since * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}, as far back as the public node can see.` : ""}
+            </p>
           )}
           {active.length > 0 && <p className="small muted">Stack runs on its own: you can close this page. Every buy is recorded on the <a href="/transactions">Transactions</a> page.</p>}
         </div>

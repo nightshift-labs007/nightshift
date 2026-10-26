@@ -88,7 +88,6 @@ const APP: Step[] = [
     title: "Borrow in four moves",
     body: (
       <ol className="guide-list numbered">
-        <li><b>Or stack instead</b>: the <i>Stack</i> tab buys gold and silver for you on a schedule, only at a fair price.</li>
         <li><b>Choose a mode</b> at the top: <i>Try without wallet</i> (paper, instant) or <i>With wallet</i>{isDeployed ? ` (${NETWORK} demo)` : ""}.</li>
         <li><b>Get collateral</b>: the paper account starts funded{isDeployed ? <>; with a wallet, click <b>Get demo tokens</b></> : ""}.</li>
         <li><b>Deposit and borrow</b>: pick a token and an amount, and keep the health factor comfortably above 1.</li>
@@ -111,6 +110,34 @@ const APP: Step[] = [
   },
 ];
 
+/** The App's Stack tab (/app#stack) has its own short guide. */
+const STACK: Step[] = [
+  {
+    kicker: "Using Stack",
+    title: "Automatic buying in three moves",
+    body: (
+      <ol className="guide-list numbered">
+        <li><b>Choose</b>: gold, silver or both, how much each time, and how often. Weekly is the default.</li>
+        <li><b>Approve once</b>: connect your wallet, then allow Stack to spend up to your total. It can never take more than that.</li>
+        <li><b>Relax</b>: Stack buys on schedule, and the tokens go straight to your wallet. Pause or cancel any time.</li>
+      </ol>
+    ),
+  },
+  {
+    kicker: "Fair price",
+    title: "What “only at a fair price” means",
+    body: (
+      <>
+        <p>
+          Nightshift always knows what gold and silver are worth right now, even when markets are closed. Before every buy, Stack checks that the
+          price you would pay is no more than a small margin above that fair value. If it is higher, or the price data is old or unsure, the buy waits.
+        </p>
+        <p className="guide-note">If a buy can&apos;t happen in time it is skipped and your money stays in your wallet. Demo assets only, unaudited.</p>
+      </>
+    ),
+  },
+];
+
 const KEY = (p: string) => `ns-guide-seen:${p}`;
 const read = (k: string) => { try { return localStorage.getItem(k); } catch { return "1"; } };
 const write = (k: string) => { try { localStorage.setItem(k, "1"); } catch { /* storage blocked: the guide just won't remember */ } };
@@ -118,7 +145,17 @@ const write = (k: string) => { try { localStorage.setItem(k, "1"); } catch { /* 
 /** First-visit walkthrough on the landing page and the App, and a "Guide" button on every page to reopen it. */
 export function WelcomeGuide() {
   const path = usePathname();
-  const steps = path === "/app" ? APP : HOME;
+  // the App page has two tabs (Borrow, Stack), told apart by the URL hash
+  const [hash, setHash] = useState("");
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash);
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  const stackTab = path === "/app" && hash === "#stack";
+  const steps = path === "/app" ? (stackTab ? STACK : APP) : HOME;
+  const guideKey = stackTab ? "/app#stack" : path;
   const auto = path === "/" || path === "/app";
   const [open, setOpen] = useState(false);
   const [i, setI] = useState(0);
@@ -131,10 +168,10 @@ export function WelcomeGuide() {
     setOpen(true);
   }, []);
   const close = useCallback(() => {
-    write(KEY(path));
+    write(KEY(guideKey));
     setOpen(false);
     opener.current?.focus?.();
-  }, [path]);
+  }, [guideKey]);
 
   // Nyx (the voice assistant) can open the guide
   useEffect(() => {
@@ -142,8 +179,11 @@ export function WelcomeGuide() {
     return () => window.removeEventListener("ns:guide-open", show);
   }, [show]);
 
+  // first visit only: opening a page shows its guide once; switching tabs later doesn't pop it up again
   useEffect(() => {
-    if (!auto || read(KEY(path))) return;
+    if (!auto) return;
+    const key = path === "/app" && window.location.hash === "#stack" ? "/app#stack" : path;
+    if (read(KEY(key))) return;
     const t = setTimeout(show, 900); // let the page settle first
     return () => clearTimeout(t);
   }, [auto, path, show]);
