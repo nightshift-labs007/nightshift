@@ -31,7 +31,7 @@ const errors = (out.errors ?? []).filter((e) => e.severity === "error");
 for (const e of out.errors ?? []) console[e.severity === "error" ? "error" : "warn"](e.formattedMessage);
 if (errors.length) process.exit(1);
 
-const WANT = ["TestToken", "NightshiftOracle", "MorphoOracleAdapter", "NightshiftAggregatorV3", "NightshiftVault", "Groth16Verifier", "CloakRegistry"];
+const WANT = ["StackPlan", "StackDemoPool", "TestToken", "NightshiftOracle", "MorphoOracleAdapter", "NightshiftAggregatorV3", "NightshiftVault", "Groth16Verifier", "CloakRegistry"];
 const artifacts = {};
 for (const file of Object.values(out.contracts)) {
   for (const [name, c] of Object.entries(file)) {

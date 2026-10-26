@@ -23,6 +23,15 @@ Based on [metals.md](../metals.md). Goal: add silver, then a recurring-buy produ
 
 **Phase 1 done in code (branch `metals-silver`):** SLV added to the Oracle (silver futures anchor, 5% event-mode trigger with the 55 cap at 10%, no sentiment tilt, Twelve Data fallback `XAG/USD`), the paper account (starts with 100 SLV), the faucet list, API v1, Nyx and the docs copy. A live check returned SLV fair value 48.96 vs 48.72 close, confidence 71, beta 1.056.
 
+**Phase 2, contract (done, 27 Oct 2026):** `StackPlan` and a demo pool are live on Base mainnet (demo tokens, no value).
+- `StackPlan` `0xfba9ef8a0e3b8dcc5b2b966b0616dd8f1e4e364e`; `StackDemoPool` `0x6a29df50b4fbd9a67b85cf1e378a46bb4ad55a0b` (sells dGLD and dSLV at the Oracle price plus an owner-set spread; seeded with inventory).
+- One asset per plan (a "Both" plan is two plans). Guard in the contract: fresh Oracle price (under 1 hour), confidence at or above the plan's floor (75 minimum), and the venue must deliver at least amount / (fair value x (1 + max premium)). Premium caps: GLD 0.5%, SLV 0.75%. Per-run cap 1,000 dUSDG; minimum interval 1 hour on the demo. No fees.
+- Skip-and-roll fallback only; cancel is final; every plan has a budget (the most it can ever spend) and an expiry.
+- Tests: `node scripts/test-stack.mjs` against a local chain (37 checks: S1 price bound, S2 spend bound, S4 stale or low-confidence Oracle, S5 cancel, S6 allowlist and delivery, windows, skipping, access control). All pass.
+- Smoke test on mainnet (`scripts/stack-smoke.mjs`): a team wallet created plan #0 (20 dUSDG of dGLD, hourly); a different wallet executed it; 20 dUSDG bought 0.0544 dGLD at exactly fair value. The plan is still active.
+- Boundary note: the price bound is strict and rounds against the buyer, so a fill at exactly +0.50% can miss by one wei; +0.49% fills.
+- Left for later steps: the keeper job, Lean proofs S1 to S6 and fuzzing, the Stack tab, Algorand receipts, and the real Uniswap route on Robinhood Chain.
+
 **Phase 1 on-chain (done, 27 Oct 2026):** dSLV is live on Base mainnet (demo token, no value).
 - Token `0xafc5b9d90655353224d6f2f6f81a3ea37153e3fa`, Morpho oracle adapter `0x8c09069f08ac5a57aa308ccd6c65d60dc0b2627d`, price feed `0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4`.
 - Vault market enabled at LLTV 62.5%; the faucet wallet can mint it; first Oracle price written.

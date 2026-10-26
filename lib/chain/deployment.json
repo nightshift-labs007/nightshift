@@ -102,5 +102,10 @@
         "hash": "0x06f76b4fa9d494f473363201c450be038c3be462934d5ed526fac0ef12a04129"
       }
     ]
+  },
+  "stack": {
+    "plan": "0xfba9ef8a0e3b8dcc5b2b966b0616dd8f1e4e364e",
+    "pool": "0x6a29df50b4fbd9a67b85cf1e378a46bb4ad55a0b",
+    "deployedAt": "2026-10-26T21:02:17.101Z"
   }
 }

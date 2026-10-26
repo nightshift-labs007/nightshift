@@ -11,6 +11,8 @@ export type Deployment = {
   deployedAt: string;
   startBlock: number;
   upgradeStartBlock?: number;
+  /** Nightshift Stack (recurring buys): the plan contract and the demo pool it buys from */
+  stack?: { plan: Address; pool: Address; deployedAt: string };
   keeper: Address;
   owner?: Address;
   roles?: { updater: Address; keeper: Address; faucet: Address };
