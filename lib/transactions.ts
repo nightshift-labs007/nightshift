@@ -41,7 +41,11 @@ export type Transactions = {
 
 const FEED_LIMIT = 200;
 const CHUNK = 9_000; // blocks per getLogs: the free public RPCs refuse ranges of 10,000 or more
-const MAX_BACK_STEPS = 40; // ~8 days of history per request
+const MAX_BACK_STEPS = 40; // ~8 days of history per request, at most
+// Vercel stops a request at 30 seconds, so older history is read only while time is left. A warm server keeps what it
+// read, and each later request continues further back, so a cold request is quick and history still fills in.
+const SCAN_BUDGET_MS = 9_000;
+const STEP_TIMEOUT_MS = 6_000;
 const BLOCK_SECONDS = 2; // Base
 
 type Ev = { addr: string; block: bigint; hash: string; index: number; name: string; args: Record<string, unknown>; contract: "vault" | "oracle" | "cloak" | "token" | "stack" };
@@ -66,7 +70,11 @@ async function withRetry<T>(get: () => Promise<T>): Promise<T> {
   }
 }
 
+const within = <T,>(ms: number, p: Promise<T>) =>
+  Promise.race([p, new Promise<never>((_, no) => setTimeout(() => no(new Error("timed out")), ms))]);
+
 async function scanBase() {
+  const deadline = Date.now() + SCAN_BUDGET_MS;
   const pub = publicClient();
   if (!pub) return null;
   const head = await pub.getBlockNumber();
@@ -115,12 +123,12 @@ async function scanBase() {
     scanned.headAt = Number((await pub.getBlock({ blockNumber: head })).timestamp);
   }
   // older history, newest-first, until the RPC refuses
-  for (let n = 0; !scanned.reachedStart && n < MAX_BACK_STEPS; n++) {
+  for (let n = 0; !scanned.reachedStart && n < MAX_BACK_STEPS && Date.now() < deadline; n++) {
     const to = scanned.oldest - 1n;
     const from = to - STEP + 1n < start ? start : to - STEP + 1n;
     if (to < start) { scanned.reachedStart = true; break; }
     try {
-      scanned.events.push(...(await chunk(from, to)));
+      scanned.events.push(...(await within(STEP_TIMEOUT_MS, chunk(from, to))));
     } catch {
       break;
     }
