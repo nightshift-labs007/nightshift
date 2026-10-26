@@ -13,6 +13,14 @@ Based on [metals.md](../metals.md). Goal: add silver, then a recurring-buy produ
 - **LLTV: 62.5%, not the paper's 68%.** 68% is not one of Morpho's enabled LLTVs (38.5, 62.5, 77, 86, …), and the study's frozen-price rule picks 62.5%. Same as IBIT.
 - Full data: `public/verified/lltv-study.json` (now includes SLV); reproduce with `node scripts/lltv-study.mjs`.
 
+**Phase 0, DEX versus fair value (26 Oct 2026, Monday early morning ET; `node scripts/dex-gap.mjs`):**
+- **The SLV/USDG pool is nearly empty: about $577 of liquidity**, not the $0.2M to $0.7M the research paper quoted. The only meaningful SLV pool is SLV/GLD at about $120K, so a USDG-to-SLV buy would route through GLD (two hops, two fees).
+- Over the last ~22 hours (Sunday evening to Monday morning, after the Friday close), the DEX price sat a median 21 to 23 bps from Nightshift's fair value; the 90th percentile was 38 bps (SLV/GLD) and 67 bps (SLV/USDG); the max was 70 bps.
+- So the proposed 0.5% (50 bps) max premium would let most installments fill, and the guard would hold some back, as intended. A full weekend (Friday close to Sunday open) still has to be measured: DexPaprika's keyless API only returns 24 hours, so this needs a free API key (7 days) or a few weekends of samples.
+- Consequence for Stack: per-installment caps must be small, and a SLV Vault market should wait for real depth. Re-check on-chain before phase 3.
+
+**Silver "global" signal:** the Shanghai/MCX switch is deferred. Neither has free data on Yahoo or Twelve Data, so it would need a paid feed. Silver's global sensitivity is set low (0.1, same as gold), so the effect of leaving it is small.
+
 **Phase 1 done in code (branch `metals-silver`):** SLV added to the Oracle (silver futures anchor, 5% event-mode trigger with the 55 cap at 10%, no sentiment tilt, Twelve Data fallback `XAG/USD`), the paper account (starts with 100 SLV), the faucet list, API v1, Nyx and the docs copy. A live check returned SLV fair value 48.96 vs 48.72 close, confidence 71, beta 1.056.
 
 **Phase 1 still to do:** deploy dSLV on Base (token, oracle adapter, feed, Morpho market). That needs the contract owner's key, which isn't on this machine. Until it is deployed, SLV is priced and usable in the paper account but not in the on-chain Vault.
