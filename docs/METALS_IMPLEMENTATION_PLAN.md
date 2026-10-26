@@ -34,7 +34,9 @@ Based on [metals.md](../metals.md). Goal: add silver, then a recurring-buy produ
 - **Stack tab (done):** App page, second tab beside Borrow (`/app#stack`). Three choices (gold, silver or both; amount; weekly by default), a one-line summary, one button. A "More options" row holds how many buys to stop after. Connected wallets see their plans with next buy, buys so far, amount spent and Pause, Resume and Cancel (cancelling the last plan also removes Stack's permission to spend). A "Get demo dUSDG" button covers new users with no balance. Stack buys, plans and skips appear on the Transactions page.
 - **Stack guide (done):** the Stack tab has its own two-step guide, shown once on first visit; the Borrow guide no longer appears on it.
 - **Paid-versus-fair (done, partial):** each plan card shows what the wallet actually paid for its buys against Nightshift's fair value and its limit, plus how many scheduled buys were skipped. This is the premium *paid*. The "premium *avoided*" claim (what a naive buy would have cost) still needs recorded DEX prices and the weekend gap data.
-- Still open: Lean proofs S1 to S6 and fuzzing, Algorand receipts for fills, premium avoided, and the real Uniswap route on Robinhood Chain.
+- **Fuzzing (done):** `scripts/fuzz-stack.mjs` runs randomised rounds (price, confidence, price age, spread, premium, amount) plus three hostile venues (lying, greedy, reentrant). Seeds 42 and 7: 1,610 checks, all pass.
+- **Bug fixed while testing:** live `/api/transactions` and `/api/leaderboard` timed out at 30 s on cold starts; the history scan now has a time budget (commit `9821b08`).
+- Still open: Lean proofs S1 to S6, Algorand receipts for fills, premium avoided, and the real Uniswap route on Robinhood Chain. Summary for readers: [METALS_SIP_IMPLEMENTED.md](METALS_SIP_IMPLEMENTED.md); wider ideas: [RESEARCH_NEXT_STEPS.md](RESEARCH_NEXT_STEPS.md).
 
 **Phase 1 on-chain (done, 27 Oct 2026):** dSLV is live on Base mainnet (demo token, no value).
 - Token `0xafc5b9d90655353224d6f2f6f81a3ea37153e3fa`, Morpho oracle adapter `0x8c09069f08ac5a57aa308ccd6c65d60dc0b2627d`, price feed `0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4`.
