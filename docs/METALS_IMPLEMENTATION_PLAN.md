@@ -23,7 +23,12 @@ Based on [metals.md](../metals.md). Goal: add silver, then a recurring-buy produ
 
 **Phase 1 done in code (branch `metals-silver`):** SLV added to the Oracle (silver futures anchor, 5% event-mode trigger with the 55 cap at 10%, no sentiment tilt, Twelve Data fallback `XAG/USD`), the paper account (starts with 100 SLV), the faucet list, API v1, Nyx and the docs copy. A live check returned SLV fair value 48.96 vs 48.72 close, confidence 71, beta 1.056.
 
-**Phase 1 still to do:** deploy dSLV on Base (token, oracle adapter, feed, Morpho market). That needs the contract owner's key, which isn't on this machine. Until it is deployed, SLV is priced and usable in the paper account but not in the on-chain Vault.
+**Phase 1 on-chain (done, 27 Oct 2026):** dSLV is live on Base mainnet (demo token, no value).
+- Token `0xafc5b9d90655353224d6f2f6f81a3ea37153e3fa`, Morpho oracle adapter `0x8c09069f08ac5a57aa308ccd6c65d60dc0b2627d`, price feed `0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4`.
+- Vault market enabled at LLTV 62.5%; the faucet wallet can mint it; first Oracle price written.
+- Morpho market `0x84378b5b2384c12cdfaf27dc474b8928fc24cef22485f0b3070694bfc46f8f5a` created, seeded with 1,000,000 dUSDG, and a full loan (supply, borrow, repay, withdraw) ran through it.
+- The keeper starts pushing SLV prices once the site deploys with the new `deployment.json`. The Morpho adapter refuses prices older than a day, so that deploy needs to happen soon.
+- Scripts: `scripts/deploy-slv.mjs`; `ONLY=SLV EXECUTE=1 node --env-file=.env.local scripts/create-morpho-markets.mjs`. Side effect: a dSPY Morpho market on the post-upgrade adapter was also created by an earlier, aborted run; it is empty and harmless.
 
 **Legal / eligibility (owner: dev):** confirm which countries Robinhood's Stock Tokens are offered in, whether the Robinhood Chain tokens have transfer restrictions, and get counsel's view per launch country. Gates phase 3.
 

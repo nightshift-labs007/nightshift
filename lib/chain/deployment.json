@@ -45,6 +45,12 @@
       "lltv": 0.625,
       "adapter": "0x5118e7e20ac6ab2429695a45d584025e8054c0b7",
       "feed": "0x146c622c99d5a1bbd89df2af3939861eef13946e"
+    },
+    "SLV": {
+      "address": "0xafc5b9d90655353224d6f2f6f81a3ea37153e3fa",
+      "lltv": 0.625,
+      "adapter": "0x8c09069f08ac5a57aa308ccd6c65d60dc0b2627d",
+      "feed": "0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4"
     }
   },
   "upgradedAt": "2026-10-14T21:42:39.318Z",
@@ -58,5 +64,43 @@
       "IBIT": "0xda8cf5e8d8f31c85efc9227d4c29be53cc539139"
     },
     "startBlock": 52510176
+  },
+  "slvAddedAt": "2026-10-26T20:38:35.151Z",
+  "morpho": {
+    "address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+    "irm": "0x46415998764C29aB2a25CbeA6254146D50D22687",
+    "createdAt": "2026-10-26T20:40:23.748Z",
+    "markets": {
+      "SLV": {
+        "id": "0x84378b5b2384c12cdfaf27dc474b8928fc24cef22485f0b3070694bfc46f8f5a",
+        "lltv": 0.625
+      }
+    },
+    "e2e": [
+      {
+        "label": "approve Morpho for dSLV",
+        "hash": "0x0f5698e976e8a40219b59d6cfe46625dcac2be73c8e238e53239881d09cd64c8"
+      },
+      {
+        "label": "supply 1 dSLV as collateral",
+        "hash": "0x9ce91e5f83bcd96aac5f31b31a00be44dc37e116fa4c11548b0daf38144a50ad"
+      },
+      {
+        "label": "borrow 24.324636 dUSDG",
+        "hash": "0xc11b9d396b7fac9f00ade93c6528a9d0545d54c079f66597e627f4f091695232"
+      },
+      {
+        "label": "mint a little dUSDG for interest",
+        "hash": "0xcc14c001e9efd42fee994acfceb6e7db78b0ca129431079cbcc46de025a4abdd"
+      },
+      {
+        "label": "repay the whole loan (by shares)",
+        "hash": "0xe14873d8ea0e765bf525310583da6bcba76f77b8e044731df050f53aae6f4135"
+      },
+      {
+        "label": "withdraw 1 dSLV",
+        "hash": "0x06f76b4fa9d494f473363201c450be038c3be462934d5ed526fac0ef12a04129"
+      }
+    ]
   }
 }

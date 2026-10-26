@@ -73,6 +73,7 @@ await send(`Vault market dSLV: LLTV ${LLTV}`, D.contracts.vault, "NightshiftVaul
 await send("first Oracle price (owner override)", D.contracts.oracle, "NightshiftOracle", "forceSetPrices", [[token], [parseEther(start.price.toFixed(6))], [start.confidence]]);
 
 const price = await pub.readContract({ address: D.contracts.oracle, abi: A.NightshiftOracle.abi, functionName: "getPrice", args: [token] });
+await new Promise((r) => setTimeout(r, 4000)); // public RPCs are load-balanced: give the new contracts a moment to be visible
 const adapterPrice = await pub.readContract({ address: adapter, abi: A.MorphoOracleAdapter.abi, functionName: "price" });
 console.log(`check: Oracle ${formatEther(price[0])}, adapter ${adapterPrice}, feed ok`);
 const after = await pub.getBalance({ address: ownerAddr });

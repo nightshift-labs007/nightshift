@@ -14,6 +14,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 
 const EXECUTE = process.env.EXECUTE === "1";
+const ONLY = process.env.ONLY?.trim(); // e.g. ONLY=SLV: create just that market (and run the end-to-end loan on it)
 const MORPHO = "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb"; // Morpho Blue, same address on every chain
 const IRM = "0x46415998764C29aB2a25CbeA6254146D50D22687"; // AdaptiveCurveIrm on Base
 const SEED = parseEther("1000000"); // demo dUSDG supplied to each market
@@ -58,6 +59,7 @@ async function send(label, address, abi, functionName, args) {
   const r = await pub.waitForTransactionReceipt({ hash });
   if (r.status !== "success") throw new Error(`${label} failed: ${hash}`);
   txs.push({ label, hash });
+  await new Promise((r) => setTimeout(r, 3500)); // public RPCs are load-balanced: let every node see this transaction before the next call
   console.log(`  ${label.padEnd(44)} ${hash}`);
 }
 
@@ -71,7 +73,10 @@ console.log("Morpho Blue on Base: IRM and LLTVs enabled");
 
 const usdg = D.contracts.usdg;
 const markets = {};
-for (const [sym, t] of Object.entries(D.tokens)) {
+// Morpho must be allowed to pull dUSDG before the first supply
+if (EXECUTE && (await pub.readContract({ address: usdg, abi: erc20, functionName: "allowance", args: [me, MORPHO] })) < maxUint256 / 2n)
+  await send("approve Morpho for dUSDG", usdg, erc20, "approve", [MORPHO, maxUint256]);
+for (const [sym, t] of Object.entries(D.tokens).filter(([sym]) => !ONLY || sym === ONLY)) {
   const params = { loanToken: usdg, collateralToken: t.address, oracle: t.adapter, irm: IRM, lltv: parseEther(String(t.lltv)) };
   const id = marketId(params);
   const price = await pub.readContract({ address: t.adapter, abi: adapterAbi, functionName: "price" });
@@ -87,29 +92,29 @@ for (const [sym, t] of Object.entries(D.tokens)) {
 }
 
 // one full loan on dSPY: collateral 1 dSPY, borrow 50% of its value, repay all, take the collateral back
-const spy = markets.SPY;
+const spy = markets[ONLY ?? "SPY"]; // the market the end-to-end loan runs on
 const params = { loanToken: spy.loanToken, collateralToken: spy.collateralToken, oracle: spy.oracle, irm: spy.irm, lltv: parseEther(String(spy.lltv)) };
 const one = parseEther("1");
 const priceSpy = await pub.readContract({ address: spy.oracle, abi: adapterAbi, functionName: "price" });
 const borrowAmt = (priceSpy * one) / 10n ** 36n / 2n;
-console.log(`End-to-end loan on dSPY (borrow ${formatEther(borrowAmt)} dUSDG against 1 dSPY):`);
+console.log(`End-to-end loan on d${ONLY ?? "SPY"} (borrow ${formatEther(borrowAmt)} dUSDG against 1 dSPY):`);
 if (EXECUTE && (await pub.readContract({ address: usdg, abi: erc20, functionName: "allowance", args: [me, MORPHO] })) < maxUint256 / 2n)
   await send("approve Morpho for dUSDG", usdg, erc20, "approve", [MORPHO, maxUint256]);
 else if (!EXECUTE) console.log("  (would) approve Morpho for dUSDG");
-await send("mint 1 dSPY", spy.collateralToken, erc20, "mint", [me, one]);
-await send("approve Morpho for dSPY", spy.collateralToken, erc20, "approve", [MORPHO, maxUint256]);
-await send("supply 1 dSPY as collateral", MORPHO, morphoAbi, "supplyCollateral", [params, one, me, "0x"]);
+await send(`mint 1 d${ONLY ?? "SPY"}`, spy.collateralToken, erc20, "mint", [me, one]);
+await send(`approve Morpho for d${ONLY ?? "SPY"}`, spy.collateralToken, erc20, "approve", [MORPHO, maxUint256]);
+await send(`supply 1 d${ONLY ?? "SPY"} as collateral`, MORPHO, morphoAbi, "supplyCollateral", [params, one, me, "0x"]);
 await send(`borrow ${formatEther(borrowAmt)} dUSDG`, MORPHO, morphoAbi, "borrow", [params, borrowAmt, 0n, me, me]);
 if (EXECUTE) {
   const pos = await pub.readContract({ address: MORPHO, abi: morphoAbi, functionName: "position", args: [spy.id, me] });
-  console.log(`  position: collateral ${formatEther(pos[2])} dSPY, borrow shares ${pos[1]}`);
+  console.log(`  position: collateral ${formatEther(pos[2])} d${ONLY ?? "SPY"}, borrow shares ${pos[1]}`);
   await send("mint a little dUSDG for interest", usdg, erc20, "mint", [me, parseEther("1")]);
   await send("repay the whole loan (by shares)", MORPHO, morphoAbi, "repay", [params, 0n, pos[1], me, "0x"]);
 } else console.log("  (would) repay the whole loan (by shares)");
-await send("withdraw 1 dSPY", MORPHO, morphoAbi, "withdrawCollateral", [params, one, me, me]);
+await send(`withdraw 1 d${ONLY ?? "SPY"}`, MORPHO, morphoAbi, "withdrawCollateral", [params, one, me, me]);
 
 if (EXECUTE) {
-  const next = { ...D, morpho: { address: MORPHO, irm: IRM, createdAt: new Date().toISOString(), markets: Object.fromEntries(Object.entries(markets).map(([s, m]) => [s, { id: m.id, lltv: m.lltv }])), e2e: txs.slice(-6) } };
+  const next = { ...D, morpho: { address: MORPHO, irm: IRM, createdAt: new Date().toISOString(), markets: Object.fromEntries(Object.entries({ ...Object.fromEntries(Object.entries(D.morpho?.markets ?? {}).map(([s, m]) => [s, { ...m }])), ...markets }).map(([s, m]) => [s, { id: m.id, lltv: m.lltv }])), e2e: txs.slice(-6) } };
   fs.writeFileSync("lib/chain/deployment.json", JSON.stringify(next, null, 2) + "\n");
   console.log("wrote lib/chain/deployment.json");
 }
