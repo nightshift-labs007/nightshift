@@ -48,6 +48,20 @@ export const PAIRS: Pair[] = [
     sim: { etf: 340, anchor: 3650, hourlyVol: 0.001 },
   },
   {
+    // Silver: LLTV 62.5% (not the 68% first floated, which Morpho doesn't offer) from public/verified/lltv-study.json:
+    // the worst close-to-open fall on record is 15.4%, so 77% leaves too little room. No sentiment tilt: the crypto
+    // Fear & Greed index has no link to silver. Overnight beta measured at 1.02 (R² 0.96) over 20 nights.
+    token: "SLV",
+    name: "Silver ETF",
+    anchor: "SI=F",
+    anchorName: "Silver futures",
+    beta: 1,
+    globalSens: 0.1,
+    sentimentTilt: 0,
+    lltv: 0.625,
+    sim: { etf: 48.7, anchor: 54.3, hourlyVol: 0.0018 },
+  },
+  {
     token: "IBIT",
     name: "Bitcoin ETF",
     anchor: "BTC-USD",
@@ -76,6 +90,6 @@ export const AGENTS = {
 } as const;
 
 // Max fair-value move implied by a news score of ±1.
-export const NEWS_TILT: Record<string, number> = { SPY: 0.004, QQQ: 0.005, GLD: 0.003, IBIT: 0.01 };
+export const NEWS_TILT: Record<string, number> = { SPY: 0.004, QQQ: 0.005, GLD: 0.003, SLV: 0.005, IBIT: 0.01 };
 
 export type AgentId = keyof typeof AGENTS;

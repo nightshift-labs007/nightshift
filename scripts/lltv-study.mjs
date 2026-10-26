@@ -20,6 +20,7 @@ const PAIRS = [
   { token: "QQQ", anchor: "NQ=F", anchorName: "Nasdaq-100 futures", current: 0.77 },
   { token: "GLD", anchor: "GC=F", anchorName: "gold futures", current: 0.77 },
   { token: "IBIT", anchor: "BTC-USD", anchorName: "bitcoin", current: 0.625 },
+  { token: "SLV", anchor: "SI=F", anchorName: "silver futures", current: 0.625 }, // not live yet; 62.5% is the study's pick (see lib/config.ts)
 ];
 // LLTVs Morpho governance has enabled for new markets
 const ENABLED = [0.385, 0.625, 0.77, 0.86, 0.915, 0.945, 0.965, 0.98];
@@ -168,7 +169,8 @@ const out = {
   tokens,
   morphoTokenizedMarkets: morpho,
 };
-fs.mkdirSync("public/verified", { recursive: true });
-fs.writeFileSync("public/verified/lltv-study.json", JSON.stringify(out, null, 2) + "\n");
-console.log(`wrote public/verified/lltv-study.json (${morpho.length} live Morpho tokenized-stock markets for comparison)`);
+const OUT = process.env.OUT ?? "public/verified/lltv-study.json"; // OUT=... writes somewhere else for a trial run
+fs.mkdirSync(OUT.slice(0, OUT.lastIndexOf("/")), { recursive: true });
+fs.writeFileSync(OUT, JSON.stringify(out, null, 2) + "\n");
+console.log(`wrote ${OUT} (${morpho.length} live Morpho tokenized-stock markets for comparison)`);
 for (const t of tokens) console.log(`${t.token}: current ${t.currentLltv}, frozen-history → ${t.recommended.frozenFullHistory}, Nightshift-window → ${t.recommended.nightshiftWindow}`);

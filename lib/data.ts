@@ -51,8 +51,8 @@ export async function fetchChart(
 // Yahoo's endpoint is unofficial and sometimes blocks cloud IPs; this is tried before anything becomes "simulated".
 // The free tier has no index futures, so ES=F / NQ=F / ^N225 etc. stay Yahoo-only; gold futures use spot gold.
 const TD_SYMBOL: Record<string, string> = {
-  SPY: "SPY", QQQ: "QQQ", GLD: "GLD", IBIT: "IBIT",
-  "BTC-USD": "BTC/USD", "GC=F": "XAU/USD",
+  SPY: "SPY", QQQ: "QQQ", GLD: "GLD", SLV: "SLV", IBIT: "IBIT",
+  "BTC-USD": "BTC/USD", "GC=F": "XAU/USD", "SI=F": "XAG/USD",
   AAPL: "AAPL", NVDA: "NVDA", MSFT: "MSFT", TSLA: "TSLA", GOOGL: "GOOGL", AMZN: "AMZN", META: "META", AVGO: "AVGO",
   TSM: "TSM", "BRK-B": "BRK.B", JPM: "JPM", LLY: "LLY", V: "V", MA: "MA", ORCL: "ORCL", NFLX: "NFLX", AMD: "AMD", WMT: "WMT", COST: "COST", XOM: "XOM",
 };

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-14T21:47:26.008Z",
+  "generatedAt": "2026-10-26T05:53:44.894Z",
   "method": {
     "badDebtLine": "A loan opened at health 1.0 leaves bad debt if the price falls more than 1 − LLTV × LIF before it can be liquidated; LIF = min(1.15, 1/(0.3·LLTV + 0.7)).",
     "frozen": "Frozen oracle: the last close is repeated until the open, so the whole gap lands at once. Full history since 2005 (IBIT since its 2024 listing).",
@@ -60,8 +60,8 @@
       "currentLltv": 0.77,
       "history": {
         "from": "2005-01-04",
-        "to": "2026-10-14",
-        "nights": 5479,
+        "to": "2026-10-23",
+        "nights": 5486,
         "p99FallPct": 2.16,
         "worstFallPct": 10.45,
         "worst": [
@@ -103,11 +103,11 @@
         }
       },
       "nightshiftWindow": {
-        "from": "2024-05-23",
-        "to": "2026-10-14",
-        "nights": 588,
+        "from": "2024-06-05",
+        "to": "2026-10-23",
+        "nights": 587,
         "frozen": {
-          "nights": 588,
+          "nights": 587,
           "p99FallPct": 2.16,
           "worstFallPct": 3.99,
           "worst": [
@@ -147,10 +147,10 @@
             "0.965": 4,
             "0.98": 11
           },
-          "meanAbsPct": 0.42
+          "meanAbsPct": 0.43
         },
         "nightshift": {
-          "nights": 588,
+          "nights": 587,
           "p99FallPct": 0.45,
           "worstFallPct": 1.35,
           "worst": [
@@ -204,8 +204,8 @@
       "currentLltv": 0.77,
       "history": {
         "from": "2005-01-04",
-        "to": "2026-10-14",
-        "nights": 5479,
+        "to": "2026-10-23",
+        "nights": 5486,
         "p99FallPct": 2.21,
         "worstFallPct": 9.46,
         "worst": [
@@ -243,15 +243,15 @@
           "0.915": 5,
           "0.945": 10,
           "0.965": 45,
-          "0.98": 181
+          "0.98": 183
         }
       },
       "nightshiftWindow": {
-        "from": "2024-05-23",
-        "to": "2026-10-14",
-        "nights": 588,
+        "from": "2024-06-05",
+        "to": "2026-10-23",
+        "nights": 587,
         "frozen": {
-          "nights": 588,
+          "nights": 587,
           "p99FallPct": 2.78,
           "worstFallPct": 5.36,
           "worst": [
@@ -289,12 +289,12 @@
             "0.915": 0,
             "0.945": 2,
             "0.965": 7,
-            "0.98": 27
+            "0.98": 29
           },
           "meanAbsPct": 0.61
         },
         "nightshift": {
-          "nights": 588,
+          "nights": 587,
           "p99FallPct": 0.51,
           "worstFallPct": 1.26,
           "worst": [
@@ -348,8 +348,8 @@
       "currentLltv": 0.77,
       "history": {
         "from": "2005-01-04",
-        "to": "2026-10-14",
-        "nights": 5479,
+        "to": "2026-10-23",
+        "nights": 5486,
         "p99FallPct": 2.38,
         "worstFallPct": 5.98,
         "worst": [
@@ -387,15 +387,15 @@
           "0.915": 0,
           "0.945": 8,
           "0.965": 47,
-          "0.98": 212
+          "0.98": 213
         }
       },
       "nightshiftWindow": {
-        "from": "2024-05-23",
-        "to": "2026-10-14",
-        "nights": 593,
+        "from": "2024-06-05",
+        "to": "2026-10-23",
+        "nights": 592,
         "frozen": {
-          "nights": 593,
+          "nights": 592,
           "p99FallPct": 3.47,
           "worstFallPct": 5.98,
           "worst": [
@@ -433,12 +433,12 @@
             "0.915": 0,
             "0.945": 3,
             "0.965": 15,
-            "0.98": 49
+            "0.98": 50
           },
           "meanAbsPct": 0.81
         },
         "nightshift": {
-          "nights": 593,
+          "nights": 592,
           "p99FallPct": 1.21,
           "worstFallPct": 1.85,
           "worst": [
@@ -455,7 +455,7 @@
             {
               "date": "2024-07-30",
               "kind": "overnight",
-              "movePct": -1.56
+              "movePct": -1.63
             },
             {
               "date": "2026-03-23",
@@ -478,7 +478,7 @@
             "0.965": 0,
             "0.98": 5
           },
-          "meanAbsPct": 0.22
+          "meanAbsPct": 0.21
         }
       },
       "recommended": {
@@ -492,8 +492,8 @@
       "currentLltv": 0.625,
       "history": {
         "from": "2024-01-12",
-        "to": "2026-10-14",
-        "nights": 691,
+        "to": "2026-10-23",
+        "nights": 698,
         "p99FallPct": 5.71,
         "worstFallPct": 20.39,
         "worst": [
@@ -530,16 +530,16 @@
           "0.86": 1,
           "0.915": 6,
           "0.945": 18,
-          "0.965": 59,
-          "0.98": 143
+          "0.965": 60,
+          "0.98": 145
         }
       },
       "nightshiftWindow": {
-        "from": "2024-10-16",
-        "to": "2026-10-14",
-        "nights": 499,
+        "from": "2024-10-29",
+        "to": "2026-10-23",
+        "nights": 497,
         "frozen": {
-          "nights": 499,
+          "nights": 497,
           "p99FallPct": 5.16,
           "worstFallPct": 8.45,
           "worst": [
@@ -576,20 +576,20 @@
             "0.86": 0,
             "0.915": 3,
             "0.945": 13,
-            "0.965": 45,
-            "0.98": 103
+            "0.965": 46,
+            "0.98": 104
           },
           "meanAbsPct": 1.6
         },
         "nightshift": {
-          "nights": 499,
+          "nights": 497,
           "p99FallPct": 0.74,
-          "worstFallPct": 1.51,
+          "worstFallPct": 1.52,
           "worst": [
             {
               "date": "2024-12-26",
               "kind": "holiday",
-              "movePct": -1.51
+              "movePct": -1.52
             },
             {
               "date": "2025-02-26",
@@ -629,6 +629,150 @@
         "frozenFullHistory": 0.385,
         "nightshiftWindow": 0.965
       }
+    },
+    {
+      "token": "SLV",
+      "anchor": "silver futures",
+      "currentLltv": 0.625,
+      "history": {
+        "from": "2006-05-01",
+        "to": "2026-10-23",
+        "nights": 5154,
+        "p99FallPct": 4.36,
+        "worstFallPct": 15.38,
+        "worst": [
+          {
+            "date": "2026-01-30",
+            "kind": "overnight",
+            "movePct": -15.38
+          },
+          {
+            "date": "2026-02-05",
+            "kind": "overnight",
+            "movePct": -13.83
+          },
+          {
+            "date": "2020-03-16",
+            "kind": "weekend",
+            "movePct": -13.59
+          },
+          {
+            "date": "2026-03-19",
+            "kind": "overnight",
+            "movePct": -9.9
+          },
+          {
+            "date": "2008-12-01",
+            "kind": "weekend",
+            "movePct": -9.38
+          }
+        ],
+        "breachesByLltv": {
+          "0.385": 0,
+          "0.625": 0,
+          "0.77": 0,
+          "0.86": 3,
+          "0.915": 21,
+          "0.945": 70,
+          "0.965": 228,
+          "0.98": 613
+        }
+      },
+      "nightshiftWindow": {
+        "from": "2024-06-05",
+        "to": "2026-10-23",
+        "nights": 592,
+        "frozen": {
+          "nights": 592,
+          "p99FallPct": 7.64,
+          "worstFallPct": 15.38,
+          "worst": [
+            {
+              "date": "2026-01-30",
+              "kind": "overnight",
+              "movePct": -15.38
+            },
+            {
+              "date": "2026-02-05",
+              "kind": "overnight",
+              "movePct": -13.83
+            },
+            {
+              "date": "2026-03-19",
+              "kind": "overnight",
+              "movePct": -9.9
+            },
+            {
+              "date": "2026-03-03",
+              "kind": "overnight",
+              "movePct": -9.02
+            },
+            {
+              "date": "2025-12-29",
+              "kind": "weekend",
+              "movePct": -7.68
+            }
+          ],
+          "breachesByLltv": {
+            "0.385": 0,
+            "0.625": 0,
+            "0.77": 0,
+            "0.86": 2,
+            "0.915": 7,
+            "0.945": 26,
+            "0.965": 50,
+            "0.98": 99
+          },
+          "meanAbsPct": 1.53
+        },
+        "nightshift": {
+          "nights": 592,
+          "p99FallPct": 1.8,
+          "worstFallPct": 4.3,
+          "worst": [
+            {
+              "date": "2026-03-02",
+              "kind": "weekend",
+              "movePct": -4.3
+            },
+            {
+              "date": "2026-01-27",
+              "kind": "overnight",
+              "movePct": -3.3
+            },
+            {
+              "date": "2026-05-19",
+              "kind": "overnight",
+              "movePct": -3.04
+            },
+            {
+              "date": "2026-03-23",
+              "kind": "weekend",
+              "movePct": -2.59
+            },
+            {
+              "date": "2026-01-12",
+              "kind": "weekend",
+              "movePct": -2.03
+            }
+          ],
+          "breachesByLltv": {
+            "0.385": 0,
+            "0.625": 0,
+            "0.77": 0,
+            "0.86": 0,
+            "0.915": 0,
+            "0.945": 1,
+            "0.965": 4,
+            "0.98": 11
+          },
+          "meanAbsPct": 0.43
+        }
+      },
+      "recommended": {
+        "frozenFullHistory": 0.625,
+        "nightshiftWindow": 0.86
+      }
     }
   ],
   "morphoTokenizedMarkets": [
@@ -638,7 +782,7 @@
       "name": "NVIDIA • Robinhood Token",
       "loan": "USDG",
       "lltv": 0.625,
-      "supplyUsd": 679179,
+      "supplyUsd": 736127,
       "marketId": "0x8b16891f032a93b771347c9cb470a780e6699dd701553d3402aa3cdba6189c3e"
     },
     {
@@ -647,7 +791,7 @@
       "name": "Space Exploration Technologies Corp. Class A Common Stock • Robinhood Token",
       "loan": "USDG",
       "lltv": 0.625,
-      "supplyUsd": 518802,
+      "supplyUsd": 575318,
       "marketId": "0x9b4b47cdf7e295341c6c6cdfd3efb9805c4a5b3d580dba0c0c39d3a4232b297b"
     },
     {
@@ -656,7 +800,7 @@
       "name": "Alphabet Class A • Robinhood Token",
       "loan": "USDG",
       "lltv": 0.625,
-      "supplyUsd": 261145,
+      "supplyUsd": 288951,
       "marketId": "0x7fa81b10e5d21b2e4c571f862442bc11aff2ed14f02335868d0ff933fd40d0ba"
     },
     {
@@ -665,8 +809,35 @@
       "name": "Apple • Robinhood Token",
       "loan": "USDG",
       "lltv": 0.625,
-      "supplyUsd": 198462,
+      "supplyUsd": 221483,
       "marketId": "0xdeb4782d012d5fd3b24962538c2f6559049d70bda4dabd2e4212dacb96c28d45"
+    },
+    {
+      "chainId": 4663,
+      "collateral": "NVDA",
+      "name": "NVIDIA • Robinhood Token",
+      "loan": "USDG",
+      "lltv": 0.625,
+      "supplyUsd": 50693,
+      "marketId": "0x66306c087add8907752320b309934abcc354d21626de8115c79df49d9c214edc"
+    },
+    {
+      "chainId": 4663,
+      "collateral": "GOOGL",
+      "name": "Alphabet Class A • Robinhood Token",
+      "loan": "USDG",
+      "lltv": 0.625,
+      "supplyUsd": 15186,
+      "marketId": "0xba01f6625137b692c5dd86afb8e654b4016d7b64e36dfca4124e84bef98bc4d2"
+    },
+    {
+      "chainId": 4663,
+      "collateral": "META",
+      "name": "Meta Platforms • Robinhood Token",
+      "loan": "USDG",
+      "lltv": 0.625,
+      "supplyUsd": 13151,
+      "marketId": "0x69400cfe81f2ae381b9a9f27076a4d637338379d999e9ffdfbde52f0876312ee"
     },
     {
       "chainId": 4663,
@@ -674,7 +845,7 @@
       "name": "SPDR S&P 500 ETF Trust • Robinhood Token",
       "loan": "USDG",
       "lltv": 0.625,
-      "supplyUsd": 11129,
+      "supplyUsd": 11130,
       "marketId": "0x50bc39b5722fb5634c436d74c6787f3c125b879e7b73cf9e9ecc01bbb57b8e55"
     },
     {
@@ -683,17 +854,8 @@
       "name": "Wrapped SP500 xStock",
       "loan": "AUSD",
       "lltv": 0.86,
-      "supplyUsd": 10287,
+      "supplyUsd": 9314,
       "marketId": "0xbf0432567b44ef5ce013ffcd7dd756c522252503f7986a406e780715b32c74fc"
-    },
-    {
-      "chainId": 4663,
-      "collateral": "NVDA",
-      "name": "NVIDIA • Robinhood Token",
-      "loan": "USDG",
-      "lltv": 0.625,
-      "supplyUsd": 6580,
-      "marketId": "0x66306c087add8907752320b309934abcc354d21626de8115c79df49d9c214edc"
     },
     {
       "chainId": 4663,
@@ -701,26 +863,35 @@
       "name": "Tesla • Robinhood Token",
       "loan": "USDG",
       "lltv": 0.625,
-      "supplyUsd": 6560,
+      "supplyUsd": 6561,
       "marketId": "0xb41b34c5989420ad080e79363a9cfe3e23bec7459fcd2d88029250da370288df"
     },
     {
       "chainId": 4663,
       "collateral": "SPY",
       "name": "SPDR S&P 500 ETF Trust • Robinhood Token",
-      "loan": "WETH",
-      "lltv": 0.385,
-      "supplyUsd": 4267,
-      "marketId": "0x4e92b336ecad6c842be20ae2ae27b28b3cf5ced6c5388a808167c03a8d75fdf8"
+      "loan": "USDG",
+      "lltv": 0.77,
+      "supplyUsd": 1738,
+      "marketId": "0xeb1739b2a69dd22a4285d366a06698a01018b37c24d2994fefe19cc72f313613"
     },
     {
-      "chainId": 1,
-      "collateral": "SPYx",
-      "name": "SP500 xStock",
-      "loan": "AUSD",
-      "lltv": 0.86,
-      "supplyUsd": 1352,
-      "marketId": "0x04b580ba9e6e886b67e47265cc8e314820123d5683563bb24097ad80513d6e4f"
+      "chainId": 4663,
+      "collateral": "NVDA",
+      "name": "NVIDIA • Robinhood Token",
+      "loan": "USDG",
+      "lltv": 0.625,
+      "supplyUsd": 1404,
+      "marketId": "0xf5ff7d546af5e72f3912d2aa723088fd0bf66fddc158714995637714d9db6e4c"
+    },
+    {
+      "chainId": 4663,
+      "collateral": "TSLA",
+      "name": "Tesla • Robinhood Token",
+      "loan": "USDG",
+      "lltv": 0.625,
+      "supplyUsd": 1309,
+      "marketId": "0x22e4598e5cc16cff0056e72d61c5f1f2f8bf5bbffc22da5277ab196939c8a59e"
     },
     {
       "chainId": 4663,
@@ -728,8 +899,17 @@
       "name": "NVIDIA • Robinhood Token",
       "loan": "WETH",
       "lltv": 0.385,
-      "supplyUsd": 1168,
+      "supplyUsd": 1119,
       "marketId": "0x141c2b1d2bbecf7f8a76563307d7e5bf586457e873c3d97c4bb1502e57b77952"
+    },
+    {
+      "chainId": 1,
+      "collateral": "SPYx",
+      "name": "SP500 xStock",
+      "loan": "AUSD",
+      "lltv": 0.86,
+      "supplyUsd": 1024,
+      "marketId": "0x04b580ba9e6e886b67e47265cc8e314820123d5683563bb24097ad80513d6e4f"
     }
   ]
 }

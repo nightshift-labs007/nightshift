@@ -29,7 +29,7 @@ export type Mark = { price: number; frozen: number; confidence: number; lltv: nu
 export type Marks = Record<string, Mark>;
 
 const KEY = "nightshift.paper.v1";
-export const STARTING_WALLET: Record<string, number> = { SPY: 10, QQQ: 10, GLD: 20, IBIT: 200 };
+export const STARTING_WALLET: Record<string, number> = { SPY: 10, QQQ: 10, GLD: 20, SLV: 100, IBIT: 200 };
 export { SLIPPAGE } from "./guardian-rule";
 export const MIN_OPEN_HF = 1.05;
 

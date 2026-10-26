@@ -11,7 +11,7 @@ import { unstable_cache } from "next/cache";
 export type NewsScore = { token: string; score: number; reason: string; headlines: string[] };
 export type NewsResult = { at: string; model: string; scores: NewsScore[] };
 
-const TOKENS = ["SPY", "QQQ", "GLD", "IBIT"];
+const TOKENS = ["SPY", "QQQ", "GLD", "SLV", "IBIT"];
 const MODEL = process.env.NEWS_MODEL || "claude-opus-5-5";
 
 const unescape = (s: string) => s.replace(/<!\[CDATA\[|\]\]>/g, "").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').trim();

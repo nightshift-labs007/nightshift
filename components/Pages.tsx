@@ -34,7 +34,7 @@ export function AppPage() {
             ? isMainnet
               ? `Live on ${NETWORK} with demo assets that have no value: connect a wallet (it switches to ${NETWORK} for you), get demo tokens, deposit collateral and borrow ${sym("USDG")}. You only pay a few cents of ETH gas. Health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation. Unaudited demo.`
               : `Connect a wallet (it switches to ${NETWORK} for you), get free test funds, deposit collateral and borrow ${sym("USDG")}. The health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation.`
-            : "The on-chain vault goes live on Base shortly. Until then, try the full flow without a wallet: your paper account starts with 10 SPY, 10 QQQ, 20 GLD and 200 IBIT."
+            : "The on-chain vault goes live on Base shortly. Until then, try the full flow without a wallet: your paper account starts with 10 SPY, 10 QQQ, 20 GLD, 100 SLV and 200 IBIT."
         }
       />
       <section className="block" id="vault">

@@ -2,7 +2,7 @@
  * Nyx, Nightshift's voice assistant: turns what someone said into an intent. Plain rules, no AI model: fast, free,
  * and it never makes things up. Kept free of imports so it can be unit-tested on its own (scripts/test-nyx.mjs).
  */
-export type Token = "SPY" | "QQQ" | "GLD" | "IBIT";
+export type Token = "SPY" | "QQQ" | "GLD" | "SLV" | "IBIT";
 export type Page = "home" | "app" | "guardian" | "oracle" | "proof" | "transparency" | "docs" | "leaderboard" | "profile" | "stocks" | "earn";
 export type Topic =
   | "nightshift" | "health" | "guardian" | "oracle" | "confidence" | "cloak" | "ledger" | "liquidation" | "proofs"
@@ -40,7 +40,7 @@ export const PAGE_NAME: Record<Page, string> = {
   home: "the home page", app: "the App", guardian: "the Guardian", oracle: "the Oracle", proof: "the Proof page",
   transparency: "Transparency", docs: "the Docs", leaderboard: "the leaderboard", profile: "your profile", stocks: "the stock board", earn: "Earn",
 };
-export const TOKEN_NAME: Record<Token, string> = { SPY: "the S&P 500 ETF", QQQ: "the Nasdaq 100 ETF", GLD: "the gold ETF", IBIT: "the bitcoin ETF" };
+export const TOKEN_NAME: Record<Token, string> = { SPY: "the S&P 500 ETF", QQQ: "the Nasdaq 100 ETF", GLD: "the gold ETF", SLV: "the silver ETF", IBIT: "the bitcoin ETF" };
 
 /** Spoken explanations: short, accurate, and nothing the site can't back up. */
 export const EXPLAIN: Record<Topic, string> = {
@@ -80,6 +80,7 @@ const TOKENS: [RegExp, Token][] = [
   [/\b(spy|s ?and ?p|s&p|sp ?500|s p 500|standard and poors?)\b/, "SPY"],
   [/\b(qqq|nasdaq|triple q|cubes)\b/, "QQQ"],
   [/\b(gld|gold)\b/, "GLD"],
+  [/\b(slv|silver)\b/, "SLV"],
   [/\b(ibit|bitcoin|btc|i ?bit|eye bit)\b/, "IBIT"],
 ];
 export const findToken = (t: string): Token | undefined => TOKENS.find(([re]) => re.test(t))?.[1];

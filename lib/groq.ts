@@ -18,7 +18,7 @@ export async function transcribe(audio: Blob, filename: string): Promise<string>
   form.append("language", "en");
   form.append("response_format", "json");
   // a hint with the names Whisper would otherwise mishear
-  form.append("prompt", "Nyx, Nightshift, SPY, QQQ, GLD, IBIT, Guardian, Morpho, Algorand, Sentora, health factor.");
+  form.append("prompt", "Nyx, Nightshift, SPY, QQQ, GLD, SLV, IBIT, Guardian, Morpho, Algorand, Sentora, health factor.");
   const res = await fetch(`${BASE}/audio/transcriptions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key()}` },

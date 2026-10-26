@@ -99,7 +99,7 @@ export async function feature({ n, stamp }: MixCtx): Promise<string[] | null> {
       "Try Nightshift on Base with free demo tokens:",
       "",
       "1. Connect a wallet",
-      "2. Get demo dSPY, dQQQ, dGLD, dIBIT",
+      "2. Get demo dSPY, dQQQ, dGLD, dSLV, dIBIT",
       "3. Deposit and borrow dUSDG",
       "4. Turn on the Guardian",
       "",

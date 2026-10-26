@@ -16,7 +16,7 @@ export const maxDuration = 60;
 const GAS_DRIP = parseEther("0.0004");
 const GAS_FLOOR = parseEther("0.00015");
 const FAUCET_RESERVE = parseEther("0.001");
-const TOKEN_DRIP: Record<string, string> = { SPY: "10", QQQ: "10", GLD: "20", IBIT: "200" };
+const TOKEN_DRIP: Record<string, string> = { SPY: "10", QQQ: "10", GLD: "20", SLV: "100", IBIT: "200" };
 const WINDOW_SEC = 24 * 3600;
 const SIG_MAX_AGE_MS = 5 * 60 * 1000;
 

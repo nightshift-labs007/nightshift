@@ -56,7 +56,7 @@ const store = {
 const usd = (x: number) => `$${x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const pct = (x: number) => `${Math.abs(x).toFixed(2)} percent`;
 const move = (x: number) => (Math.abs(x) < 0.005 ? "flat" : `${x > 0 ? "up" : "down"} ${pct(x)}`);
-const spokenToken = (t: string) => ({ SPY: "SPY", QQQ: "Q Q Q", GLD: "gold", IBIT: "the bitcoin ETF" })[t] ?? t;
+const spokenToken = (t: string) => ({ SPY: "SPY", QQQ: "Q Q Q", GLD: "gold", SLV: "silver", IBIT: "the bitcoin ETF" })[t] ?? t;
 const short = (a: string) => `${a.slice(2, 6)}`;
 
 /** Prefer a calm English voice; Nyx is the goddess of night, so a female voice if one is available. */

@@ -52,7 +52,7 @@ function anchorShouldTrade(symbol: string, nowMs: number) {
 const STALE_ANCHOR_HOURS = 2; // no anchor bar for this long while it should be trading → stale
 const STALE_GLOBAL_HOURS = 96; // a foreign market with no bar for 4 days (longer than any weekend) is dropped
 // Event mode: a sharp move while the market is closed (fair value vs last close). Thresholds per asset volatility.
-const EVENT_MOVE_PCT: Record<string, number> = { SPY: 3, QQQ: 3.5, GLD: 3, IBIT: 7 };
+const EVENT_MOVE_PCT: Record<string, number> = { SPY: 3, QQQ: 3.5, GLD: 3, SLV: 5, IBIT: 7 };
 const EVENT_CAP = 70; // confidence cap at the threshold…
 const SEVERE_EVENT_CAP = 55; // …and at twice the threshold
 const STALE_CAP = 60;

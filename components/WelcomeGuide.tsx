@@ -45,7 +45,7 @@ const HOME: Step[] = [
       <>
         <p>Open the <b>App</b> and pick one:</p>
         <ul className="guide-list">
-          <li><b>Try without wallet</b>: a paper account in your browser with 10 SPY, 10 QQQ, 20 GLD and 200 IBIT. Nothing to install.</li>
+          <li><b>Try without wallet</b>: a paper account in your browser with 10 SPY, 10 QQQ, 20 GLD, 100 SLV and 200 IBIT. Nothing to install.</li>
           {isDeployed && (
             <li>
               <b>With wallet ({NETWORK})</b>: connect, click <b>Get demo tokens</b>, deposit them as collateral and borrow {sym("USDG")}.

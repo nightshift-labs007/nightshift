@@ -356,7 +356,7 @@ export function DocsPage() {
           <Q id="beta" q="How are betas estimated (Blume adjustment, recalculation, low R²)?">
             <Now>
               <p>
-                <b>The four ETF tokens</b> use a <b>measured overnight beta</b>: ordinary least squares of the ETF&apos;s open-versus-previous-close
+                <b>The ETF tokens</b> use a <b>measured overnight beta</b>: ordinary least squares of the ETF&apos;s open-versus-previous-close
                 move on the anchor&apos;s move over the same night, across the last ~20 nights, then the Blume adjustment{" "}
                 <code>β = 0.67·β_raw + 0.33</code>, clamped to 0.5–1.5. With fewer than 10 nights, or R² below 0.3, it falls back to 1.0 and
                 says so. Betas are recalculated on every Oracle refresh. The graded track record measures each day&apos;s beta from earlier
