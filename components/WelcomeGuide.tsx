@@ -88,6 +88,7 @@ const APP: Step[] = [
     title: "Borrow in four moves",
     body: (
       <ol className="guide-list numbered">
+        <li><b>Or stack instead</b>: the <i>Stack</i> tab buys gold and silver for you on a schedule, only at a fair price.</li>
         <li><b>Choose a mode</b> at the top: <i>Try without wallet</i> (paper, instant) or <i>With wallet</i>{isDeployed ? ` (${NETWORK} demo)` : ""}.</li>
         <li><b>Get collateral</b>: the paper account starts funded{isDeployed ? <>; with a wallet, click <b>Get demo tokens</b></> : ""}.</li>
         <li><b>Deposit and borrow</b>: pick a token and an amount, and keep the health factor comfortably above 1.</li>

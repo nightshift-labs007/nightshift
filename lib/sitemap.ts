@@ -2,7 +2,7 @@ import { DEPLOYMENT, addrUrl } from "@/lib/chain";
 
 /** What each page of the site is for, shown in the Explore panel. */
 export const PAGES = [
-  { href: "/app", label: "App", icon: "M4 9h16v10H4zM8 9V6a4 4 0 0 1 8 0v3", what: "Borrow against ETF tokens, with a wallet or a paper account, and switch on Guardian protection." },
+  { href: "/app", label: "App", icon: "M4 9h16v10H4zM8 9V6a4 4 0 0 1 8 0v3", what: "Borrow against ETF tokens and switch on Guardian protection, or set up Stack to buy gold and silver automatically at a fair price." },
   { href: "/oracle", label: "Oracle", icon: "M4 18 9 12l4 3 7-9M15 6h5v5", what: "Live overnight fair value and confidence for SPY, QQQ, GLD and IBIT, with charts, the API and the morning shift report." },
   { href: "/proof", label: "Proof", icon: "M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6zM12 9.5a2.5 2.5 0 1 0 0 5", what: "Make a zero-knowledge proof that a loan is solvent without revealing it, and verify it on-chain." },
   { href: "/transparency", label: "Transparency", icon: "M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6zM9 12l2 2 4-4", what: "The 24 machine-checked proofs, the Algorand prediction ledger, and every contract address." },

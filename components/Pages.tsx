@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { OracleSnapshot } from "@/lib/oracle";
 import { DEPLOYMENT, NETWORK, addrUrl, isDeployed, isMainnet, sym } from "@/lib/chain";
 import { ApiPanel } from "./ApiPanel";
@@ -11,6 +11,7 @@ import { OnchainVault } from "./OnchainVault";
 import { OracleBoard } from "./OracleBoard";
 import { OracleChart } from "./OracleChart";
 import { ShiftReport } from "./ShiftReport";
+import { StackTab } from "./StackTab";
 import { PageHero, PageShell, SectionHead } from "./Site";
 import { useApi } from "./useApi";
 import { VaultApp } from "./VaultApp";
@@ -24,19 +25,49 @@ const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
 export function AppPage() {
   const snap = useSnapshot();
   const [mode, setMode] = useState<"testnet" | "paper">(isDeployed ? "testnet" : "paper");
+  // Borrow and Stack are two tabs of the same page; /app#stack opens Stack
+  const [tab, setTab] = useState<"borrow" | "stack">("borrow");
+  useEffect(() => {
+    const sync = () => setTab(window.location.hash === "#stack" ? "stack" : "borrow");
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  const pick = (t: "borrow" | "stack") => {
+    setTab(t);
+    window.history.replaceState(null, "", t === "stack" ? "#stack" : window.location.pathname);
+  };
   return (
     <PageShell>
       <PageHero
-        overline="APP · BORROW"
-        title="Borrow against ETF tokens, priced overnight."
+        overline={tab === "stack" ? "APP · STACK" : "APP · BORROW"}
+        title={tab === "stack" ? "Stack gold and silver, automatically." : "Borrow against ETF tokens, priced overnight."}
         lead={
-          isDeployed
+          tab === "stack"
+            ? "Pick a metal, an amount and how often. Stack buys on schedule, but only at a fair price, and your tokens go straight to your wallet."
+            : isDeployed
             ? isMainnet
               ? `Live on ${NETWORK} with demo assets that have no value: connect a wallet (it switches to ${NETWORK} for you), get demo tokens, deposit collateral and borrow ${sym("USDG")}. You only pay a few cents of ETH gas. Health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation. Unaudited demo.`
               : `Connect a wallet (it switches to ${NETWORK} for you), get free test funds, deposit collateral and borrow ${sym("USDG")}. The health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation.`
             : "The on-chain vault goes live on Base shortly. Until then, try the full flow without a wallet: your paper account starts with 10 SPY, 10 QQQ, 20 GLD, 100 SLV and 200 IBIT."
         }
       />
+      <section className="block app-tabs-row">
+        <div className="wrap">
+          <div className="seg app-tabs" role="tablist" aria-label="App sections">
+            <button role="tab" aria-selected={tab === "borrow"} className={tab === "borrow" ? "on" : ""} onClick={() => pick("borrow")}>Borrow</button>
+            <button role="tab" aria-selected={tab === "stack"} className={tab === "stack" ? "on" : ""} onClick={() => pick("stack")}>Stack</button>
+          </div>
+        </div>
+      </section>
+      {tab === "stack" ? (
+        <section className="block" id="stack">
+          <div className="wrap">
+            <StackTab />
+          </div>
+        </section>
+      ) : (
+      <>
       <section className="block" id="vault">
         <div className="wrap">
           <div className="seg vault-mode" role="tablist" aria-label="Vault mode">
@@ -65,6 +96,8 @@ export function AppPage() {
           </p>
         </div>
       </section>
+      </>
+      )}
     </PageShell>
   );
 }

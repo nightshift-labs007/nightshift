@@ -30,7 +30,9 @@ Based on [metals.md](../metals.md). Goal: add silver, then a recurring-buy produ
 - Tests: `node scripts/test-stack.mjs` against a local chain (37 checks: S1 price bound, S2 spend bound, S4 stale or low-confidence Oracle, S5 cancel, S6 allowlist and delivery, windows, skipping, access control). All pass.
 - Smoke test on mainnet (`scripts/stack-smoke.mjs`): a team wallet created plan #0 (20 dUSDG of dGLD, hourly); a different wallet executed it; 20 dUSDG bought 0.0544 dGLD at exactly fair value. The plan is still active.
 - Boundary note: the price bound is strict and rounds against the buyer, so a fill at exactly +0.50% can miss by one wei; +0.49% fills.
-- Left for later steps: the keeper job, Lean proofs S1 to S6 and fuzzing, the Stack tab, Algorand receipts, and the real Uniswap route on Robinhood Chain.
+- **Keeper job (done):** the 10-minute keeper now also runs `runStack()`: it simulates each due plan, sends only the ones the guard will accept, and rolls plans whose window closed with `skip()`. Tested on mainnet: a plan created with a 90-second delay was ignored before its window and executed by the keeper after it.
+- **Stack tab (done):** App page, second tab beside Borrow (`/app#stack`). Three choices (gold, silver or both; amount; weekly by default), a one-line summary, one button. A "More options" row holds how many buys to stop after. Connected wallets see their plans with next buy, buys so far, amount spent and Pause, Resume and Cancel (cancelling the last plan also removes Stack's permission to spend). A "Get demo dUSDG" button covers new users with no balance. Stack buys, plans and skips appear on the Transactions page.
+- Still open: Lean proofs S1 to S6 and fuzzing, Algorand receipts for fills, the "premium avoided" figure (needs recorded DEX prices), and the real Uniswap route on Robinhood Chain.
 
 **Phase 1 on-chain (done, 27 Oct 2026):** dSLV is live on Base mainnet (demo token, no value).
 - Token `0xafc5b9d90655353224d6f2f6f81a3ea37153e3fa`, Morpho oracle adapter `0x8c09069f08ac5a57aa308ccd6c65d60dc0b2627d`, price feed `0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4`.
