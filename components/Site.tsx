@@ -11,19 +11,6 @@ import { Toaster } from "./Toast";
 import { WelcomeGuide } from "./WelcomeGuide";
 import { WalletButton } from "./WalletButton";
 
-/** Pages, by user goal. Stocks and Earn live on the landing page. */
-export const NAV = [
-  { href: "/app", label: "App" },
-  { href: "/oracle", label: "Oracle" },
-  { href: "/proof", label: "Proof" },
-  { href: "/transparency", label: "Transparency" },
-  { href: "/transactions", label: "Transactions" },
-  { href: "/docs", label: "Docs" },
-  { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/#stocks", label: "Stocks" },
-  { href: "/#earn", label: "Earn" },
-];
-
 export function SiteNav() {
   const path = usePathname();
   const [menu, setMenu] = useState(false); // the Explore panel
@@ -37,24 +24,18 @@ export function SiteNav() {
   return (
     <nav className={`nav ${scrolled ? "scrolled" : ""}`} aria-label="Main">
       <div className="wrap nav-inner">
-        <button className="xp-btn" onClick={() => setMenu(true)} aria-expanded={menu} aria-haspopup="dialog" aria-label="Explore pages and integrations" title="Explore pages and integrations">
-          <span />
-          <span />
-          <span />
+        {/* every page lives in the left-hand menu (ExplorePanel), so the top bar stays clean */}
+        <button className="xp-btn" onClick={() => setMenu(true)} aria-expanded={menu} aria-haspopup="dialog" aria-label="Menu: all pages and integrations" title="All pages and integrations">
+          <span className="xp-icon" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="xp-btn-label">Menu</span>
         </button>
         <Link className="brand" href="/">
           <BrandMark /> Nightshift
         </Link>
-        <div className="nav-links" id="nav-links">
-          {NAV.map((n) => {
-            const active = !n.href.includes("#") && path === n.href;
-            return (
-              <Link key={n.href} href={n.href} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
-                {n.label}
-              </Link>
-            );
-          })}
-        </div>
         <WalletButton />
         {path !== "/app" && (
           <Link className="btn primary small nav-cta" href="/app">

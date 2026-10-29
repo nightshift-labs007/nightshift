@@ -127,11 +127,9 @@ input[type="range"] { accent-color: var(--mint); }
 .nav-inner { height: 68px; max-width: 1240px; padding: 0 24px; gap: 36px; }
 .brand { font: 400 0.95rem var(--display); letter-spacing: -0.02em; text-transform: none; }
 .brand-mark { width: 26px; height: 26px; color: var(--mint); }
-.nav-links { gap: 4px; }
-.nav-links a { font: 400 0.925rem var(--sans); color: var(--text-3); background: none; }
-.nav-links a:hover { color: var(--text); background: none; }
-.nav-links a.active { color: var(--text); background: none; }
-.nav-links a.active::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 2px; height: 1px; background: var(--mint); }
+/* the top bar holds only the menu, the brand and the wallet; every page is in the left-hand menu */
+.nav-inner { gap: 20px; }
+.nav-inner > .brand { margin-right: auto; }
 
 /* ---------- hero (engine scene in an iframe) ---------- */
 .engine-hero { position: relative; }
@@ -164,13 +162,9 @@ input[type="range"] { accent-color: var(--mint); }
 .empty { background: var(--bg-alt); border-color: var(--border-strong); }
 .pill-status.ok { background: var(--mint-soft); color: var(--mint); }
 
-@media (max-width: 900px) {
-  .nav-links { top: 68px; border-radius: 0; border: 0; border-bottom: 1px solid var(--border); background: var(--bg-alt); }
-}
 @media (max-width: 760px) {
   .engine-hero iframe { height: 1160px; min-height: 0; }
 }
-.nav-links a { position: relative; }
 
 /* ---------- top stocks ---------- */
 .st-logo { display: inline-grid; place-items: center; flex: none; border-radius: 50%; color: #f2f6f4; background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--brand) 38%, #1a2020), #0d1111 75%); border: 1px solid var(--border-strong); }
@@ -356,7 +350,6 @@ input[type="range"] { accent-color: var(--mint); }
 .contracts td:first-child { color: var(--text-3); width: 180px; }
 .contracts a { color: var(--mint); text-decoration: none; word-break: break-all; }
 .contracts-pending p { margin: 8px 0 0; }
-.nav-links a { white-space: nowrap; }
 
 /* ---------- welcome guide ---------- */
 .guide-fab { position: fixed; z-index: 70; left: 20px; bottom: 20px; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 6px; border-radius: 999px; border: 1px solid var(--border-strong); background: rgba(16, 20, 20, .88); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--text); font: 500 13px var(--mono); cursor: pointer; box-shadow: var(--shadow-lg); transition: border-color .15s, transform .15s var(--ease); }
@@ -421,10 +414,11 @@ input[type="range"] { accent-color: var(--mint); }
 }
 
 /* ---------- explore panel ---------- */
-.xp-btn { flex: none; display: inline-flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; width: 40px; height: 40px; margin-right: -18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; cursor: pointer; transition: border-color .15s; }
-.xp-btn span { display: block; width: 16px; height: 1.5px; border-radius: 1px; background: var(--text-2); }
-.xp-btn span:nth-child(2) { width: 11px; transform: translateX(-2.5px); }
-.xp-btn:hover { border-color: var(--mint); }
+.xp-btn { flex: none; display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px 0 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--text-2); font: 500 14px var(--sans); cursor: pointer; transition: border-color .15s, color .15s; }
+.xp-icon { display: inline-flex; flex-direction: column; gap: 4px; }
+.xp-icon i { display: block; width: 16px; height: 1.5px; border-radius: 1px; background: currentColor; }
+.xp-icon i:nth-child(2) { width: 11px; }
+.xp-btn:hover, .xp-btn[aria-expanded="true"] { border-color: var(--mint); color: var(--text); }
 .xp { position: fixed; inset: 0; z-index: 110; pointer-events: none; }
 .xp.open { pointer-events: auto; }
 .xp-backdrop { position: absolute; inset: 0; background: rgba(3, 5, 5, .7); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); opacity: 0; transition: opacity .25s; }
@@ -453,9 +447,7 @@ input[type="range"] { accent-color: var(--mint); }
 .xp-int-links a:hover { text-decoration: underline; }
 .xp-foot { margin: 16px 0 0; font-size: 12px; color: var(--text-4); line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) { .xp-panel, .xp-backdrop { transition: none; } }
-/* with the Leaderboard link the top nav needs more room: below this width the Explore panel is the menu */
-@media (max-width: 1180px) { .nav-links { display: none !important; } .nav-inner { gap: 24px; } .nav-inner > .brand { margin-right: auto; } }
-@media (max-width: 560px) { .xp-btn { margin-right: -12px; } }
+@media (max-width: 560px) { .nav-inner { gap: 12px; } .xp-btn { padding: 0 11px; } .xp-btn-label { display: none; } }
 
 /* ---------- leaderboard ---------- */
 .lb-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
