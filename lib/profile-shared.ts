@@ -9,10 +9,12 @@ export type Profile = {
   showPublic: boolean; // show name and X on the leaderboard
   updatedAt?: string;
 };
-export type PublicProfile = Pick<Profile, "name" | "x" | "bio">;
+export type PublicProfile = Pick<Profile, "name" | "x" | "bio"> & { avatarAt?: number };
 
 export const EMPTY_PROFILE: Profile = { name: "", email: "", x: "", telegram: "", website: "", bio: "", showPublic: true };
 export const LIMITS = { name: 40, email: 254, bio: 160, website: 120 };
+/** Profile photos: the browser crops and resizes to a square JPEG before upload, so this cap is generous. */
+export const AVATAR = { size: 256, maxBytes: 80_000 };
 
 /** The message a wallet signs to sign in to its profile (free, no transaction). */
 export const signInMessage = (address: string, issuedAt: string) =>

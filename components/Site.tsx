@@ -10,6 +10,24 @@ import { JoinPrompt } from "./Leaderboard";
 import { Toaster } from "./Toast";
 import { WelcomeGuide } from "./WelcomeGuide";
 import { WalletButton } from "./WalletButton";
+import { ProfileAvatar } from "./ProfileAvatar";
+import { useWallet } from "@/lib/wallet";
+
+/** Your profile, from every page: your photo (or badge) when a wallet is connected, a person icon otherwise. */
+function ProfileButton() {
+  const w = useWallet();
+  return (
+    <Link className={`nav-profile ${w.account ? "on" : ""}`} href="/profile" aria-label="Your profile" title="Your profile">
+      {w.account ? (
+        <ProfileAvatar address={w.account} size={36} />
+      ) : (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6" />
+        </svg>
+      )}
+    </Link>
+  );
+}
 
 export function SiteNav() {
   const path = usePathname();
@@ -42,6 +60,7 @@ export function SiteNav() {
             Launch app
           </Link>
         )}
+        <ProfileButton />
       </div>
       <ExplorePanel open={menu} setOpen={setMenu} />
     </nav>

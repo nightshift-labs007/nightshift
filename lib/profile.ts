@@ -12,6 +12,9 @@ import type { Profile, PublicProfile } from "./profile-shared";
 export const SESSION_COOKIE = "ns_session";
 export const SESSION_DAYS = 7;
 const key = (a: string) => `profile:${a.toLowerCase()}`;
+// the photo lives apart from the profile, so reading profiles (the leaderboard) never pulls image data
+const avatarKey = (a: string) => `avatar:${a.toLowerCase()}`;
+const avatarAtKey = (a: string) => `avatar-at:${a.toLowerCase()}`;
 
 export const profilesEnabled = () => kvEnabled() && env.cronSecret.length >= 16;
 
@@ -46,18 +49,45 @@ export async function saveProfile(address: string, p: Profile): Promise<Profile>
 
 export async function deleteProfile(address: string) {
   await kvDel(key(address));
+  await deleteAvatar(address);
+}
+
+/** Saves a profile photo (base64 JPEG). Returns its version, which pages use to refresh their cached copy. */
+export async function saveAvatar(address: string, base64: string): Promise<number> {
+  const at = Date.now();
+  await kvSet(avatarKey(address), base64);
+  await kvSet(avatarAtKey(address), String(at));
+  return at;
+}
+
+export async function getAvatar(address: string): Promise<string | null> {
+  return kvGet(avatarKey(address));
+}
+
+export async function getAvatarAt(address: string): Promise<number | null> {
+  const v = await kvGet(avatarAtKey(address));
+  return v ? Number(v) : null;
+}
+
+export async function deleteAvatar(address: string) {
+  await kvDel(avatarKey(address));
+  await kvDel(avatarAtKey(address));
 }
 
 /** Public fields for the given addresses, only where the owner chose to show them. Never includes email. */
 export async function publicProfiles(addresses: string[]): Promise<Map<string, PublicProfile>> {
   const out = new Map<string, PublicProfile>();
   if (!profilesEnabled() || !addresses.length) return out;
-  const raws = await kvMGet(addresses.map(key)).catch(() => [] as (string | null)[]);
+  const [raws, ats] = await Promise.all([
+    kvMGet(addresses.map(key)).catch(() => [] as (string | null)[]),
+    kvMGet(addresses.map(avatarAtKey)).catch(() => [] as (string | null)[]),
+  ]);
   raws.forEach((raw, i) => {
     if (!raw) return;
     try {
       const p = JSON.parse(raw) as Profile;
-      if (p.showPublic && (p.name || p.x)) out.set(addresses[i].toLowerCase(), { name: p.name, x: p.x, bio: p.bio });
+      const avatarAt = ats[i] ? Number(ats[i]) : undefined;
+      if (p.showPublic && (p.name || p.x || avatarAt)) out.set(addresses[i].toLowerCase(), { name: p.name, x: p.x, bio: p.bio, avatarAt });
     } catch {
       // skip a malformed record
     }

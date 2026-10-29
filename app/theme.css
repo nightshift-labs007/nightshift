@@ -674,3 +674,19 @@ section.block.app-tabs-row + section.block { padding-top: 28px; }
 .xp-settings button { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: 500 13px var(--sans); text-align: left; cursor: pointer; }
 .xp-settings button:hover, .xp-settings button:focus-visible { border-color: var(--mint); color: var(--text); }
 .xp-settings button span { display: grid; place-items: center; width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--mint-soft); color: var(--mint); font-size: 12px; }
+
+/* profile button in the top bar, and profile photos */
+.nav-profile { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); color: var(--text-2); transition: border-color .15s; }
+.nav-profile:hover, .nav-profile:focus-visible { border-color: var(--mint); }
+.nav-profile.on { border-color: transparent; }
+.nav-profile svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.nav-profile .pf-avatar { box-shadow: 0 0 0 1px var(--border-strong); }
+.nav-profile:hover .pf-avatar, .nav-profile:focus-visible .pf-avatar { box-shadow: 0 0 0 2px var(--mint); }
+.pf-photo { object-fit: cover; background: var(--surface); }
+.pf-photo-row { display: flex; align-items: center; gap: 16px; margin: 4px 0 18px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.pf-photo-row p { margin: 0 0 6px; max-width: 460px; }
+.pf-photo-title { font-weight: 600; }
+.pf-photo-actions { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+.pf-photo-actions label { cursor: pointer; }
+.pf-photo-actions label.disabled { opacity: .6; pointer-events: none; }
+.lb-photo { display: inline-grid !important; vertical-align: middle; margin-right: 8px; float: left; }

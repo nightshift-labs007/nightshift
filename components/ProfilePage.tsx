@@ -3,28 +3,38 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { addrUrl } from "@/lib/chain";
-import { EMPTY_PROFILE, LIMITS, signInMessage, validateProfile, type Profile } from "@/lib/profile-shared";
+import { AVATAR, EMPTY_PROFILE, LIMITS, signInMessage, validateProfile, type Profile } from "@/lib/profile-shared";
 import { useWallet } from "@/lib/wallet";
 import { join, useBoard } from "./Leaderboard";
 import { PageHero, PageShell } from "./Site";
 import { toast } from "./Toast";
 import { usd } from "./useApi";
+import { ProfileAvatar, avatarChanged } from "./ProfileAvatar";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const hex = (s: string) => `0x${Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, "0")).join("")}` as `0x${string}`;
 const cancelled = (e: unknown) => /reject|denied|cancel/i.test(String((e as Error)?.message ?? e));
 
-type Me = { enabled: boolean; signedIn?: boolean; address?: string; profile?: Profile; exists?: boolean; error?: string };
+type Me = { enabled: boolean; signedIn?: boolean; address?: string; profile?: Profile; exists?: boolean; avatarAt?: number | null; error?: string };
 
-/** A small gradient badge drawn from the address, so every wallet has a recognisable avatar. */
-function Avatar({ address, name }: { address: string; name?: string }) {
-  const h1 = parseInt(address.slice(2, 8), 16) % 360;
-  const h2 = (h1 + 40 + (parseInt(address.slice(8, 12), 16) % 140)) % 360;
-  return (
-    <span className="pf-avatar" style={{ background: `linear-gradient(135deg, hsl(${h1} 55% 62%), hsl(${h2} 50% 38%))` }} aria-hidden="true">
-      {(name || "").trim().slice(0, 1).toUpperCase()}
-    </span>
-  );
+/** Crops a picture to a centred square and shrinks it to a small JPEG, in the browser, before it is uploaded. */
+async function toSquareJpeg(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Please choose a picture file.");
+  if (file.size > 15 * 1024 * 1024) throw new Error("That picture is over 15 MB. Please choose a smaller one.");
+  const bmp = await createImageBitmap(file).catch(() => {
+    throw new Error("That picture couldn't be read. Try a JPEG or PNG.");
+  });
+  const side = Math.min(bmp.width, bmp.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = AVATAR.size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, AVATAR.size, AVATAR.size);
+  bmp.close();
+  for (const q of [0.86, 0.72, 0.58]) {
+    const url = canvas.toDataURL("image/jpeg", q);
+    if ((url.length * 3) / 4 < AVATAR.maxBytes) return url;
+  }
+  throw new Error("That picture is too detailed to shrink. Try another one.");
 }
 
 function Points({ account }: { account: string }) {
@@ -101,13 +111,14 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
   const w = useWallet();
   const [me, setMe] = useState<Me | null>(null);
   const [form, setForm] = useState<Profile>(EMPTY_PROFILE);
-  const [busy, setBusy] = useState<"" | "signin" | "save" | "delete">("");
+  const [busy, setBusy] = useState<"" | "signin" | "save" | "delete" | "photo">("");
   const [saved, setSaved] = useState<Profile | null>(null);
 
   const load = useCallback(async () => {
     const j = (await fetch("/api/profile", { cache: "no-store" }).then((r) => r.json()).catch(() => ({ enabled: false, error: "unreachable" }))) as Me;
     setMe(j);
     if (j.profile) { setForm(j.profile); setSaved(j.profile); onName(j.profile.name); }
+    if (j.signedIn && j.address) avatarChanged(j.address, j.avatarAt ?? null);
   }, [onName]);
   useEffect(() => { load(); }, [load, account]);
 
@@ -154,7 +165,7 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
   };
 
   const remove = async () => {
-    if (!window.confirm("Delete your profile? Your name, email and links are removed. Points stay, because they come from public chains.")) return;
+    if (!window.confirm("Delete your profile? Your name, photo, email and links are removed. Points stay, because they come from public chains.")) return;
     setBusy("delete");
     try {
       const res = await fetch("/api/profile", { method: "DELETE" });
@@ -162,7 +173,41 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
       setForm(EMPTY_PROFILE);
       setSaved(EMPTY_PROFILE);
       onName("");
+      avatarChanged(account, null);
       toast("Profile deleted.", "ok");
+    } catch (e) {
+      toast((e as Error).message, "warn");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const uploadPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy("photo");
+    try {
+      const image = await toSquareJpeg(file);
+      const res = await fetch("/api/profile/avatar", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image }) });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? "Couldn't upload the photo.");
+      avatarChanged(account, j.avatarAt);
+      setMe((m) => (m ? { ...m, avatarAt: j.avatarAt } : m));
+      toast("Photo updated.", "ok");
+    } catch (e) {
+      toast((e as Error).message, "warn");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const removePhoto = async () => {
+    setBusy("photo");
+    try {
+      const res = await fetch("/api/profile/avatar", { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Couldn't remove the photo.");
+      avatarChanged(account, null);
+      setMe((m) => (m ? { ...m, avatarAt: null } : m));
+      toast("Photo removed.", "ok");
     } catch (e) {
       toast((e as Error).message, "warn");
     } finally {
@@ -201,6 +246,20 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
         <p className="pf-label">Profile</p>
         <button type="button" className="pf-link" onClick={signOut}>Sign out</button>
       </div>
+      <div className="pf-photo-row">
+        <ProfileAvatar address={account} name={form.name} size={72} version={me.avatarAt ?? null} />
+        <div>
+          <p className="pf-photo-title">Profile photo</p>
+          <p className="small muted">Square photos look best. It&apos;s cropped and shrunk in your browser before upload, and shown on the leaderboard only if your profile is public.</p>
+          <div className="pf-photo-actions">
+            <label className={`btn secondary small ${busy === "photo" ? "disabled" : ""}`}>
+              {busy === "photo" ? "Uploading…" : me.avatarAt ? "Change photo" : "Upload photo"}
+              <input type="file" accept="image/*" hidden disabled={busy === "photo"} onChange={(e) => { uploadPhoto(e.target.files?.[0]); e.target.value = ""; }} />
+            </label>
+            {me.avatarAt ? <button type="button" className="pf-link" onClick={removePhoto} disabled={busy === "photo"}>Remove photo</button> : null}
+          </div>
+        </div>
+      </div>
       <div className="pf-grid">
         <Field label="Display name" hint="Shown on the leaderboard if you allow it below.">
           <input value={form.name} maxLength={LIMITS.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Night Owl" autoComplete="nickname" />
@@ -223,7 +282,7 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
       </div>
       <label className="pf-check">
         <input type="checkbox" checked={form.showPublic} onChange={(e) => set("showPublic", e.target.checked)} />
-        <span>Show my name and X handle on the leaderboard. Email, Telegram and website always stay private.</span>
+        <span>Show my name, photo and X handle on the leaderboard. Email, Telegram and website always stay private.</span>
       </label>
       <div className="pf-actions">
         <button type="button" className="pf-link danger" onClick={remove} disabled={busy !== "" || !saved?.updatedAt}>Delete profile</button>
@@ -245,7 +304,7 @@ export function ProfilePage() {
       <PageHero
         overline="PROFILE"
         title="Your Nightshift profile."
-        lead="Add a name and your links, and see the points you've collected. Your wallet is your login: one free signature, no password, no transaction."
+        lead="Add a name, a photo and your links, and see the points you've collected. Your wallet is your login: one free signature, no password, no transaction."
       />
       <section className="block">
         <div className="wrap">
@@ -257,7 +316,7 @@ export function ProfilePage() {
           ) : (
             <>
               <div className="pf-header">
-                <Avatar address={w.account} name={name} />
+                <ProfileAvatar address={w.account} name={name} size={64} />
                 <div>
                   <h2>{name || short(w.account)}</h2>
                   <p className="mono small">

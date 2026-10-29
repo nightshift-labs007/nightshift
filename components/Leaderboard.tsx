@@ -10,6 +10,7 @@ import type { Leaderboard as Board, LeaderRow } from "@/lib/leaderboard";
 import { useWallet } from "@/lib/wallet";
 import { PageHero, PageShell, SectionHead } from "./Site";
 import { toast } from "./Toast";
+import { ProfileAvatar } from "./ProfileAvatar";
 import { ago } from "./Transactions";
 import { usd } from "./useApi";
 
@@ -175,6 +176,7 @@ export function LeaderboardPage() {
                     <tr key={r.address} className={me?.address === r.address ? "me" : ""}>
                       <td className="lb-rank">{r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : r.rank}</td>
                       <td className="mono">
+                        {r.avatarAt && <ProfileAvatar address={r.address} name={r.name} size={26} version={r.avatarAt} className="lb-photo" />}
                         {r.name && <span className="lb-name">{r.name}</span>}
                         <a href={r.service?.chain === "Algorand" ? `https://lora.algokit.io/testnet/account/${r.address}` : addrUrl(r.address)} target="_blank" rel="noopener noreferrer">{short(r.address)}</a>
                         {r.x && <a className="lb-x" href={`https://x.com/${r.x}`} target="_blank" rel="noopener noreferrer">@{r.x}</a>}

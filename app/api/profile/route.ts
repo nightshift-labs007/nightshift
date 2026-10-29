@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, deleteProfile, getProfile, profilesEnabled, readSession, saveProfile } from "@/lib/profile";
+import { SESSION_COOKIE, deleteProfile, getAvatarAt, getProfile, profilesEnabled, readSession, saveProfile } from "@/lib/profile";
 import { EMPTY_PROFILE, validateProfile, type Profile } from "@/lib/profile-shared";
 import { allow } from "@/lib/ratelimit";
 
@@ -13,8 +13,9 @@ export async function GET(req: NextRequest) {
   const me = readSession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!me) return NextResponse.json({ enabled: true, signedIn: false }, { headers: noStore });
   try {
-    const profile = (await getProfile(me)) ?? EMPTY_PROFILE;
-    return NextResponse.json({ enabled: true, signedIn: true, address: me, profile, exists: profile !== EMPTY_PROFILE }, { headers: noStore });
+    const [stored, avatarAt] = await Promise.all([getProfile(me), getAvatarAt(me)]);
+    const profile = stored ?? EMPTY_PROFILE;
+    return NextResponse.json({ enabled: true, signedIn: true, address: me, profile, exists: profile !== EMPTY_PROFILE, avatarAt }, { headers: noStore });
   } catch {
     return NextResponse.json({ error: "The profile store is unavailable right now." }, { status: 503, headers: noStore });
   }
