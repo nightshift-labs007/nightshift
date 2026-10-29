@@ -1221,6 +1221,14 @@
     true,
   );
 
+  // The "Start the engine" button is hidden (the hero has one call to action), so the engine starts by itself shortly
+  // after the page loads: the chain logos orbiting the core turn into the top stocks. The "Standby / Touch to start"
+  // card still toggles it by hand.
+  setTimeout(() => {
+    const awaken = document.getElementById("awaken");
+    if (awaken && !exp.classList.contains("awakened") && !exp.classList.contains("inspecting")) awaken.click();
+  }, 2200);
+
   // the soundtrack is always on and lives in the page: forward the first interaction here so it can start.
   // Opened on its own (not embedded), the scene starts its own soundtrack instead.
   const startAudio = () => {
