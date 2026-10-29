@@ -59,6 +59,16 @@ const cases = [
   ["is tesla a good investment", { kind: "invest" }],
   ["what is trending right now", { kind: "invest" }],
   ["buy 5 spy", { kind: "money" }],
+  // Stack: pre-fills the form, never buys by voice
+  ["Start a $20 weekly gold Stack", { kind: "stack", metal: "GLD", amount: 20, freq: "weekly" }],
+  ["buy 50 of silver every month", { kind: "stack", metal: "SLV", amount: 50, freq: "monthly" }],
+  ["set up a stack of gold and silver", { kind: "stack", metal: "BOTH" }],
+  ["start stacking", { kind: "stack" }],
+  ["what is stack", { kind: "explain", topic: "stack" }],
+  ["buy 5 gold", { kind: "money" }],
+  // loan, shown in the App
+  ["show me my loan health", { kind: "loan", show: true }],
+  ["how is my loan", { kind: "loan", show: false }],
   // misc
   ["what can you do", { kind: "help" }],
   ["who are you", { kind: "who" }],

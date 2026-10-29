@@ -5,6 +5,7 @@
 
 import { useSyncExternalStore } from "react";
 import { SLIPPAGE, sellAmount, sellingCanHelp } from "./guardian-rule";
+import { markStep } from "./onboarding";
 
 export type GuardianMode = "off" | "alert" | "auto";
 export type EventKind = "open" | "borrow" | "repay" | "deposit" | "withdraw" | "close" | "alert" | "protect" | "liquidated" | "info";
@@ -109,7 +110,7 @@ const log = (p: Position, kind: EventKind, msg: string) => {
 // ---------- actions (return an error message, or null on success) ----------
 
 export function openPosition(token: string, units: number, borrow: number, m: Mark): string | null {
-  return update((a) => {
+  const err = update((a) => {
     if (!(units > 0)) return "Enter how many units to deposit.";
     if ((a.wallet[token] ?? 0) < units - 1e-9) return `Your paper wallet only holds ${a.wallet[token] ?? 0} ${token}.`;
     if (borrow < 0) return "Borrow amount can't be negative.";
@@ -134,6 +135,8 @@ export function openPosition(token: string, units: number, borrow: number, m: Ma
     a.positions.unshift(p);
     return a;
   });
+  if (!err) markStep("paper"); // a getting-started step (lib/onboarding.ts)
+  return err;
 }
 
 export function adjust(id: string, action: "borrow" | "repay" | "deposit" | "withdraw", amount: number, m: Mark): string | null {

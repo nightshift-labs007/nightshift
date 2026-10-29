@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 const KEY = "ns.audio.t";
 const MUTE_KEY = "ns.audio.muted";
 const VOLUME = 0.58;
 
-const readMuted = () => {
+export const readMuted = () => {
   try {
     return localStorage.getItem(MUTE_KEY) === "1";
   } catch {
@@ -17,22 +17,18 @@ const readMuted = () => {
 /**
  * The Nightshift soundtrack. Browsers only allow sound after the visitor interacts with the page, so it starts
  * immediately where permitted, otherwise on the first click, tap or key press anywhere (including inside the engine
- * scene, which forwards its first interaction here). Playback position carries over between pages. The Sound button
- * turns it off, and the choice is remembered on this browser.
+ * scene, which forwards its first interaction here). Playback position carries over between pages. The Sound switch
+ * in the menu (ExplorePanel) turns it off with an "ns:audio-toggle" event, and the choice is remembered on this browser.
  */
 export function AlwaysOnAudio() {
-  const [muted, setMuted] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const mutedRef = useRef(false);
 
   useEffect(() => {
     const audio = new Audio("/engine/soundtrack.m4a");
-    audioRef.current = audio;
     audio.loop = true;
     audio.volume = VOLUME;
     audio.preload = "auto";
     mutedRef.current = readMuted();
-    setMuted(mutedRef.current);
     try {
       const t = Number(sessionStorage.getItem(KEY));
       if (t > 0) audio.currentTime = t;
@@ -74,6 +70,20 @@ export function AlwaysOnAudio() {
       audio.volume = (e as CustomEvent<boolean>).detail ? 0.06 : VOLUME;
     };
     window.addEventListener("ns:audio-duck", onDuck);
+    // the menu's Sound switch
+    const onToggle = () => {
+      const next = !mutedRef.current;
+      mutedRef.current = next;
+      try {
+        localStorage.setItem(MUTE_KEY, next ? "1" : "0");
+      } catch {
+        /* storage blocked: the choice lasts for this page only */
+      }
+      if (next) audio.pause();
+      else audio.play().catch(() => {});
+      window.dispatchEvent(new CustomEvent("ns:audio-state", { detail: next }));
+    };
+    window.addEventListener("ns:audio-toggle", onToggle);
     const timer = setInterval(save, 1000);
     window.addEventListener("pagehide", save);
     return () => {
@@ -83,32 +93,10 @@ export function AlwaysOnAudio() {
       window.removeEventListener("message", onMessage);
       window.removeEventListener("pagehide", save);
       window.removeEventListener("ns:audio-duck", onDuck);
+      window.removeEventListener("ns:audio-toggle", onToggle);
       audio.pause();
     };
   }, []);
 
-  const toggle = () => {
-    const next = !muted;
-    setMuted(next);
-    mutedRef.current = next;
-    try {
-      localStorage.setItem(MUTE_KEY, next ? "1" : "0");
-    } catch {
-      /* storage blocked: the choice lasts for this page only */
-    }
-    const a = audioRef.current;
-    if (!a) return;
-    if (next) a.pause();
-    else a.play().catch(() => {});
-  };
-
-  return (
-    <button className={`sound-fab ${muted ? "off" : ""}`} onClick={toggle} aria-pressed={!muted} aria-label={muted ? "Turn the soundtrack on" : "Turn the soundtrack off"} title={muted ? "Sound off: click to turn on" : "Sound on: click to turn off"}>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 9h4l5-4v14l-5-4H4z" />
-        {muted ? <path d="M17 9l5 6M22 9l-5 6" /> : <path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" />}
-      </svg>
-      <span>{muted ? "Sound off" : "Sound on"}</span>
-    </button>
-  );
+  return null;
 }

@@ -6,7 +6,7 @@ export type Token = "SPY" | "QQQ" | "GLD" | "SLV" | "IBIT";
 export type Page = "home" | "app" | "guardian" | "oracle" | "proof" | "transparency" | "docs" | "leaderboard" | "profile" | "stocks" | "earn";
 export type Topic =
   | "nightshift" | "health" | "guardian" | "oracle" | "confidence" | "cloak" | "ledger" | "liquidation" | "proofs"
-  | "morpho" | "sentora" | "points" | "vault" | "demo" | "beta";
+  | "morpho" | "sentora" | "points" | "vault" | "demo" | "beta" | "stack";
 export type Intent =
   | { kind: "price"; token?: Token }
   | { kind: "stock"; tickers: string[] }
@@ -16,7 +16,8 @@ export type Intent =
   | { kind: "accuracy" }
   | { kind: "go"; page: Page }
   | { kind: "explain"; topic: Topic }
-  | { kind: "loan" }
+  | { kind: "loan"; show?: boolean } // show: open the loan in the App, not just describe it
+  | { kind: "stack"; metal?: "GLD" | "SLV" | "BOTH"; amount?: number; freq?: "daily" | "weekly" | "monthly" } // opens Stack, pre-filled; the user confirms
   | { kind: "points" }
   | { kind: "leaders" }
   | { kind: "money" } // borrow, repay, deposit, withdraw: voice never moves funds
@@ -70,8 +71,10 @@ export const EXPLAIN: Record<Topic, string> = {
     "You earn 10 points for joining the leaderboard, 20 for each token you deposit, 30 for an open loan, and 25 for switching on the Guardian. They live on public chains, so nobody can tamper with the rankings. They're demo points with no money value.",
   vault:
     "The Vault lets you deposit ETF tokens as collateral and borrow dUSDG against them. Your limit comes from my live overnight price, not a stale close. It runs on Base with demo tokens that have no value, and it hasn't been audited.",
+  stack:
+    "Stack buys gold or silver for you on a schedule, like a savings plan. You pick the metal, the amount and how often, and it only buys when the price is within a small margin of my fair value. The tokens go straight to your wallet, and you can pause or cancel any time. Say something like: start a 20 dollar weekly gold stack.",
   demo:
-    "Everything here uses demo tokens with no value. Connect a wallet on Base and press Get demo tokens in the App, or try the paper account without any wallet at all.",
+    "Everything here uses demo tokens with no value. Connect a wallet on Base and press Get demo funds in the App, or try the paper account without any wallet at all.",
   beta:
     "Beta is how strongly an ETF moves with its futures overnight. I measure it from past nights, then pull it gently toward one so a short history can't fool me. If the fit is weak, I simply use one.",
 };
@@ -139,6 +142,7 @@ const TOPICS: [RegExp, Topic][] = [
   [/\b(fair value|oracle|price model|how do you price|signals?|trust (your|the|this) prices?)\b/, "oracle"],
   [/\b(vault|borrowing|lending)\b/, "vault"],
   [/\b(demo|test) tokens?\b|\bfaucet\b/, "demo"],
+  [/\b(stack|sip|recurring buys?|auto ?buy)\b/, "stack"],
   [/\b(nightshift|night shift|this (site|project|app)|you guys)\b/, "nightshift"],
 ];
 
@@ -175,6 +179,18 @@ export function parse(raw: string): Intent {
   if (has(t, /\b(tour|walk me through|show me around|guide|getting started|im new|i am new|new here)\b/)) return { kind: "tour" };
   if (has(t, /\b(connect|link)\b.*\bwallet\b/)) return { kind: "wallet" };
 
+  // Stack: "start a $20 weekly gold stack", "buy 50 of silver every month". Opens the form filled in; the user still
+  // confirms in their wallet, so this never moves money by voice.
+  const asksWhat = has(t, /\b(what is|whats|what does|explain|how does|how do|tell me about|mean|why)\b/);
+  const stackish = has(t, /\b(stack|stacking|auto ?buy|recurring|sip|dca|dollar cost)\b/) ||
+    (has(t, /\b(buy|invest|put|save)\b/) && has(t, /\b(every|each|weekly|daily|monthly)\b/) && has(t, /\b(gold|silver|gld|slv|metals?)\b/));
+  if (stackish && !asksWhat) {
+    const gold = has(t, /\b(gold|gld)\b/), silver = has(t, /\b(silver|slv)\b/);
+    const n = t.match(/\b(\d+(?:\.\d+)?)\b/);
+    const freq = has(t, /\b(daily|every day|each day)\b/) ? "daily" : has(t, /\b(monthly|every month|each month)\b/) ? "monthly" : has(t, /\b(weekly|every week|each week)\b/) ? "weekly" : undefined;
+    return { kind: "stack", metal: gold && silver ? "BOTH" : gold ? "GLD" : silver ? "SLV" : has(t, /\bmetals?\b/) ? "BOTH" : undefined, amount: n ? Number(n[1]) : undefined, freq };
+  }
+
   // investing questions: answered with trend data and general principles, never a personal pick
   if (has(t, /\b(invest\w*|good (buy|investment|time to buy)|worth buying|should i (buy|sell|invest|hold|put)|best (stock|etf|investment|thing|asset|pick)s?|best to (buy|invest)|(which|what) (stock|etf|asset|token)s? (is|are|should|to)|recommend\w*|suggest\w*|portfolio|where (to|should i) put|trending|trends?|outlook|forecast|bullish|bearish|make money|returns?)\b/)) return { kind: "invest" };
 
@@ -182,7 +198,7 @@ export function parse(raw: string): Intent {
   if (has(t, /\b(borrow|repay|deposit|withdraw|lend|swap|buy|sell|liquidate)\b/) && !has(t, /\b(what|which|how|why|explain|mean|should|where|best|good|worth)\b/)) return { kind: "money" };
 
   // the user's own account
-  if (has(t, /\b(my|me|i)\b/) && has(t, /\b(loans?|positions?|health|safe|debt|collateral)\b/)) return { kind: "loan" };
+  if (has(t, /\b(my|me|i)\b/) && has(t, /\b(loans?|positions?|health|safe|debt|collateral)\b/)) return { kind: "loan", show: has(t, /\b(show|open|take me|see|view|bring up)\b/) };
   if (has(t, /\b(my|i)\b/) && has(t, /\b(points?|rank|score|place|position on the leaderboard)\b/)) return { kind: "points" };
 
   // navigation
@@ -219,7 +235,7 @@ export function parse(raw: string): Intent {
   return { kind: "unknown", text: raw };
 }
 
-export const SUGGESTIONS = ["What's SPY worth?", "How's my loan?", "What is the Guardian?", "Take me to the leaderboard", "Is the market open?"];
+export const SUGGESTIONS = ["What's SPY worth?", "Start a $20 weekly gold Stack", "Show me my loan", "What is the Guardian?", "Take me to the leaderboard", "Is the market open?"];
 
 export const HELP =
-  "I can tell you what SPY, QQQ, gold or bitcoin ETFs are worth right now, check your loan and your points, explain how anything here works, and take you to any page. Try: what's gold worth, how's my loan, or take me to the leaderboard. I can't move money: borrowing and repaying always happen in your wallet.";
+  "I can tell you what SPY, QQQ, gold or bitcoin ETFs are worth right now, check your loan and your points, explain how anything here works, take you to any page, and set up a Stack for you to confirm. Try: what's gold worth, show me my loan, or start a 20 dollar weekly gold stack. I never move money myself: you always confirm in your wallet.";

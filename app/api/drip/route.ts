@@ -9,7 +9,7 @@ import { dripMessage } from "@/lib/drip";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Gives a visitor what they need to try the testnet Vault with only a wallet: a little test ETH for gas plus
+// Gives a visitor what they need to try Borrow and Stack with only a wallet: a little test ETH for gas (testnets), demo dUSDG, plus
 // test ETF tokens. Uses its own faucet wallet (never the oracle updater or keeper), and is protected by:
 // a signed message proving the visitor controls the address, a 24h limit per address and per IP (durable when
 // Upstash Redis is configured), an optional Cloudflare Turnstile check, and a reserve the faucet never spends.
@@ -17,6 +17,7 @@ const GAS_DRIP = parseEther("0.0004");
 const GAS_FLOOR = parseEther("0.00015");
 const FAUCET_RESERVE = parseEther("0.001");
 const TOKEN_DRIP: Record<string, string> = { SPY: "10", QQQ: "10", GLD: "20", SLV: "100", IBIT: "200" };
+const USDG_DRIP = "200"; // dollars for Stack, so one claim covers both Borrow and Stack
 const WINDOW_SEC = 24 * 3600;
 const SIG_MAX_AGE_MS = 5 * 60 * 1000;
 
@@ -72,6 +73,12 @@ export async function POST(req: NextRequest) {
     if (bal >= parseEther(amount)) continue;
     const tx = await c.wallet.writeContract({ address: t.address, abi: ABI.token, functionName: "mint", args: [address, parseEther(amount)], nonce: nonce++ });
     sent.push({ what: `${amount} ${DEPLOYMENT.symbolPrefix ?? (isMainnet ? "d" : "t")}${sym}`, tx });
+  }
+  // demo dollars for Stack (Borrow gets its dUSDG by borrowing)
+  const usdBal = (await c.pub.readContract({ address: DEPLOYMENT.contracts.usdg, abi: ABI.token, functionName: "balanceOf", args: [address] })) as bigint;
+  if (usdBal < parseEther(USDG_DRIP)) {
+    const tx = await c.wallet.writeContract({ address: DEPLOYMENT.contracts.usdg, abi: ABI.token, functionName: "mint", args: [address, parseEther(USDG_DRIP)], nonce: nonce++ });
+    sent.push({ what: `${USDG_DRIP} ${DEPLOYMENT.symbolPrefix ?? (isMainnet ? "d" : "t")}USDG`, tx });
   }
   if (sent.length) await c.pub.waitForTransactionReceipt({ hash: sent[sent.length - 1].tx as `0x${string}` });
   } catch (e) {

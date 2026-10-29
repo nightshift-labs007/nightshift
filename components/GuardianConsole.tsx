@@ -82,7 +82,7 @@ export function GuardianConsole({ snap }: { snap: OracleSnapshot }) {
             <span className="xs muted mono">{lastCheck ? `last check ${new Date(lastCheck).toLocaleTimeString()} · every Oracle update` : "waiting for first check"}</span>
           </div>
           {open.length === 0 ? (
-            <p className="small muted">No open loans. Open a position in the Vault above and the Guardian starts watching it on the next Oracle update.</p>
+            <p className="small muted">No loans to watch yet. <a href="#vault">Open a loan above</a> and the Guardian starts watching it on the next price update.</p>
           ) : (
             <div className="table-wrap">
               <table>

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { INTEGRATIONS, PAGE_GROUPS, PAGES } from "@/lib/sitemap";
+import { readMuted } from "./AlwaysOnAudio";
 
 /**
  * Left slide-out panel: every page and what it does, then every integration with its logo, how Nightshift uses it,
@@ -16,6 +17,14 @@ export function ExplorePanel({ open, setOpen }: { open: boolean; setOpen: (v: bo
   const panel = useRef<HTMLElement>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // the soundtrack switch lives here (AlwaysOnAudio plays it), so no button floats over the page
+  const [muted, setMuted] = useState(false);
+  useEffect(() => {
+    setMuted(readMuted());
+    const on = (e: Event) => setMuted((e as CustomEvent<boolean>).detail);
+    window.addEventListener("ns:audio-state", on);
+    return () => window.removeEventListener("ns:audio-state", on);
+  }, []);
   // the App page has two tabs (Borrow, Stack) told apart by the hash, so the menu tracks it to show the right one
   const [hash, setHash] = useState("");
   useEffect(() => {
@@ -112,6 +121,21 @@ export function ExplorePanel({ open, setOpen }: { open: boolean; setOpen: (v: bo
             </ul>
           </div>
         ))}
+
+        <p className="xp-label">Help and settings</p>
+        <div className="xp-settings">
+          <button
+            onClick={() => {
+              setOpen(false);
+              window.setTimeout(() => window.dispatchEvent(new Event("ns:guide-open")), 200);
+            }}
+          >
+            <span aria-hidden="true">?</span> Show me how this page works
+          </button>
+          <button onClick={() => window.dispatchEvent(new Event("ns:audio-toggle"))} aria-pressed={!muted}>
+            <span aria-hidden="true">♪</span> Soundtrack: {muted ? "off" : "on"}
+          </button>
+        </div>
 
         <p className="xp-label">Integrated protocols</p>
         <ul className="xp-integrations">

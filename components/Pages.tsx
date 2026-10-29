@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { OracleSnapshot } from "@/lib/oracle";
 import { DEPLOYMENT, NETWORK, addrUrl, isDeployed, isMainnet, sym } from "@/lib/chain";
 import { ApiPanel } from "./ApiPanel";
@@ -17,6 +17,10 @@ import { useApi } from "./useApi";
 import { VaultApp } from "./VaultApp";
 import { Verified } from "./Verified";
 import { ActivityProof } from "./Transactions";
+import { GettingStarted } from "./GettingStarted";
+import { markStep } from "@/lib/onboarding";
+import { useAccount } from "@/lib/paper";
+import { useWallet } from "@/lib/wallet";
 
 const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
 
@@ -24,12 +28,32 @@ const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
 
 export function AppPage() {
   const snap = useSnapshot();
-  const [mode, setMode] = useState<"testnet" | "paper">(isDeployed ? "testnet" : "paper");
+  // practice first: visitors without a wallet start in the paper account; a connected wallet switches to the real
+  // demo, unless the visitor picked a mode themselves
+  const [mode, setModeState] = useState<"testnet" | "paper">("paper");
+  const picked = useRef(false);
+  const setMode = (m: "testnet" | "paper") => {
+    picked.current = true;
+    setModeState(m);
+  };
+  const wallet = useWallet();
+  const paper = useAccount();
+  useEffect(() => {
+    if (wallet.account && isDeployed && !picked.current) setModeState("testnet");
+  }, [wallet.account]);
   // Borrow and Stack are two tabs of the same page; /app#stack opens Stack
   const [tab, setTab] = useState<"borrow" | "stack">("borrow");
   // the landing page's "Try it free" button lands here: start in the no-wallet paper account
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("try") === "paper") setMode("paper");
+    const read = () => {
+      const q = new URLSearchParams(window.location.search);
+      if (q.get("try") === "paper") setMode("paper");
+      const loan = q.get("loan"); // Nyx: "show me my loan"
+      if (loan === "wallet" || loan === "paper") setMode(loan === "wallet" ? "testnet" : "paper");
+    };
+    read();
+    window.addEventListener("hashchange", read); // Nyx and the menu link here while the page is already open
+    return () => window.removeEventListener("hashchange", read);
   }, []);
   useEffect(() => {
     const sync = () => setTab(window.location.hash === "#stack" ? "stack" : "borrow");
@@ -52,13 +76,14 @@ export function AppPage() {
             ? "Pick a metal, an amount and how often. Stack buys on schedule, but only at a fair price, and your tokens go straight to your wallet."
             : isDeployed
             ? isMainnet
-              ? `Live on ${NETWORK} with demo assets that have no value: connect a wallet (it switches to ${NETWORK} for you), get demo tokens, deposit collateral and borrow ${sym("USDG")}. You only pay a few cents of ETH gas. Health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation. Unaudited demo.`
+              ? `Live on ${NETWORK} with demo assets that have no value: connect a wallet (it switches to ${NETWORK} for you), get demo funds, deposit collateral and borrow ${sym("USDG")}. You only pay a few cents of ETH gas. Health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation. Unaudited demo.`
               : `Connect a wallet (it switches to ${NETWORK} for you), get free test funds, deposit collateral and borrow ${sym("USDG")}. The health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation.`
             : "The on-chain vault goes live on Base shortly. Until then, try the full flow without a wallet: your paper account starts with 10 SPY, 10 QQQ, 20 GLD, 100 SLV and 200 IBIT."
         }
       />
       <section className="block app-tabs-row">
         <div className="wrap">
+          <GettingStarted />
           <div className="seg app-tabs" role="tablist" aria-label="App sections">
             <button role="tab" aria-selected={tab === "borrow"} className={tab === "borrow" ? "on" : ""} onClick={() => pick("borrow")}>Borrow</button>
             <button role="tab" aria-selected={tab === "stack"} className={tab === "stack" ? "on" : ""} onClick={() => pick("stack")}>Stack</button>
@@ -76,13 +101,22 @@ export function AppPage() {
       <section className="block" id="vault">
         <div className="wrap">
           <div className="seg vault-mode" role="tablist" aria-label="Vault mode">
-            <button className={mode === "testnet" ? "on" : ""} onClick={() => setMode("testnet")}>
-              {isMainnet ? `With wallet (${NETWORK})` : "With wallet (testnet)"}
-            </button>
             <button className={mode === "paper" ? "on" : ""} onClick={() => setMode("paper")}>
-              Try without wallet
+              Practice (no wallet)
             </button>
+            {isDeployed && (
+              <button className={mode === "testnet" ? "on" : ""} onClick={() => setMode("testnet")}>
+                {isMainnet ? `With wallet (${NETWORK})` : "With wallet (testnet)"}
+              </button>
+            )}
           </div>
+          {mode === "paper" && isDeployed && (
+            <p className="small muted mode-note">
+              {paper.positions.length
+                ? <>Ready for the real thing? <button className="link-btn" onClick={() => setMode("testnet")}>Switch to With wallet</button> to make real demo transactions on {NETWORK}. Demo tokens are free; you only need a few cents of gas.</>
+                : "Practice account: it lives in this browser, is already funded, and needs no wallet. Open a loan below to try it."}
+            </p>
+          )}
           {mode === "testnet" ? <OnchainVault /> : snap ? <VaultApp quotes={snap.quotes} /> : <div className="skeleton">Loading vault…</div>}
         </div>
       </section>
@@ -111,6 +145,7 @@ export function AppPage() {
 
 export function OraclePage() {
   const snap = useSnapshot();
+  useEffect(() => markStep("price"), []);
   return (
     <PageShell>
       <PageHero

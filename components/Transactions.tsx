@@ -72,7 +72,10 @@ export function TransactionsPage() {
           ) : data.error ? (
             <p className="muted">Couldn&apos;t load transactions right now. Try again in a minute.</p>
           ) : rows.length === 0 ? (
-            <p className="muted">No transactions match.</p>
+            <p className="muted">
+              Nothing of this type in the period shown yet.{" "}
+              {filter !== "all" && <button className="link-btn" onClick={() => setFilter("all")}>Show all transactions</button>}
+            </p>
           ) : (
             <div className="lb-table-wrap">
               <table className="lb-table">

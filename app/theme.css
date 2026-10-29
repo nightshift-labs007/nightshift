@@ -352,9 +352,6 @@ input[type="range"] { accent-color: var(--mint); }
 .contracts-pending p { margin: 8px 0 0; }
 
 /* ---------- welcome guide ---------- */
-.guide-fab { position: fixed; z-index: 70; left: 20px; bottom: 20px; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 6px; border-radius: 999px; border: 1px solid var(--border-strong); background: rgba(16, 20, 20, .88); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--text); font: 500 13px var(--mono); cursor: pointer; box-shadow: var(--shadow-lg); transition: border-color .15s, transform .15s var(--ease); }
-.guide-fab span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--mint); color: var(--mint-ink); font-weight: 700; }
-.guide-fab:hover { border-color: var(--mint); transform: translateY(-1px); }
 .guide-backdrop { position: fixed; inset: 0; z-index: 100; background: rgba(3, 5, 5, .74); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 16px; animation: guideFade .2s ease both; }
 .guide { position: relative; width: min(560px, 100%); max-height: calc(100dvh - 32px); overflow: auto; padding: 30px 28px 22px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface-2); box-shadow: var(--shadow-lg); animation: guideIn .3s var(--ease) both; }
 .guide-x { all: unset; position: absolute; top: 14px; right: 16px; cursor: pointer; font-size: 26px; line-height: 1; color: var(--text-3); padding: 2px 6px; border-radius: 6px; }
@@ -383,7 +380,6 @@ input[type="range"] { accent-color: var(--mint); }
   .guide-foot { flex-direction: column-reverse; align-items: stretch; }
   .guide-nav .btn { flex: 1; justify-content: center; }
   .guide-dots { justify-content: center; }
-  .guide-fab { left: 12px; bottom: 12px; }
 }
 
 /* ---------- integrations ---------- */
@@ -407,10 +403,6 @@ input[type="range"] { accent-color: var(--mint); }
   .integrations { grid-template-columns: repeat(6, 1fr); }
   .integration { grid-column: span 2; }
   .integration:nth-child(4), .integration:nth-child(5) { grid-column: span 3; }
-}
-/* phones: the guide button shrinks to its icon so it covers less of the page */
-@media (max-width: 560px) {
-  .guide-fab { padding: 0 6px; font-size: 0; gap: 0; }
 }
 
 /* ---------- explore panel ---------- */
@@ -535,15 +527,6 @@ input[type="range"] { accent-color: var(--mint); }
 .pf-link:disabled { opacity: .4; cursor: not-allowed; }
 @media (max-width: 560px) { .pf-actions { flex-wrap: wrap; } .pf-actions .btn { width: 100%; justify-content: center; } }
 
-/* ---------- sound switch (above the Guide button) ---------- */
-.sound-fab { position: fixed; z-index: 70; left: 20px; bottom: 70px; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 8px; border-radius: 999px; border: 1px solid var(--border-strong); background: rgba(16, 20, 20, .88); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--text); font: 500 13px var(--mono); cursor: pointer; box-shadow: var(--shadow-lg); transition: border-color .15s; }
-.sound-fab svg { width: 24px; height: 24px; fill: none; stroke: var(--mint); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.sound-fab svg path:first-child { fill: var(--mint-soft); }
-.sound-fab.off svg { stroke: var(--text-4); }
-.sound-fab.off { color: var(--text-3); }
-.sound-fab:hover { border-color: var(--mint); }
-@media (max-width: 560px) { .sound-fab { left: 12px; bottom: 62px; padding: 0 8px; font-size: 0; gap: 0; } }
-
 /* ---------- Nyx, the voice assistant ---------- */
 /* toasts and the join card sit above the orb */
 .toaster { bottom: 96px !important; }
@@ -657,3 +640,37 @@ section.block.app-tabs-row + section.block { padding-top: 28px; }
 .stack-last { margin: 0; }
 .stack-how ol { margin: 10px 0; padding-left: 20px; display: grid; gap: 8px; color: var(--text-2); }
 @media (max-width: 560px) { .stack-metals { grid-template-columns: 1fr; } .stack-metal { grid-auto-flow: column; justify-content: space-between; align-items: center; } }
+
+/* "?" explainers next to numbers (components/InfoTip.tsx) */
+.tip { position: relative; display: inline-flex; vertical-align: middle; }
+.tip-btn { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-left: 2px; padding: 0; border-radius: 50%; border: 1px solid var(--border-strong); background: transparent; color: var(--text-3); font: 600 9.5px var(--sans); line-height: 1; cursor: help; text-transform: none; letter-spacing: 0; }
+.tip-btn:hover, .tip-btn:focus-visible, .tip-btn[aria-expanded="true"] { border-color: var(--mint); color: var(--mint); outline: none; }
+.tip-pop { position: absolute; z-index: 60; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: 260px; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface-3, #1a1f1e); color: var(--text); font: 400 12.5px/1.45 var(--sans); letter-spacing: 0; text-transform: none; white-space: normal; text-align: left; box-shadow: var(--shadow-lg); pointer-events: none; }
+@media (max-width: 560px) { .tip-pop { left: auto; right: -8px; transform: none; max-width: 220px; } }
+
+/* Getting started card (components/GettingStarted.tsx) */
+.start-card { display: grid; gap: 14px; margin-bottom: 20px; padding: 20px; }
+.start-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.start-head h3 { margin: 6px 0 0; font: 400 1.15rem var(--display); }
+.start-x { all: unset; cursor: pointer; font-size: 24px; line-height: 1; color: var(--text-3); padding: 0 6px; border-radius: 6px; }
+.start-x:hover, .start-x:focus-visible { color: var(--text); background: var(--surface-3); }
+.start-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.start-steps li { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 10px 12px; align-items: start; padding: 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-alt); }
+.start-steps li.done { border-color: var(--green-line); background: var(--mint-soft); }
+.start-tick { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border-strong); font: 600 12px var(--mono); color: var(--text-2); }
+.start-steps li.done .start-tick { background: var(--mint); border-color: var(--mint); color: var(--mint-ink); }
+.start-text b { display: block; font-weight: 600; font-size: 14.5px; }
+.start-text small { display: block; margin-top: 2px; color: var(--text-3); font-size: 13px; line-height: 1.45; }
+.start-steps li > .btn, .start-state { grid-column: 2; justify-self: start; }
+.start-state { font: 500 12px var(--mono); color: var(--mint); }
+@media (max-width: 760px) { .start-steps { grid-template-columns: 1fr; } }
+.mode-note { margin: 10px 0 0; }
+.mode-note .link-btn { padding: 0; }
+.start-wrap { padding-top: 28px; }
+.start-wrap .start-card { margin-bottom: 0; }
+
+/* help and settings in the menu (replaces the floating Guide and Sound buttons) */
+.xp-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.xp-settings button { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: 500 13px var(--sans); text-align: left; cursor: pointer; }
+.xp-settings button:hover, .xp-settings button:focus-visible { border-color: var(--mint); color: var(--text); }
+.xp-settings button span { display: grid; place-items: center; width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--mint-soft); color: var(--mint); font-size: 12px; }

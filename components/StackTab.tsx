@@ -6,6 +6,9 @@ import { ABI, DEPLOYMENT, NETWORK, addrUrl, chainOf, chainTransport, isDeployed,
 import { useWallet } from "@/lib/wallet";
 import { toast } from "./Toast";
 import { WalletButton } from "./WalletButton";
+import { Turnstile, turnstileEnabled } from "./Turnstile";
+import { getDemoFunds } from "./demoFunds";
+import { markStep } from "@/lib/onboarding";
 
 /** Contract and wallet errors in plain English. */
 function friendly(e: unknown): string {
@@ -18,7 +21,7 @@ function friendly(e: unknown): string {
     [/"amount"|: amount/, "That's more than one buy is allowed to be."],
     [/"interval"|: interval/, "That's more often than Stack allows."],
     [/"asset"|: asset/, "That metal isn't available in Stack yet."],
-    [/"balance"|: balance|allowance/, "Not enough dUSDG for that. Tap “Get demo dUSDG” first."],
+    [/"balance"|: balance|allowance/, "Not enough dUSDG for that. Tap “Get demo funds” first."],
     [/not your plan/, "That plan belongs to another wallet."],
   ];
   for (const [re, text] of reasons) if (re.test(msg)) return text;
@@ -81,6 +84,23 @@ export function StackTab() {
   const [metal, setMetal] = useState<Metal>("GLD");
   const [amount, setAmount] = useState("20");
   const [freq, setFreq] = useState<(typeof FREQS)[number]["key"]>("weekly");
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const onCaptcha = useCallback((t: string | null) => setCaptcha(t), []);
+  // a plan can arrive pre-filled from a link or from Nyx ("start a $20 weekly gold stack"): /app?metal=GLD&amount=20&freq=weekly#stack
+  useEffect(() => {
+    const prefill = () => {
+      const q = new URLSearchParams(window.location.search);
+      const m = q.get("metal")?.toUpperCase();
+      if (m === "GLD" || m === "SLV" || m === "BOTH") setMetal(m);
+      const a = Number(q.get("amount"));
+      if (a > 0) setAmount(String(a));
+      const f = q.get("freq");
+      if (FREQS.some((x) => x.key === f)) setFreq(f as (typeof FREQS)[number]["key"]);
+    };
+    prefill();
+    window.addEventListener("hashchange", prefill); // Nyx fills the form while the page is already open
+    return () => window.removeEventListener("hashchange", prefill);
+  }, []);
   const [stopAfter, setStopAfter] = useState("12");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState("");
@@ -146,6 +166,7 @@ export function StackTab() {
         });
       }
       setPlans(rows.reverse());
+      if (rows.length) markStep("stack"); // a getting-started step (lib/onboarding.ts)
     } catch {
       /* a flaky RPC: keep what we have, the next refresh retries */
     }
@@ -225,6 +246,7 @@ export function StackTab() {
         ]);
       }
       toast("Your Stack is on. The first buy happens within a few minutes, if the price is fair.", "ok");
+      markStep("stack");
       await new Promise((r) => setTimeout(r, 3500)); // public nodes are load-balanced: let the new plan become visible
       await refresh();
     } catch (e) {
@@ -255,11 +277,23 @@ export function StackTab() {
     }
   }
 
-  async function getDemoUsdg() {
+  // one tap for demo funds: the shared faucet (ETF tokens and dUSDG). If this wallet already claimed today, fall
+  // back to the dUSDG token's own hourly faucet so Stack is never blocked.
+  async function getFunds() {
+    if (!wallet.provider || !account) return;
     setBusy("faucet");
     try {
-      await write("Get demo dUSDG", DEPLOYMENT.contracts.usdg, ABI.token, "faucet", []);
-      toast(`Added 1,000 demo ${sym("USDG")} to your wallet.`, "ok");
+      try {
+        if (turnstileEnabled && !captcha) throw new Error("Please complete the captcha first.");
+        toast("Sign the message in your wallet to prove this address is yours (free, no transaction).");
+        const sent = await getDemoFunds(wallet.provider, account, captcha);
+        sent.forEach((x) => setTxs((t) => [{ label: `Demo funds: ${x.what}`, hash: x.tx }, ...t].slice(0, 6)));
+        toast(sent.length ? `Sent ${sent.map((x) => x.what).join(", ")}` : "You already have demo funds.", "ok");
+      } catch (e) {
+        if (!/already|today/i.test((e as Error).message ?? "")) throw e;
+        await write("Get demo dUSDG", DEPLOYMENT.contracts.usdg, ABI.token, "faucet", []);
+        toast(`Added 1,000 demo ${sym("USDG")} to your wallet.`, "ok");
+      }
       await new Promise((r) => setTimeout(r, 3500));
       await refresh();
     } catch (e) {
@@ -356,9 +390,12 @@ export function StackTab() {
                 {busy === "start" ? "Starting…" : "Start Stack"}
               </button>
               {lowUsdg && (
-                <button className="btn secondary small" onClick={getDemoUsdg} disabled={!!busy}>
-                  {busy === "faucet" ? "Adding…" : `Get demo ${sym("USDG")}`}
-                </button>
+                <>
+                  <Turnstile onToken={onCaptcha} />
+                  <button className="btn secondary small" onClick={getFunds} disabled={!!busy}>
+                    {busy === "faucet" ? "Sending…" : "Get demo funds"}
+                  </button>
+                </>
               )}
             </>
           )}
@@ -376,7 +413,9 @@ export function StackTab() {
         <div className="stack-plans">
           <div className="unit">Your Stack</div>
           {plans.length === 0 ? (
-            <p className="muted small">No plans yet. Start one above and it will show up here.</p>
+            <p className="muted small">
+              No plans yet. {lowUsdg ? "Tap “Get demo funds” above, then press Start Stack" : "Press Start Stack above"}: your first buy happens within a few minutes.
+            </p>
           ) : (
             plans.map((p) => {
               const st = statusOf(p, now);

@@ -7,7 +7,8 @@ import { useWallet } from "@/lib/wallet";
 import { toast } from "./Toast";
 import { WalletButton } from "./WalletButton";
 import { Turnstile, turnstileEnabled } from "./Turnstile";
-import { dripMessage } from "@/lib/drip";
+import { getDemoFunds } from "./demoFunds";
+import { InfoTip } from "./InfoTip";
 
 /** Contract and wallet errors in plain English. */
 function friendly(e: unknown): string {
@@ -165,14 +166,10 @@ export function OnchainVault() {
       if (kind !== "rule" && kind !== "drip" && amt <= 0n) throw new Error("Enter an amount.");
       if (kind === "drip") {
         if (turnstileEnabled && !captcha) throw new Error("Please complete the captcha first.");
-        const issuedAt = new Date().toISOString();
         toast("Sign the message in your wallet to prove this address is yours (free, no transaction).");
-        const signature = (await wallet.provider!.request({ method: "personal_sign", params: [`0x${Array.from(new TextEncoder().encode(dripMessage(account, issuedAt)), (b) => b.toString(16).padStart(2, "0")).join("")}`, account] })) as `0x${string}`;
-        const res = await fetch("/api/drip", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: account, signature, issuedAt, turnstileToken: captcha }) });
-        const j = await res.json();
-        if (!res.ok) throw new Error(j.error ?? "Faucet failed");
-        toast(j.sent.length ? `Sent ${j.sent.map((s: { what: string }) => s.what).join(", ")}` : "You already have test funds.", "ok");
-        j.sent.forEach((s: { what: string; tx: string }) => setTxs((x) => [{ label: `Faucet: ${s.what}`, hash: s.tx, at: Date.now() }, ...x].slice(0, 8)));
+        const sent = await getDemoFunds(wallet.provider!, account, captcha);
+        toast(sent.length ? `Sent ${sent.map((s) => s.what).join(", ")}` : "You already have demo funds.", "ok");
+        sent.forEach((s) => setTxs((x) => [{ label: `Demo funds: ${s.what}`, hash: s.tx, at: Date.now() }, ...x].slice(0, 8)));
       } else if (kind === "deposit") {
         await ensureAllowance(t, amt, sym(token));
         await write(`Deposit ${amount} t${token}`, DEPLOYMENT.contracts.vault, ABI.vault, "deposit", [t, amt]);
@@ -254,7 +251,7 @@ export function OnchainVault() {
               </span>
               <Turnstile onToken={onCaptcha} />
               <button className="btn secondary small" onClick={() => run("drip")} disabled={!!busy}>
-                {busy === "drip" ? "Sending…" : isMainnet ? "Get demo tokens" : "Get test funds"}
+                {busy === "drip" ? "Sending…" : isMainnet ? "Get demo funds" : "Get test funds"}
               </button>
             </>
           )}
@@ -279,6 +276,20 @@ export function OnchainVault() {
         </div>
       )}
 
+      {account && !wrongChain && positions.length === 0 && (
+        <div className="empty panel">
+          <b>No loans yet.</b>
+          {tokens.some((t) => (bal[t] ?? 0) > 0) ? (
+            <span>You have demo tokens: pick one under Manage position, enter an amount, then Deposit and Borrow. About two minutes.</span>
+          ) : (
+            <span>
+              Start with free demo funds, then deposit a token and borrow against it. About two minutes.{" "}
+              <button className="link-btn" onClick={() => run("drip")} disabled={!!busy}>{busy === "drip" ? "Sending…" : "Get demo funds"}</button>
+            </span>
+          )}
+        </div>
+      )}
+
       {account && !wrongChain && (
         <div className="vault-top">
           <div className="panel">
@@ -294,7 +305,7 @@ export function OnchainVault() {
             </ul>
             <p className="xs muted">
               {isMainnet
-                ? "New here? Click “Get demo tokens” for demo ETF tokens (no value). You need a few cents of ETH on Base for gas."
+                ? "New here? Click “Get demo funds” for demo ETF tokens and dUSDG (no value). You need a few cents of ETH on Base for gas."
                 : "New here? Click “Get test funds”: you receive a little test ETH for gas and test ETF tokens."}
             </p>
           </div>
@@ -317,7 +328,7 @@ export function OnchainVault() {
                   </span>
                 </div>
                 <div className="kv">
-                  <span className="muted">Health factor · borrow limit</span>
+                  <span className="muted">Health factor <InfoTip k="health" label="health factor" /> · borrow limit <InfoTip k="borrowLimit" label="borrow limit" /></span>
                   <span className="mono">
                     <b className={pos.hf < 1.1 ? "down" : pos.hf < 1.3 ? "amber" : "up"}>{pos.hf >= MAX_HF ? "∞" : pos.hf.toFixed(3)}</b> · {usd(pos.limit)}
                   </span>

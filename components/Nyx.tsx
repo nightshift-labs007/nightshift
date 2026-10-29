@@ -1,5 +1,6 @@
 "use client";
 
+import { markStep } from "@/lib/onboarding";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPublicClient, formatEther, type Address, type PublicClient } from "viem";
@@ -173,6 +174,7 @@ export function Nyx() {
       const quoteLine = (q: Quote) => `${spokenToken(q.token)} is worth ${usd(q.fairValue)}, ${move(q.driftPct)} since the last close, with ${q.confidence} percent confidence.`;
       switch (intent.kind) {
         case "price": {
+          markStep("price"); // a getting-started step (lib/onboarding.ts)
           const snap = await getSnap();
           if (!snap?.quotes?.length) return "I can't reach the price engine right now. Try again in a moment.";
           if (intent.token) {
@@ -225,6 +227,13 @@ export function Nyx() {
         }
         case "loan": {
           const loans = await getLoans(await getSnap());
+          if (intent.show) {
+            // "show me my loan": open it in the App (wallet loans in wallet mode, practice loans in practice mode)
+            const where = loans.some((l) => l.source === "wallet") ? "wallet" : "paper";
+            router.push(`/app?loan=${where}#vault`);
+            window.setTimeout(() => window.dispatchEvent(new HashChangeEvent("hashchange")), 50);
+            if (!loans.length) return "You don't have an open loan yet. I've opened the App in practice mode: pick a token and an amount to try one, no wallet needed.";
+          }
           if (!loans.length)
             return w.account
               ? "You don't have an open loan. Open the App to borrow against your demo tokens."
@@ -235,7 +244,18 @@ export function Nyx() {
               const g = l.guardian ? ` The Guardian steps in at ${l.guardian.toFixed(2)}.` : " The Guardian is off for this loan.";
               return `Your ${l.source === "paper" ? "paper " : ""}${spokenToken(l.token)} loan has a health factor of ${l.hf > 50 ? "over 50" : l.hf.toFixed(2)}, which is ${state}${g}`;
             })
-            .join(" ");
+            .join(" ") + (intent.show ? " I've opened it in the App." : "");
+        }
+        case "stack": {
+          // pre-fill the Stack form; the visitor checks it and confirms in their wallet, so voice never moves money
+          const metal = intent.metal ?? "GLD";
+          const amount = intent.amount ?? 20;
+          const freq = intent.freq ?? "weekly";
+          router.push(`/app?metal=${metal}&amount=${amount}&freq=${freq}#stack`);
+          window.setTimeout(() => window.dispatchEvent(new HashChangeEvent("hashchange")), 50); // the App switches to its Stack tab
+          const what = metal === "BOTH" ? "gold and silver" : metal === "SLV" ? "silver" : "gold";
+          const every = { daily: "every day", weekly: "every week", monthly: "every month" }[freq];
+          return `I've filled in Stack: ${amount} dollars of ${what} ${every}, bought only at a fair price. Check it, then press Start Stack and confirm in your wallet.`;
         }
         case "points": {
           if (!w.account) return "Connect a wallet and I'll tell you your points and rank.";

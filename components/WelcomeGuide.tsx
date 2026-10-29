@@ -48,7 +48,7 @@ const HOME: Step[] = [
           <li><b>Try without wallet</b>: a paper account in your browser with 10 SPY, 10 QQQ, 20 GLD, 100 SLV and 200 IBIT. Nothing to install.</li>
           {isDeployed && (
             <li>
-              <b>With wallet ({NETWORK})</b>: connect, click <b>Get demo tokens</b>, deposit them as collateral and borrow {sym("USDG")}.
+              <b>With wallet ({NETWORK})</b>: connect, click <b>Get demo funds</b>, deposit them as collateral and borrow {sym("USDG")}.
               {isMainnet ? " You only need a few cents of ETH for gas." : ""}
             </li>
           )}
@@ -89,7 +89,7 @@ const APP: Step[] = [
     body: (
       <ol className="guide-list numbered">
         <li><b>Choose a mode</b> at the top: <i>Try without wallet</i> (paper, instant) or <i>With wallet</i>{isDeployed ? ` (${NETWORK} demo)` : ""}.</li>
-        <li><b>Get collateral</b>: the paper account starts funded{isDeployed ? <>; with a wallet, click <b>Get demo tokens</b></> : ""}.</li>
+        <li><b>Get collateral</b>: the paper account starts funded{isDeployed ? <>; with a wallet, click <b>Get demo funds</b></> : ""}.</li>
         <li><b>Deposit and borrow</b>: pick a token and an amount, and keep the health factor comfortably above 1.</li>
         <li><b>Set a Guardian rule</b> below, so the loan is protected while you sleep.</li>
       </ol>
@@ -142,7 +142,7 @@ const KEY = (p: string) => `ns-guide-seen:${p}`;
 const read = (k: string) => { try { return localStorage.getItem(k); } catch { return "1"; } };
 const write = (k: string) => { try { localStorage.setItem(k, "1"); } catch { /* storage blocked: the guide just won't remember */ } };
 
-/** First-visit walkthrough on the landing page and the App, and a "Guide" button on every page to reopen it. */
+/** First-visit walkthrough on the landing page and the App; reopened from the menu ("Show me how this page works") or by Nyx. */
 export function WelcomeGuide() {
   const path = usePathname();
   // the App page has two tabs (Borrow, Stack), told apart by the URL hash
@@ -214,9 +214,6 @@ export function WelcomeGuide() {
   const last = i === steps.length - 1;
   return (
     <>
-      <button className="guide-fab" onClick={show} aria-haspopup="dialog" title="How to use Nightshift">
-        <span aria-hidden="true">?</span> Guide
-      </button>
       {open && (
         <div className="guide-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
           <div className="guide" role="dialog" aria-modal="true" aria-labelledby="guide-title" ref={box}>

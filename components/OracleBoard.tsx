@@ -2,6 +2,7 @@
 
 import type { OracleSnapshot } from "@/lib/oracle";
 import { CountUp } from "./CountUp";
+import { InfoTip } from "./InfoTip";
 import { signed, usd } from "./useApi";
 
 export function OracleBoard({ snap }: { snap: OracleSnapshot | null }) {
@@ -34,21 +35,21 @@ export function OracleBoard({ snap }: { snap: OracleSnapshot | null }) {
             <div className="fv">
               <CountUp value={q.fairValue} format={(x) => usd(x)} />
             </div>
-            <div className="xs muted mono">{q.marketOpen ? "Live market price" : "Nightshift fair value"}</div>
+            <div className="xs muted mono">{q.marketOpen ? "Live market price" : <>Nightshift fair value <InfoTip k="fairValue" label="fair value" /></>}</div>
 
             <div className="meter" title="Confidence">
               <div style={{ width: `${q.confidence}%`, background: q.confidence >= 80 ? "var(--green)" : q.confidence >= 60 ? "var(--amber)" : "var(--red)" }} />
             </div>
             <div className="row">
-              <span className="muted">Confidence</span>
+              <span className="muted">Confidence <InfoTip k="confidence" label="confidence" /></span>
               <span className="mono">{q.confidence}/100</span>
             </div>
             <div className="row">
-              <span className="muted">Stale feed (last close)</span>
+              <span className="muted">Stale feed (last close) <InfoTip k="lastClose" label="the last close" /></span>
               <span className="mono">{usd(q.lastClose)}</span>
             </div>
             <div className="row">
-              <span className="muted">Drift vs stale feed</span>
+              <span className="muted">Drift vs stale feed <InfoTip k="drift" label="drift" /></span>
               <span className={`mono ${q.driftPct >= 0 ? "up" : "down"}`}>{signed(q.driftPct)}</span>
             </div>
             <div className="row">

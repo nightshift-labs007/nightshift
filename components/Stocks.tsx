@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { LOGOS } from "@/lib/logos";
 import type { StockBoard, StockQuote } from "@/lib/stocks";
 import { signed, usd } from "./useApi";
+import { InfoTip } from "./InfoTip";
 
 export function StockLogo({ q, size = 34 }: { q: Pick<StockQuote, "logo" | "ticker" | "name">; size?: number }) {
   const logo = q.logo ? LOGOS[q.logo] : null;
@@ -55,7 +56,7 @@ export function HeadlineCard({ q }: { q: StockQuote }) {
       </div>
       <Sparkline values={q.spark} w={260} h={46} />
       <div className="st-card-meta mono">
-        <span>Conf. {q.confidence}</span>
+        <span>Conf. {q.confidence} <InfoTip k="confidence" label="Conf." /></span>
         <span>β {q.beta.toFixed(2)}</span>
         <span>1M {signed(q.ret1mPct, 1)}</span>
       </div>

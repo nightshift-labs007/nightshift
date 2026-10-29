@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Quote } from "@/lib/oracle";
+import { InfoTip } from "./InfoTip";
 import {
   adjust,
   borrowLimit,
@@ -154,7 +155,7 @@ export function VaultApp({ quotes }: { quotes: Quote[] }) {
                 <span className="mono">{usd(limit)}</span>
               </div>
               <div className="kv">
-                <span className="muted">Health factor · liquidation price</span>
+                <span className="muted">Health factor <InfoTip k="health" label="health factor" /> · liquidation price <InfoTip k="liquidationPrice" label="liquidation price" /></span>
                 <span className="mono">
                   <b className={hfClass(hfOpen)}>{hfText(hfOpen)}</b> · {borrow > 0 ? usd(liquidationPrice({ units: u, debt: borrow, lltv: m.lltv })) : "—"}
                 </span>
@@ -178,8 +179,8 @@ export function VaultApp({ quotes }: { quotes: Quote[] }) {
         </div>
         {account.positions.length === 0 ? (
           <div className="empty panel">
-            <b>No positions yet.</b>
-            <span>Open one above. It will be marked to the live Oracle and watched by the Guardian.</span>
+            <b>No loans yet.</b>
+            <span>Your practice account is already funded: pick a token and an amount above, then press Open position. It takes under a minute.</span>
           </div>
         ) : (
           account.positions.map((p) => <PositionCard key={p.id} p={p} m={marks[p.token]} usdg={account.usdg} />)
@@ -234,13 +235,13 @@ function PositionCard({ p, m, usdg }: { p: Position; m?: Mark; usdg: number }) {
           <b>{usd(p.debt, 0)}</b>
         </div>
         <div>
-          <small>Health · Oracle / frozen</small>
+          <small>Health · Oracle / frozen <InfoTip k="health" label="health" /></small>
           <b>
             <span className={hfClass(hf)}>{hfText(hf)}</span> <span className="muted">/ {hfText(hfFrozen)}</span>
           </b>
         </div>
         <div>
-          <small>Liquidation price</small>
+          <small>Liquidation price <InfoTip k="liquidationPrice" label="liquidation price" /></small>
           <b>{p.debt > 0 ? usd(liq) : "—"}</b>
           {p.debt > 0 && <span className="xs muted">{cushion.toFixed(1)}% below Oracle</span>}
         </div>

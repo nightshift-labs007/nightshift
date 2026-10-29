@@ -1,5 +1,7 @@
 "use client";
 
+import { GettingStarted } from "./GettingStarted";
+import { InfoTip } from "./InfoTip";
 import Link from "next/link";
 import { useEffect } from "react";
 import type { OracleSnapshot } from "@/lib/oracle";
@@ -37,7 +39,7 @@ function MarketStrip({ snap }: { snap: OracleSnapshot | null }) {
               {q.driftPct >= 0 ? "+" : "−"}
               {Math.abs(q.driftPct).toFixed(2)}%
             </span>
-            <span className="strip-conf">Conf. {q.confidence}</span>
+            <span className="strip-conf">Conf. {q.confidence} <InfoTip k="confidence" label="Conf." /></span>
           </Link>
         ))}
         <span className="strip-meta">{snap ? `${snap.market.open ? "NYSE open" : "NYSE closed"} · ${snap.market.etTime}` : "Loading prices…"}</span>
@@ -88,6 +90,9 @@ export function Dashboard() {
       <MarketStrip snap={snap} />
 
       <main>
+        <div className="wrap start-wrap">
+          <GettingStarted />
+        </div>
         <section className="block" id="stocks">
           <div className="wrap">
             <SectionHead
