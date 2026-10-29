@@ -445,6 +445,7 @@ input[type="range"] { accent-color: var(--mint); }
 .xp-int-links { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
 .xp-int-links a { color: var(--mint); text-decoration: none; }
 .xp-int-links a:hover { text-decoration: underline; }
+.xp-tech { font-style: normal; font: 500 11px var(--mono); letter-spacing: .04em; color: var(--mint); }
 .xp-foot { margin: 16px 0 0; font-size: 12px; color: var(--text-4); line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) { .xp-panel, .xp-backdrop { transition: none; } }
 @media (max-width: 560px) { .nav-inner { gap: 12px; } .xp-btn { padding: 0 11px; } .xp-btn-label { display: none; } }

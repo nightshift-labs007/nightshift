@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { INTEGRATIONS, PAGES } from "@/lib/sitemap";
+import { INTEGRATIONS, PAGE_GROUPS, PAGES } from "@/lib/sitemap";
 
 /**
  * Left slide-out panel: every page and what it does, then every integration with its logo, how Nightshift uses it,
@@ -16,6 +16,14 @@ export function ExplorePanel({ open, setOpen }: { open: boolean; setOpen: (v: bo
   const panel = useRef<HTMLElement>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // the App page has two tabs (Borrow, Stack) told apart by the hash, so the menu tracks it to show the right one
+  const [hash, setHash] = useState("");
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash);
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, [path, open]);
 
   useEffect(() => setOpen(false), [path, setOpen]);
 
@@ -70,23 +78,40 @@ export function ExplorePanel({ open, setOpen }: { open: boolean; setOpen: (v: bo
           <button className="xp-close" onClick={() => setOpen(false)} aria-label="Close panel">×</button>
         </header>
 
-        <p className="xp-label">Pages</p>
-        <ul className="xp-pages">
-          {PAGES.map((p) => {
-            const active = !p.href.includes("#") && path === p.href;
-            return (
-              <li key={p.href}>
-                <Link href={p.href} className={active ? "active" : ""} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}>
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d={p.icon} /></svg>
-                  <span>
-                    <b>{p.label}</b>
-                    <small>{p.what}</small>
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {PAGE_GROUPS.map((g) => (
+          <div key={g.id}>
+            <p className="xp-label">{g.label}</p>
+            <ul className="xp-pages">
+              {PAGES.filter((p) => p.group === g.id).map((p) => {
+                const [pPath, pHash = ""] = p.href.split("#");
+                // the landing-page sections (/#stocks, /#earn) are never "current"; /app is Borrow unless the Stack tab is open
+                const active = pPath === path && pPath !== "/" && (pHash ? hash === `#${pHash}` : hash !== "#stack");
+                return (
+                  <li key={p.href}>
+                    <Link
+                      href={p.href}
+                      className={active ? "active" : ""}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => {
+                        setOpen(false);
+                        // a hash link on the page you're already on doesn't fire hashchange; tell the page (e.g. the App's tabs)
+                        if (pPath === path) setTimeout(() => window.dispatchEvent(new HashChangeEvent("hashchange")), 0);
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d={p.icon} /></svg>
+                      <span>
+                        <b>{p.label}</b>
+                        <small>
+                          <i className="xp-tech">{p.tech}</i> · {p.what}
+                        </small>
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
 
         <p className="xp-label">Integrated protocols</p>
         <ul className="xp-integrations">

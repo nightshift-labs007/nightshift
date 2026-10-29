@@ -27,6 +27,10 @@ export function AppPage() {
   const [mode, setMode] = useState<"testnet" | "paper">(isDeployed ? "testnet" : "paper");
   // Borrow and Stack are two tabs of the same page; /app#stack opens Stack
   const [tab, setTab] = useState<"borrow" | "stack">("borrow");
+  // the landing page's "Try it free" button lands here: start in the no-wallet paper account
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("try") === "paper") setMode("paper");
+  }, []);
   useEffect(() => {
     const sync = () => setTab(window.location.hash === "#stack" ? "stack" : "borrow");
     sync();

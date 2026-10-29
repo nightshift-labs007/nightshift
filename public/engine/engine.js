@@ -1210,11 +1210,12 @@
   window.addEventListener(
     "click",
     (e) => {
-      const b = e.target.closest && e.target.closest("#inspect, #nav-inspect, #stocks-btn");
+      const b = e.target.closest && e.target.closest("#inspect, #nav-inspect, #stocks-btn, #try-free");
       if (!b) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      if (b.id === "stocks-btn") go("#stocks");
+      if (b.id === "try-free") goPage("/app?try=paper"); // open the App in the no-wallet paper account
+      else if (b.id === "stocks-btn") go("#stocks");
       else diveInto("/inspect");
     },
     true,
