@@ -69,6 +69,10 @@ export function ProfileAvatar({ address, name, size = 40, version, className = "
       width={size}
       height={size}
       onError={() => setFailed(true)}
+      // a request that failed before React attached onError (e.g. no photo, during page load) is caught here instead
+      ref={(el) => {
+        if (el && el.complete && el.naturalWidth === 0) setFailed(true);
+      }}
     />
   );
 }

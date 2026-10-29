@@ -6,7 +6,7 @@ import { addrUrl } from "@/lib/chain";
 import { AVATAR, EMPTY_PROFILE, LIMITS, signInMessage, validateProfile, type Profile } from "@/lib/profile-shared";
 import { useWallet } from "@/lib/wallet";
 import { join, useBoard } from "./Leaderboard";
-import { PageHero, PageShell } from "./Site";
+import { PageShell } from "./Site";
 import { toast } from "./Toast";
 import { usd } from "./useApi";
 import { ProfileAvatar, avatarChanged } from "./ProfileAvatar";
@@ -44,56 +44,110 @@ function Points({ account }: { account: string }) {
   const row = data?.rows.find((r) => r.address === account.toLowerCase());
   const s = data?.scoring ?? { joined: 10, perMarket: 20, borrowing: 30, guardian: 25 };
   const items = [
-    { done: !!row?.joined, label: "Joined the leaderboard", pts: s.joined, action: row?.joined ? null : "join" },
-    { done: !!row?.markets.length, label: row?.markets.length ? `Deposited ${row.markets.join(", ")}` : "Deposit an ETF token in the Vault", pts: s.perMarket * Math.max(1, row?.markets.length ?? 0), each: true, href: "/app" },
-    { done: !!row?.borrowing, label: "Have an open loan", pts: s.borrowing, href: "/app" },
-    { done: !!row?.guardian, label: "Switch on the Guardian", pts: s.guardian, href: "/app#guardian" },
+    { done: !!row?.joined, label: "Join the leaderboard", how: "One free signature, recorded on Algorand.", pts: s.joined, action: row?.joined ? null : "join" },
+    { done: !!row?.markets.length, label: row?.markets.length ? `Deposited ${row.markets.join(", ")}` : "Deposit an ETF token", how: "Each token you deposit in the Vault counts.", pts: s.perMarket * Math.max(1, row?.markets.length ?? 0), each: true, href: "/app" },
+    { done: !!row?.borrowing, label: "Open a loan", how: "Borrow dUSDG against your deposit.", pts: s.borrowing, href: "/app" },
+    { done: !!row?.guardian, label: "Switch on the Guardian", how: "Auto-protection for your loan.", pts: s.guardian, href: "/app#guardian" },
   ];
+  const doneCount = items.filter((i) => i.done).length;
   return (
-    <div className="pf-card pf-points">
-      <div className="pf-points-top">
+    <div className="pf-card pf-earn">
+      <div className="pf-earn-head">
         <div>
-          <p className="pf-label">Points</p>
-          <p className="pf-big">{data ? row?.points ?? 0 : "…"}</p>
+          <p className="pf-label">Earn points</p>
+          <h3>{doneCount === items.length ? "Every badge earned" : `${doneCount} of ${items.length} done`}</h3>
         </div>
-        <div>
-          <p className="pf-label">Rank</p>
-          <p className="pf-big">{data ? (row ? `#${row.rank}` : "–") : "…"}</p>
-          {data && <p className="small muted">of {data.totals.wallets}</p>}
-        </div>
-        <div>
-          <p className="pf-label">Collateral</p>
-          <p className="pf-big small-num">{row?.collateralUsd ? usd(row.collateralUsd, 0) : "–"}</p>
-        </div>
+        <span className="pf-earn-pts mono">{data ? row?.points ?? 0 : "…"} pts</span>
+      </div>
+      <div className="pf-progress" aria-label={`${doneCount} of ${items.length} steps done`}>
+        <i style={{ width: `${(doneCount / items.length) * 100}%` }} />
       </div>
       <ul className="pf-checklist">
         {items.map((it) => (
           <li key={it.label} className={it.done ? "done" : ""}>
             <span className="pf-tick" aria-hidden="true">{it.done ? "✓" : ""}</span>
-            <span className="pf-item">{it.label}</span>
-            <span className="pf-pts">+{it.pts}{it.each && !it.done ? " each" : ""}</span>
-            {!it.done && it.action === "join" && (
-              <button
-                className="btn primary small"
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  try { await join(w.provider!, account); await load(); }
-                  catch (e) { toast(cancelled(e) ? "Signature cancelled." : (e as Error).message, "warn"); }
-                  finally { setBusy(false); }
-                }}
-              >
-                {busy ? "Joining…" : "Join"}
-              </button>
-            )}
-            {!it.done && it.href && <Link className="pf-go" href={it.href}>Go →</Link>}
+            <span className="pf-item">
+              <b>{it.label}</b>
+              <small>{it.how}</small>
+            </span>
+            <span className="pf-side">
+              <span className="pf-pts">+{it.pts}{it.each && !it.done ? " each" : ""}</span>
+              {!it.done && it.action === "join" && (
+                <button
+                  className="btn primary small"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    try { await join(w.provider!, account); await load(); }
+                    catch (e) { toast(cancelled(e) ? "Signature cancelled." : (e as Error).message, "warn"); }
+                    finally { setBusy(false); }
+                  }}
+                >
+                  {busy ? "Joining…" : "Join"}
+                </button>
+              )}
+              {!it.done && it.href && <Link className="pf-go" href={it.href}>Go →</Link>}
+            </span>
           </li>
         ))}
       </ul>
-      <p className="small muted">
+      <p className="small muted pf-earn-foot">
         Points come from public chains: joins on Algorand, Vault activity on Base. <Link href="/leaderboard">See the leaderboard →</Link>
       </p>
     </div>
+  );
+}
+
+/** The profile's header: a cover in the wallet's own colours, the photo, name, links and the headline numbers. */
+function Identity({ account, name }: { account: string; name?: string }) {
+  const { data } = useBoard();
+  const row = data?.rows.find((r) => r.address === account.toLowerCase());
+  const [copied, setCopied] = useState(false);
+  const h1 = parseInt(account.slice(2, 8), 16) % 360;
+  const h2 = (h1 + 40 + (parseInt(account.slice(8, 12), 16) % 140)) % 360;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(account);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast("Couldn't copy. Select the address instead.", "warn");
+    }
+  };
+  const stats: [string, React.ReactNode][] = [
+    ["Points", data ? row?.points ?? 0 : "…"],
+    ["Rank", data ? (row ? <>#{row.rank}<small> of {data.rows.length}</small></> : "–") : "…"],
+    ["Collateral", row?.collateralUsd ? usd(row.collateralUsd, 0) : "–"],
+    ["Badges", data ? [row?.joined, row?.markets.length, row?.borrowing, row?.guardian].filter(Boolean).length + " / 4" : "…"],
+  ];
+  return (
+    <section className="pf-hero">
+      <div className="pf-cover" style={{ background: `radial-gradient(120% 140% at 0% 0%, hsl(${h1} 60% 42% / .55), transparent 55%), radial-gradient(120% 140% at 100% 100%, hsl(${h2} 55% 35% / .5), transparent 60%), var(--surface)` }} aria-hidden="true" />
+      <div className="pf-id">
+        <ProfileAvatar address={account} name={name} size={116} className="pf-id-avatar" />
+        <div className="pf-id-text">
+          <p className="pf-label">Your profile</p>
+          <h1>{name || "Unnamed wallet"}</h1>
+          <div className="pf-chips">
+            <button className="pf-chip mono" onClick={copy} title="Copy address">
+              {short(account)} <span aria-hidden="true">{copied ? "✓" : "⧉"}</span>
+            </button>
+            <a className="pf-chip" href={addrUrl(account)} target="_blank" rel="noopener noreferrer">Explorer ↗</a>
+            {row?.x && <a className="pf-chip" href={`https://x.com/${row.x}`} target="_blank" rel="noopener noreferrer">@{row.x}</a>}
+            {row?.joinedAt && <span className="pf-chip">Joined {new Date(row.joinedAt * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
+          </div>
+        </div>
+        <Link className="btn secondary small pf-id-cta" href="/leaderboard">View leaderboard</Link>
+      </div>
+      <div className="pf-stats">
+        {stats.map(([k, v]) => (
+          <div key={k} className="pf-stat">
+            <span>{k}</span>
+            <b>{v}</b>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -299,38 +353,33 @@ export function ProfilePage() {
   const row = w.account ? data?.rows.find((r) => r.address === w.account!.toLowerCase()) : undefined;
   const [myName, setMyName] = useState("");
   const name = myName || row?.name;
+  if (!w.account)
+    return (
+      <PageShell>
+        <section className="block pf-page">
+          <div className="wrap">
+            <div className="pf-card pf-connect">
+              <span className="pf-connect-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6" /></svg>
+              </span>
+              <p className="pf-label">Profile</p>
+              <h1>Your Nightshift profile</h1>
+              <p className="muted">Add a name, a photo and your links, and see the points you&apos;ve collected. Your wallet is your login: one free signature, no password, no transaction.</p>
+              <p className="small muted">Connect a wallet with the <b>Connect wallet</b> button at the top to start.</p>
+            </div>
+          </div>
+        </section>
+      </PageShell>
+    );
   return (
     <PageShell>
-      <PageHero
-        overline="PROFILE"
-        title="Your Nightshift profile."
-        lead="Add a name, a photo and your links, and see the points you've collected. Your wallet is your login: one free signature, no password, no transaction."
-      />
-      <section className="block">
+      <section className="block pf-page">
         <div className="wrap">
-          {!w.account ? (
-            <div className="pf-card pf-signin">
-              <h3>Connect a wallet to start</h3>
-              <p className="muted">Use the <b>Connect wallet</b> button at the top. Your profile and points belong to that address.</p>
-            </div>
-          ) : (
-            <>
-              <div className="pf-header">
-                <ProfileAvatar address={w.account} name={name} size={64} />
-                <div>
-                  <h2>{name || short(w.account)}</h2>
-                  <p className="mono small">
-                    <a href={addrUrl(w.account)} target="_blank" rel="noopener noreferrer">{w.account} ↗</a>
-                    {row?.x && <> · <a href={`https://x.com/${row.x}`} target="_blank" rel="noopener noreferrer">@{row.x}</a></>}
-                  </p>
-                </div>
-              </div>
-              <div className="pf-layout">
-                <Points account={w.account} />
-                <Editor account={w.account} onName={setMyName} />
-              </div>
-            </>
-          )}
+          <Identity account={w.account} name={name} />
+          <div className="pf-layout">
+            <Editor account={w.account} onName={setMyName} />
+            <Points account={w.account} />
+          </div>
         </div>
       </section>
     </PageShell>
