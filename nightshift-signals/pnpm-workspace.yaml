@@ -1,0 +1,16 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "scripts"
+
+allowBuilds:
+  '@parcel/watcher': set this to true or false
+  '@swc/core': set this to true or false
+  esbuild: true
+  sharp: true
+
+minimumReleaseAgeExclude:
+  - '@electric-sql/pglite@0.5.11'
+  - '@electric-sql/pglite-pgvector@0.0.12'
+  - '@anthropic-ai/sdk@1.1.0'
+  - viem@2.57.8

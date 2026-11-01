@@ -1,0 +1,30 @@
+{
+  "name": "@nightshift-signals/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "dev:local": "tsx watch --env-file-if-exists=../../.env src/local.ts"
+  },
+  "dependencies": {
+    "@nightshift-signals/adapters": "workspace:*",
+    "@nightshift-signals/chain": "workspace:*",
+    "@nightshift-signals/core": "workspace:*",
+    "@nightshift-signals/db": "workspace:*",
+    "@nightshift-signals/worker": "workspace:*",
+    "@hono/node-server": "^2.1.5",
+    "@hono/zod-openapi": "^1.6.3",
+    "hono": "^4.13.13",
+    "jose": "^6.2.13",
+    "ws": "^8.22.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@nightshift-signals/ai": "workspace:*",
+    "@types/ws": "^8.18.2",
+    "viem": "^2.57.8"
+  }
+}

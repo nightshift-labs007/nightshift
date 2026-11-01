@@ -1,0 +1,25 @@
+{
+  "name": "@nightshift-signals/scripts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "replay": "tsx --env-file-if-exists=../.env replay.ts",
+    "grade": "tsx --env-file-if-exists=../.env grade.ts",
+    "recompute": "tsx recompute-scorecard.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "eval": "tsx --env-file-if-exists=../.env eval.ts",
+    "eval:compare": "tsx eval-compare.ts",
+    "backfill:gdelt": "tsx --env-file-if-exists=../.env backfill-gdelt.ts",
+    "telegram:setup": "tsx --env-file-if-exists=../.env telegram-setup.ts"
+  },
+  "dependencies": {
+    "@nightshift-signals/adapters": "workspace:*",
+    "@nightshift-signals/ai": "workspace:*",
+    "@nightshift-signals/chain": "workspace:*",
+    "@nightshift-signals/core": "workspace:*",
+    "@nightshift-signals/db": "workspace:*",
+    "@nightshift-signals/worker": "workspace:*",
+    "viem": "^2.57.8"
+  }
+}

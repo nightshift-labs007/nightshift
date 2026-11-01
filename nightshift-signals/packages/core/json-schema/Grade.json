@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "basket_id": {
+      "type": "string",
+      "pattern": "^bkt_\\d{8}_\\d{4}_[a-z0-9]{1,16}$"
+    },
+    "graded_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "legs": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "token_symbol": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "entry_quote_price": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d{1,18})?$"
+          },
+          "exit_price": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d{1,18})?$"
+          },
+          "exit_open_print": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d{1,18})?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ret_pct": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d{1,18})?$"
+          }
+        },
+        "required": [
+          "token_symbol",
+          "entry_quote_price",
+          "exit_price",
+          "exit_open_print",
+          "ret_pct"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ret_pct": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d{1,18})?$"
+    },
+    "spy_ret_pct": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d{1,18})?$"
+    },
+    "vs_spy_pct": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d{1,18})?$"
+    },
+    "hit": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "basket_id",
+    "graded_at",
+    "legs",
+    "ret_pct",
+    "spy_ret_pct",
+    "vs_spy_pct",
+    "hit"
+  ],
+  "additionalProperties": false
+}

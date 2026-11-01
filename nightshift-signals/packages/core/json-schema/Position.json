@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^pos_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "user_id": {
+      "type": "string",
+      "pattern": "^usr_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "basket_id": {
+      "type": "string",
+      "pattern": "^bkt_\\d{8}_\\d{4}_[a-z0-9]{1,16}$"
+    },
+    "size_usdg": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d{1,18})?$"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "token_symbol": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "quote_price": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d{1,18})?$"
+          },
+          "quote_size_usdg": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d{1,18})?$"
+          },
+          "clicked_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "token_symbol",
+          "quote_price",
+          "quote_size_usdg",
+          "clicked_at"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tx_hashes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^0x[0-9a-f]{64}$"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    }
+  },
+  "required": [
+    "id",
+    "user_id",
+    "basket_id",
+    "size_usdg",
+    "entries",
+    "tx_hashes",
+    "created_at"
+  ],
+  "additionalProperties": false
+}

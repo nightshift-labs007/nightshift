@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* Dark by default (it is a night product); light supported. Hot = live and breaking, cool = graded and historical. */
+@theme {
+  --color-ink: var(--ink);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-paper: var(--paper);
+  --color-muted: var(--muted);
+  --color-hot: var(--hot);
+  --color-cool: var(--cool);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-beat: var(--beat);
+  --color-miss: var(--miss);
+  --font-display: var(--font-space-grotesk), var(--font-devanagari), ui-sans-serif, system-ui;
+  --font-sans: var(--font-plex), var(--font-devanagari), ui-sans-serif, system-ui;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+:root {
+  --ink: #0d111a;
+  --panel: #161b29;
+  --panel-2: #1d2334;
+  --line: #2a3046;
+  --paper: #f3efe6;
+  --muted: #9aa1b5;
+  --hot: #ff8a3d;
+  --cool: #6aaeff;
+  --up: #4ade80;
+  --down: #f87171;
+  /* Result pair for charts and badges: blue = beat SPY, orange = missed. Validated for color-vision deficiency
+     against both surfaces (red/green failed). Always paired with ▲/▼ and a word. */
+  --beat: #4f93e6;
+  --miss: #dc6a24;
+  /* Categorical series, fixed order, validated (CVD and lightness) against this surface. */
+  --s1: #4f93e6;
+  --s2: #dc6a24;
+  --s3: #2fa37a;
+  --s4: #a77ae0;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --ink: #f3efe6;
+  --panel: #faf8f3;
+  --panel-2: #efebe1;
+  --line: #ddd7c8;
+  --paper: #11141c;
+  --muted: #5b6275;
+  --hot: #b4500f;
+  --cool: #2563a6;
+  --up: #15803d;
+  --down: #b91c1c;
+  --beat: #2563a6;
+  --miss: #b4500f;
+  --s1: #2563a6;
+  --s2: #b4500f;
+  --s3: #1d7a57;
+  --s4: #7b4fc2;
+  color-scheme: light;
+}
+
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-sans);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.arrive {
+  animation: arrive 0.4s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrive {
+    animation: none;
+  }
+}
+
+/* Letter-spaced uppercase labels break Devanagari conjuncts; scripts without case get plain labels. */
+:lang(hi) .eyebrow {
+  letter-spacing: 0;
+  text-transform: none;
+}

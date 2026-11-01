@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "is_market_moving": {
+      "type": "boolean"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "geopolitics_energy",
+        "conflict_defense",
+        "semis_export",
+        "monetary_policy",
+        "trade_tariffs",
+        "china_macro",
+        "crypto_regulation",
+        "health_policy",
+        "earnings_megacap",
+        "other"
+      ]
+    },
+    "regions": {
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    },
+    "severity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "entities": {
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      }
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 160
+    }
+  },
+  "required": [
+    "is_market_moving",
+    "category",
+    "regions",
+    "severity",
+    "entities",
+    "reason"
+  ],
+  "additionalProperties": false
+}
