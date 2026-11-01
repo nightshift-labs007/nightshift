@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // Called every few minutes by an external scheduler (e.g. cron-job.org, with an "Authorization: Bearer <CRON_SECRET>"
-// header), because Vercel's free plan only allows daily crons. Pushes Oracle prices to Algorand TestNet; the Base steps below
-// (prices, Guardian, Stack) are no-ops while the Base deployment is retired.
+// header), because Vercel's free plan only allows daily crons. Pushes Oracle prices to Algorand TestNet and to Base
+// Sepolia, then runs the Guardian and due Stack plans on Base Sepolia.
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
