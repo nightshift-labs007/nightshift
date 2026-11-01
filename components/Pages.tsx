@@ -18,9 +18,13 @@ import { VaultApp } from "./VaultApp";
 import { Verified } from "./Verified";
 import { ActivityProof } from "./Transactions";
 import { GettingStarted } from "./GettingStarted";
+import { MarketNotice } from "./Markets";
 import { markStep } from "@/lib/onboarding";
 import { useAccount } from "@/lib/paper";
 import { useWallet } from "@/lib/wallet";
+import algoRecord from "@/lib/algorand-testnet.json";
+
+const ALGO = algoRecord as { oracle?: { appId: number } };
 
 const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
 
@@ -78,12 +82,13 @@ export function AppPage() {
             ? isMainnet
               ? `Live on ${NETWORK} with demo assets that have no value: connect a wallet (it switches to ${NETWORK} for you), get demo funds, deposit collateral and borrow ${sym("USDG")}. You only pay a few cents of ETH gas. Health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation. Unaudited demo.`
               : `Connect a wallet (it switches to ${NETWORK} for you), get free test funds, deposit collateral and borrow ${sym("USDG")}. The health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation.`
-            : "The on-chain vault goes live on Base shortly. Until then, try the full flow without a wallet: your paper account starts with 10 SPY, 10 QQQ, 20 GLD, 100 SLV and 200 IBIT."
+            : "The on-chain Vault is being rebuilt for Algorand TestNet. Until then, try the full flow without a wallet: your paper account starts with 10 SPY, 10 QQQ, 20 GLD, 100 SLV and 200 IBIT."
         }
       />
       <section className="block app-tabs-row">
         <div className="wrap">
           <GettingStarted />
+          <MarketNotice />
           <div className="seg app-tabs" role="tablist" aria-label="App sections">
             <button role="tab" aria-selected={tab === "borrow"} className={tab === "borrow" ? "on" : ""} onClick={() => pick("borrow")}>Borrow</button>
             <button role="tab" aria-selected={tab === "stack"} className={tab === "stack" ? "on" : ""} onClick={() => pick("stack")}>Stack</button>
@@ -182,7 +187,7 @@ export function ProofPage() {
       <PageHero
         overline="PROOF · CLOAK"
         title="Prove a loan is solvent without revealing it."
-        lead="A Groth16 zero-knowledge proof shows a loan is safely backed at the live Oracle price without disclosing its size or liquidation level. Proofs are generated in your browser and verified by the server, or by anyone you share them with."
+        lead="A Groth16 zero-knowledge proof shows a loan is fully backed (health factor above 1) at the live Oracle price without disclosing its size or liquidation level. Proofs are generated in your browser and verified by the server, or by anyone you share them with."
       />
       <section className="block" id="cloak">
         <div className="wrap">
@@ -200,10 +205,28 @@ function Contracts() {
   if (!isDeployed) {
     return (
       <div className="card panel contracts-pending">
-        <h3>Contracts</h3>
+        <h3>Contracts · Algorand TestNet</h3>
+        <table className="contracts">
+          <tbody>
+            <tr>
+              <td>Oracle (prices + confidence)</td>
+              <td className="mono">
+                {ALGO.oracle ? (
+                  <a href={`https://lora.algokit.io/testnet/application/${ALGO.oracle.appId}`} target="_blank" rel="noopener noreferrer">
+                    app {ALGO.oracle.appId} ↗
+                  </a>
+                ) : (
+                  "deploying"
+                )}
+              </td>
+            </tr>
+            <tr><td>Vault + Guardian</td><td className="muted">being rebuilt</td></tr>
+            <tr><td>Stack</td><td className="muted">being rebuilt</td></tr>
+            <tr><td>Cloak verifier</td><td className="muted">being rebuilt</td></tr>
+          </tbody>
+        </table>
         <p className="muted">
-          The Vault, Guardian and Oracle contracts are built and tested (15 contract tests and 37 checks against the Lean model all pass) and
-          go live on Base shortly. Their addresses will be listed here.
+          Nothing runs on any mainnet. The earlier Base contracts are retired. Algorand TestNet versions follow the same rules, checked against the same Lean proof vectors.
         </p>
       </div>
     );

@@ -1,6 +1,6 @@
 import "server-only";
 import { formatEther, type Address } from "viem";
-import { ABI, DEPLOYMENT, addrUrl } from "@/lib/chain";
+import { ABI, DEPLOYMENT, addrUrl, isDeployed } from "@/lib/chain";
 import { publicClient, readMany } from "@/lib/chain/keeper";
 import { explorerAccount, explorerTx, ledgerAddress, readJoins } from "@/lib/algorand";
 import { getTransactions, type BotId } from "@/lib/transactions";
@@ -76,6 +76,7 @@ export async function getLeaderboard(): Promise<Leaderboard> {
   const [joinsRes, posRes, txRes] = await Promise.allSettled([
     readJoins(),
     (async () => {
+      if (!isDeployed) throw new Error("Base retired"); // no EVM positions to read; the leaderboard falls back to joins
       const vaults = [DEPLOYMENT.contracts.vault, DEPLOYMENT.previous?.vault].filter(Boolean) as Address[];
       const lists = await Promise.all(vaults.map((v) => vaultPositions(v).then((ps) => ps.map((p) => ({ ...p, vault: v, current: v === DEPLOYMENT.contracts.vault })))));
       const all = lists.flat();

@@ -56,7 +56,7 @@ export const EXPLAIN: Record<Topic, string> = {
   confidence:
     "Confidence runs from 35 to 98. It falls the longer markets stay closed and when my signals disagree, and it's capped during big overnight moves. Lower confidence means you can borrow less, so the Vault stays careful when I'm less sure.",
   cloak:
-    "Cloak proves your loan is safe without revealing it. A zero-knowledge proof shows your collateral covers your debt at my price, without exposing the loan's size or liquidation level. It's checked by the server and by a contract on Base.",
+    "Cloak proves your loan is solvent without revealing it. A zero-knowledge proof shows your collateral covers your debt at my price, without exposing the loan's size or liquidation level. It's checked by the server today, and by an Algorand TestNet contract next.",
   ledger:
     "Every weekday before the opening bell, my predictions are fingerprinted and written to Algorand, then graded against the real open. Nobody, including the Nightshift team, can edit them afterwards, losing days included.",
   liquidation:
@@ -64,17 +64,17 @@ export const EXPLAIN: Record<Topic, string> = {
   proofs:
     "Twenty-four of Nightshift's safety rules are proven mathematically in Lean 4 and checked by Harmonic's Aristotle. For example: a healthy loan can never be liquidated, and the Guardian never sells more than you own. The proofs are public on GitHub.",
   morpho:
-    "The Vault follows Morpho Blue's lending rules, and Nightshift publishes Morpho-compatible price feeds on Base, so any Morpho market can use my overnight prices instead of a frozen close.",
+    "The Vault follows Morpho Blue's lending and liquidation rules. Morpho isn't on Algorand, so Nightshift rebuilds those rules as its own Algorand TestNet contract.",
   sentora:
     "The Earn section shows a live Sentora vault where idle stablecoins could earn a protected rate. Deposits happen on Sentora's own site. Nightshift never touches the funds.",
   points:
     "You earn 10 points for joining the leaderboard, 20 for each token you deposit, 30 for an open loan, and 25 for switching on the Guardian. They live on public chains, so nobody can tamper with the rankings. They're demo points with no money value.",
   vault:
-    "The Vault lets you deposit ETF tokens as collateral and borrow dUSDG against them. Your limit comes from my live overnight price, not a stale close. It runs on Base with demo tokens that have no value, and it hasn't been audited.",
+    "The Vault lets you deposit ETF tokens as collateral and borrow dUSDG against them. Your limit comes from my live overnight price, not a stale close. It runs in paper mode while it's rebuilt for Algorand TestNet, and it hasn't been audited.",
   stack:
     "Stack buys gold or silver for you on a schedule, like a savings plan. You pick the metal, the amount and how often, and it only buys when the price is within a small margin of my fair value. The tokens go straight to your wallet, and you can pause or cancel any time. Say something like: start a 20 dollar weekly gold stack.",
   demo:
-    "Everything here uses demo tokens with no value. Connect a wallet on Base and press Get demo funds in the App, or try the paper account without any wallet at all.",
+    "Nothing here uses real money or any mainnet. Try the paper account in the App, no wallet needed. Algorand TestNet wallets come next.",
   beta:
     "Beta is how strongly an ETF moves with its futures overnight. I measure it from past nights, then pull it gently toward one so a short history can't fool me. If the fit is weak, I simply use one.",
 };

@@ -47,7 +47,7 @@ function Simulator({ apy }: { apy: number | null }) {
     <div className="card panel earn-sim">
       <div className="earn-sim-head">
         <h3>Paper simulator</h3>
-        <span className="unit">{idle > 0 ? `Paper wallet idle USDG: ${usd(idle, 0)}` : "No idle USDG in your paper wallet yet"}</span>
+        <span className="unit">{idle > 0 ? `Paper wallet idle dollars: ${usd(idle, 0)}` : "No idle dollars in your paper wallet yet"}</span>
       </div>
       <label className="field" htmlFor="earn-amt">
         Amount
@@ -67,8 +67,8 @@ function Simulator({ apy }: { apy: number | null }) {
         </div>
       </div>
       <p className="earn-fine">
-        Projected at the 7-day APY of {pctFmt(apy)}. Rates change daily; this is an illustration, not a forecast. Borrow USDG in the paper vault to
-        see your own idle balance here.
+        Projected at the 7-day APY of {pctFmt(apy)}. Rates change daily; this is an illustration, not a forecast. The vault takes PYUSD on Ethereum, not
+        USDG: a real deposit means converting first. Borrow in the paper vault to see your own idle balance here.
       </p>
     </div>
   );
@@ -128,6 +128,10 @@ export function Earn() {
               <b className="mono">{data.sharePrice === null ? "—" : `${data.sharePrice.toFixed(5)} ${data.vault.asset}`}</b>
             </div>
           </div>
+
+          <p className="earn-src mono">
+            Read-only: this vault holds {data.vault.asset} on {data.vault.chain} mainnet. Nightshift only reads it and sends no transactions to any mainnet.
+          </p>
 
           <ApySpark points={data.history} />
 

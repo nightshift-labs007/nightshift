@@ -125,7 +125,7 @@ export async function feature({ n, stamp }: MixCtx): Promise<string[] | null> {
       "If that can't save it, it doesn't touch it and flags it in the app instead. Proven in Lean 4.",
     ],
     async () => [
-      "Prove your loan is safe without showing its size.",
+      "Prove your loan is solvent without showing its size.",
       "",
       "Nightshift Cloak makes a zero-knowledge proof in your browser: debt < collateral × price × LTV. Nothing else is revealed.",
       "",

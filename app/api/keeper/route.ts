@@ -2,17 +2,25 @@ import { NextResponse, type NextRequest } from "next/server";
 import { alert } from "@/lib/alert";
 import { authorized } from "@/lib/env";
 import { getHealth } from "@/lib/health";
+import { pushAlgorandPrices } from "@/lib/algorand-oracle";
 import { pushPrices, runGuardian, runStack } from "@/lib/chain/keeper";
+import { getOracleSnapshot } from "@/lib/oracle";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // Called every few minutes by an external scheduler (e.g. cron-job.org, with an "Authorization: Bearer <CRON_SECRET>"
-// header), because Vercel's free plan only allows daily crons. Pushes Oracle prices on-chain, runs the Guardian and runs the due Stack plans.
+// header), because Vercel's free plan only allows daily crons. Pushes Oracle prices to Algorand TestNet; the Base steps below
+// (prices, Guardian, Stack) are no-ops while the Base deployment is retired.
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const out: Record<string, unknown> = { at: new Date().toISOString() };
+  try {
+    out.algorand = await pushAlgorandPrices((await getOracleSnapshot()).quotes); // Algorand TestNet Oracle
+  } catch (e) {
+    out.algorand = { error: String(e).slice(0, 300) };
+  }
   try {
     out.prices = await pushPrices();
   } catch (e) {

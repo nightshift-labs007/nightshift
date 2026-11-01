@@ -7,6 +7,7 @@ import { isMainnet } from "@/lib/chain";
 import { BrandMark } from "./BrandMark";
 import { ExplorePanel } from "./ExplorePanel";
 import { JoinPrompt } from "./Leaderboard";
+import { MarketSwitch } from "./Markets";
 import { Toaster } from "./Toast";
 import { WelcomeGuide } from "./WelcomeGuide";
 import { WalletButton } from "./WalletButton";
@@ -54,6 +55,10 @@ export function SiteNav() {
         <Link className="brand" href="/">
           <BrandMark /> Nightshift
         </Link>
+        <Link className="nav-lang" href={path === "/hi" ? "/" : "/hi"} lang={path === "/hi" ? "en" : "hi"} title={path === "/hi" ? "English" : "हिंदी में पढ़ें"}>
+          {path === "/hi" ? "EN" : "हिं"}
+        </Link>
+        <MarketSwitch />
         <WalletButton />
         {path !== "/app" && (
           <Link className="btn primary small nav-cta" href="/app">
@@ -76,7 +81,7 @@ export function SiteFooter() {
             <BrandMark /> Nightshift
           </Link>
           <p>
-            {isMainnet ? "Unaudited demonstration: the Vault on Base uses demo assets with no value; never send real tokens to it." : "Concept demonstration on test networks: no real funds."} Oracle values are data, not investment advice. Nightshift doesn&apos;t sell
+            {isMainnet ? "Unaudited demonstration: the Vault on Base uses demo assets with no value; never send real tokens to it." : "Concept demonstration on Algorand TestNet and in paper mode: nothing on any mainnet, no real funds."} Oracle values are data, not investment advice. Nightshift doesn&apos;t sell
             tokens; Stock Tokens are not available to US persons. Market data comes from public feeds and may be delayed or simulated where
             marked. The Earn panel shows a third-party vault run by Sentora; deposits happen on Sentora&apos;s site, and Nightshift does not hold
             funds or control that vault.

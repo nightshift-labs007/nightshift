@@ -33,3 +33,6 @@ formal/aristotle-*.rejected.lean
 
 # Private documents (partner specs, concept paper): kept locally, never committed
 /*.pdf
+
+# Local waitlist store used by `npm run dev` when Upstash is not connected (contains emails)
+.data/
