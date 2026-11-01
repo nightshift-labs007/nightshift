@@ -26,3 +26,6 @@ formal/aristotle-*
 santora-integration.pdf
 Nightshift_Harmonic_Integration_Spec.pdf
 *.jpg
+
+# Nightshift Signals monorepo lives here but is not part of the nightshift.buzz build
+nightshift-signals

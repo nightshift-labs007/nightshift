@@ -1,0 +1,36 @@
+{
+  "name": "nightshift-signals",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.8.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:generate": "pnpm --filter @nightshift-signals/db db:generate",
+    "db:migrate": "pnpm --filter @nightshift-signals/db db:migrate",
+    "schemas:json": "pnpm --filter @nightshift-signals/core schemas:json",
+    "replay": "pnpm --filter @nightshift-signals/scripts replay",
+    "grade": "pnpm --filter @nightshift-signals/scripts grade",
+    "recompute": "pnpm --filter @nightshift-signals/scripts recompute",
+    "dev:local": "turbo run dev:local",
+    "eval": "pnpm --filter @nightshift-signals/scripts eval",
+    "eval:compare": "pnpm --filter @nightshift-signals/scripts eval:compare",
+    "backfill:gdelt": "pnpm --filter @nightshift-signals/scripts backfill:gdelt",
+    "telegram:setup": "pnpm --filter @nightshift-signals/scripts telegram:setup"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.10",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "geopolitics_energy",
+          "conflict_defense",
+          "semis_export",
+          "monetary_policy",
+          "trade_tariffs",
+          "china_macro",
+          "crypto_regulation",
+          "health_policy",
+          "earnings_megacap",
+          "other"
+        ]
+      }
+    },
+    "min_severity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      }
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    }
+  },
+  "required": [
+    "categories",
+    "min_severity",
+    "entities",
+    "regions"
+  ],
+  "additionalProperties": false
+}

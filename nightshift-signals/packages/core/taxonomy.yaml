@@ -1,0 +1,96 @@
+# Headline-to-ETF taxonomy (BUILD.md §15). Versioned; editable without a deploy.
+# Candidates are a starting hypothesis, not research. The live token registry decides eligibility:
+# a ticker is only offered to the model if it has an active, liquid Stock Token with a fair-value proxy.
+# typical_move_bps: a normal next-open reaction for this category, used to skip already-priced-in legs.
+version: 1
+categories:
+  geopolitics_energy:
+    description: Oil supply shocks, Middle East conflict touching energy routes, OPEC decisions.
+    examples:
+      - Tanker attacked in Strait of Hormuz
+      - OPEC+ agrees surprise production cut
+    candidates: [XLE, USO, GLD]
+    proxy: CL+ES
+    default_beta: 0.8
+    typical_move_bps: 150
+    enabled: true
+  conflict_defense:
+    description: Armed conflict escalation, defense spending announcements.
+    examples:
+      - NATO members agree to raise defense spending target
+    candidates: [ITA, XAR, GLD]
+    proxy: ES
+    default_beta: 0.9
+    typical_move_bps: 120
+    enabled: true
+  semis_export:
+    description: Chip export controls, semiconductor supply chain restrictions.
+    examples:
+      - US expands export curbs on advanced AI chips to China
+    candidates: [SMH, SOXX]
+    proxy: NQ
+    default_beta: 1.4
+    typical_move_bps: 200
+    enabled: true
+  monetary_policy:
+    description: Fed and other central bank rate surprises, Fed official remarks that move rate expectations.
+    examples:
+      - Fed's Waller says a December cut is not a done deal
+    candidates: [TLT, XLF, QQQ]
+    proxy: NQ
+    default_beta: 1.0
+    typical_move_bps: 100
+    enabled: true
+  trade_tariffs:
+    description: Tariff announcements, trade deals and retaliation.
+    examples:
+      - White House announces 25% tariff on EU autos
+    candidates: [XLI, EEM, FXI]
+    proxy: ES
+    default_beta: 1.0
+    typical_move_bps: 120
+    enabled: true
+  china_macro:
+    description: Chinese stimulus, PBOC actions, China growth data surprises.
+    examples:
+      - China unveils 2 trillion yuan stimulus package
+    candidates: [FXI, KWEB, COPX]
+    proxy: ES
+    default_beta: 0.7
+    typical_move_bps: 200
+    enabled: true
+  crypto_regulation:
+    description: Crypto regulation, ETF approvals, enforcement actions.
+    examples:
+      - SEC approves in-kind redemptions for bitcoin ETFs
+    candidates: [IBIT]
+    proxy: BTC
+    default_beta: 1.0
+    typical_move_bps: 300
+    enabled: true
+  health_policy:
+    description: Drug pricing, healthcare policy, FDA decisions with sector-wide impact.
+    examples:
+      - Administration announces most-favored-nation drug pricing order
+    candidates: [XLV, XBI]
+    proxy: ES
+    default_beta: 0.7
+    typical_move_bps: 120
+    enabled: true
+  earnings_megacap:
+    description: After-hours earnings from megacaps large enough to move their sector.
+    examples:
+      - Nvidia beats and raises guidance after the close
+    candidates: [QQQ, SMH]
+    proxy: NQ
+    default_beta: 1.2
+    typical_move_bps: 150
+    enabled: true
+  other:
+    description: Market-moving but outside every category above. Not mapped until it has a category.
+    examples: []
+    candidates: []
+    proxy: ES
+    default_beta: 1.0
+    typical_move_bps: 100
+    enabled: false

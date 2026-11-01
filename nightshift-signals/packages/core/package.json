@@ -1,0 +1,27 @@
+{
+  "name": "@nightshift-signals/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts",
+    "./taxonomy": "./src/taxonomy.ts",
+    "./market": "./src/market.ts",
+    "./links": "./src/links.ts",
+    "./enums": "./src/enums.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "schemas:json": "tsx scripts/write-json-schema.ts"
+  },
+  "dependencies": {
+    "big.js": "^7.0.1",
+    "ulid": "^3.0.2",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/big.js": "^7.0.0"
+  }
+}

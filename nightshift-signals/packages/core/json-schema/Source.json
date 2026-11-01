@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^src_[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "rss",
+        "x",
+        "wire",
+        "gdelt",
+        "gov"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "trust_weight": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "active": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "kind",
+    "name",
+    "url",
+    "trust_weight",
+    "active"
+  ],
+  "additionalProperties": false
+}

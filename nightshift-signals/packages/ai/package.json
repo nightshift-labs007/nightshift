@@ -1,0 +1,17 @@
+{
+  "name": "@nightshift-signals/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
+    "@nightshift-signals/core": "workspace:*",
+    "zod": "^4.6.7"
+  }
+}
