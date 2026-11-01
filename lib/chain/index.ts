@@ -28,11 +28,12 @@ export type Deployment = {
 
 export const DEPLOYMENT = deployment as unknown as Deployment;
 /**
- * The Base deployment is retired (2026-11-01): Nightshift sends nothing to any mainnet and is moving to Algorand TestNet.
- * With this on, the site, keeper, faucet and feeds treat the EVM contracts as not deployed; the record above is kept for history.
+ * Base mainnet is retired (2026-11-01): Nightshift sends nothing to any mainnet. Its record is kept for history in
+ * deployment-base-mainnet.json. The EVM contracts now run on Base Sepolia (testnet, scripts/deploy-testnet.mjs); a
+ * deployment.json that still points at mainnet counts as not deployed, so the site falls back to paper mode.
  */
-export const BASE_RETIRED = true;
-export const isDeployed = DEPLOYMENT.deployed === true && !BASE_RETIRED;
+export const BASE_MAINNET_RETIRED = true;
+export const isDeployed = DEPLOYMENT.deployed === true && !(BASE_MAINNET_RETIRED && DEPLOYMENT.chainId === 8453);
 /** Base mainnet (chain 8453): demo assets with no value, no ETH faucet, explicit "unaudited demo" notices. */
 export const isMainnet = isDeployed && DEPLOYMENT.chainId === 8453;
 export const NETWORK = isDeployed ? (isMainnet ? "Base" : DEPLOYMENT.chainName) : "Base";

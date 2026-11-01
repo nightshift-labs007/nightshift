@@ -3,7 +3,7 @@
 // Usage: node --env-file=.env.local scripts/demo-activity.mjs <1|2|3> [SPY|QQQ|GLD|IBIT] [resume-from-step 0-7]
 import { createPublicClient, createWalletClient, fallback, http, formatEther, maxUint256, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { base } from "viem/chains";
+import { base, baseSepolia } from "viem/chains";
 import fs from "node:fs";
 
 const dep = JSON.parse(fs.readFileSync(new URL("../lib/chain/deployment.json", import.meta.url), "utf8"));
@@ -13,10 +13,13 @@ const sym = process.argv[3] ?? ["SPY", "QQQ", "GLD"][Number(n) - 1];
 const key = process.env[`DEMO_WALLET_${n}_PRIVATE_KEY`];
 if (!key || !dep.tokens[sym]) throw new Error("usage: demo-activity.mjs <1|2|3> [SPY|QQQ|GLD|IBIT]");
 
-const transport = fallback(["https://base-rpc.publicnode.com", "https://base.drpc.org", "https://mainnet.base.org"].map((u) => http(u, { retryCount: 3, retryDelay: 800 })));
-const pub = createPublicClient({ chain: base, transport });
+// the network comes from lib/chain/deployment.json: Base Sepolia now (Base mainnet is retired)
+const RPCS = { 84532: ["https://sepolia.base.org", "https://base-sepolia-rpc.publicnode.com"], 8453: ["https://base-rpc.publicnode.com", "https://mainnet.base.org"] };
+const chain = dep.chainId === 84532 ? baseSepolia : base;
+const transport = fallback(RPCS[dep.chainId].map((u) => http(u, { retryCount: 3, retryDelay: 800 })));
+const pub = createPublicClient({ chain, transport });
 const account = privateKeyToAccount(key);
-const wallet = createWalletClient({ chain: base, account, transport });
+const wallet = createWalletClient({ chain, account, transport });
 const { vault, usdg } = dep.contracts;
 const token = dep.tokens[sym].address;
 const V = { address: vault, abi: abis.NightshiftVault };
@@ -29,7 +32,7 @@ async function send(label, c, functionName, args) {
   const hash = await wallet.writeContract({ ...c, functionName, args, nonce: nonce++ });
   const r = await pub.waitForTransactionReceipt({ hash });
   if (r.status !== "success") throw new Error(`${label} reverted: ${hash}`);
-  console.log(`${label.padEnd(28)} https://basescan.org/tx/${hash}`);
+  console.log(`${label.padEnd(28)} ${dep.explorer}/tx/${hash}`);
   await sleep(2500); // let the load-balanced RPC nodes catch up before the next read
 }
 // public RPCs are load-balanced: read until the value is non-zero (a fresh transaction may not be visible yet)
@@ -43,7 +46,7 @@ async function readNonZero(c, functionName, args) {
 }
 
 const from = Number(process.argv[4] ?? 0);
-console.log(`wallet ${n} ${account.address} · ${sym} · ${formatEther(await pub.getBalance({ address: account.address }))} ETH`);
+console.log(`wallet ${n} ${account.address} Â· ${sym} Â· ${formatEther(await pub.getBalance({ address: account.address }))} ETH`);
 const steps = [
   async () => { if ((await pub.readContract({ ...T, functionName: "balanceOf", args: [account.address] })) === 0n) await send(`faucet ${sym}`, T, "faucet", []); },
   async () => send(`approve ${sym}`, T, "approve", [vault, maxUint256]),
@@ -56,4 +59,4 @@ const steps = [
 ];
 for (let i = from; i < steps.length; i++) await steps[i]();
 const hf = await pub.readContract({ ...V, functionName: "healthFactor", args: [account.address, token] });
-console.log(`done · health factor ${Number(formatEther(hf)).toFixed(2)} · ${formatEther(await pub.getBalance({ address: account.address }))} ETH left`);
+console.log(`done Â· health factor ${Number(formatEther(hf)).toFixed(2)} Â· ${formatEther(await pub.getBalance({ address: account.address }))} ETH left`);

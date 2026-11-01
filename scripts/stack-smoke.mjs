@@ -1,9 +1,9 @@
-// On-chain smoke test of Stack on Base mainnet (demo tokens): a team wallet creates a plan, another wallet executes it.
+// On-chain smoke test of Stack on the deployed network (Base Sepolia, test tokens): a team wallet creates a plan, another wallet executes it.
 //   node --env-file=.env.local scripts/stack-smoke.mjs [GLD|SLV] [amount in dUSDG]
 import fs from "node:fs";
 import { createPublicClient, createWalletClient, fallback, http, formatEther, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { base } from "viem/chains";
+import { base, baseSepolia } from "viem/chains";
 
 const D = JSON.parse(fs.readFileSync("lib/chain/deployment.json", "utf8"));
 const A = JSON.parse(fs.readFileSync("lib/chain/artifacts.json", "utf8"));
@@ -11,10 +11,13 @@ const sym = process.argv[2] ?? "GLD";
 const amount = parseEther(process.argv[3] ?? "20");
 const token = D.tokens[sym].address;
 const { plan, pool } = D.stack;
-const transport = fallback(["https://base-rpc.publicnode.com", "https://mainnet.base.org"].map((u) => http(u, { retryCount: 3, retryDelay: 800 })));
-const pub = createPublicClient({ chain: base, transport });
-const user = createWalletClient({ chain: base, transport, account: privateKeyToAccount(process.env.DEMO_WALLET_1_PRIVATE_KEY.trim()) });
-const keeper = createWalletClient({ chain: base, transport, account: privateKeyToAccount(process.env.DEMO_WALLET_2_PRIVATE_KEY.trim()) }); // anyone may execute
+// the network comes from lib/chain/deployment.json: Base Sepolia now (Base mainnet is retired)
+const RPCS = { 84532: ["https://sepolia.base.org", "https://base-sepolia-rpc.publicnode.com"], 8453: ["https://base-rpc.publicnode.com", "https://mainnet.base.org"] };
+const chain = D.chainId === 84532 ? baseSepolia : base;
+const transport = fallback(RPCS[D.chainId].map((u) => http(u, { retryCount: 3, retryDelay: 800 })));
+const pub = createPublicClient({ chain, transport });
+const user = createWalletClient({ chain, transport, account: privateKeyToAccount(process.env.DEMO_WALLET_1_PRIVATE_KEY.trim()) });
+const keeper = createWalletClient({ chain, transport, account: privateKeyToAccount(process.env.DEMO_WALLET_2_PRIVATE_KEY.trim()) }); // anyone may execute
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const nonces = {};
 const send = async (w, label, address, name, fn, args) => {
@@ -23,7 +26,7 @@ const send = async (w, label, address, name, fn, args) => {
   const hash = await w.writeContract({ address, abi: A[name].abi, functionName: fn, args, nonce: nonces[a]++ });
   const r = await pub.waitForTransactionReceipt({ hash });
   if (r.status !== "success") throw new Error(`${label} reverted: ${hash}`);
-  console.log(`${label.padEnd(34)} https://basescan.org/tx/${hash}`);
+  console.log(`${label.padEnd(34)} ${D.explorer}/tx/${hash}`);
   await sleep(3500);
   return r;
 };

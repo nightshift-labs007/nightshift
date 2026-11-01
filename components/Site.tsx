@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { isMainnet } from "@/lib/chain";
+import { NETWORK, isDeployed, isMainnet } from "@/lib/chain";
 import { BrandMark } from "./BrandMark";
 import { ExplorePanel } from "./ExplorePanel";
 import { JoinPrompt } from "./Leaderboard";
@@ -81,7 +81,7 @@ export function SiteFooter() {
             <BrandMark /> Nightshift
           </Link>
           <p>
-            {isMainnet ? "Unaudited demonstration: the Vault on Base uses demo assets with no value; never send real tokens to it." : "Concept demonstration on Algorand TestNet and in paper mode: nothing on any mainnet, no real funds."} Oracle values are data, not investment advice. Nightshift doesn&apos;t sell
+            {isMainnet ? "Unaudited demonstration: the Vault on Base uses demo assets with no value; never send real tokens to it." : isDeployed ? `Concept demonstration on ${NETWORK} and Algorand TestNet (test networks) and in paper mode: test tokens only, no real funds.` : "Concept demonstration on Algorand TestNet and in paper mode: test tokens only, no real funds."} Oracle values are data, not investment advice. Nightshift doesn&apos;t sell
             tokens; Stock Tokens are not available to US persons. Market data comes from public feeds and may be delayed or simulated where
             marked. The Earn panel shows a third-party vault run by Sentora; deposits happen on Sentora&apos;s site, and Nightshift does not hold
             funds or control that vault.
