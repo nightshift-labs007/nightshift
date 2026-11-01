@@ -12,6 +12,7 @@ import { OracleBoard } from "./OracleBoard";
 import { OracleChart } from "./OracleChart";
 import { ShiftReport } from "./ShiftReport";
 import { StackTab } from "./StackTab";
+import { MemberGate } from "./Member";
 import { PageHero, PageShell, SectionHead } from "./Site";
 import { useApi } from "./useApi";
 import { VaultApp } from "./VaultApp";
@@ -98,7 +99,9 @@ export function AppPage() {
       {tab === "stack" ? (
         <section className="block" id="stack">
           <div className="wrap">
-            <StackTab />
+            <MemberGate what="Stack">
+              <StackTab />
+            </MemberGate>
           </div>
         </section>
       ) : (
@@ -122,7 +125,7 @@ export function AppPage() {
                 : "Practice account: it lives in this browser, is already funded, and needs no wallet. Open a loan below to try it."}
             </p>
           )}
-          {mode === "testnet" ? <OnchainVault /> : snap ? <VaultApp quotes={snap.quotes} /> : <div className="skeleton">Loading vault…</div>}
+          {mode === "testnet" ? <MemberGate what="Borrow with your wallet" practice={() => setMode("paper")}><OnchainVault /></MemberGate> : snap ? <VaultApp quotes={snap.quotes} /> : <div className="skeleton">Loading vault…</div>}
         </div>
       </section>
       <section className="block alt" id="guardian">

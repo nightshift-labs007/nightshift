@@ -87,7 +87,7 @@ export async function publicProfiles(addresses: string[]): Promise<Map<string, P
     try {
       const p = JSON.parse(raw) as Profile;
       const avatarAt = ats[i] ? Number(ats[i]) : undefined;
-      if (p.showPublic && (p.name || p.x || avatarAt)) out.set(addresses[i].toLowerCase(), { name: p.name, x: p.x, bio: p.bio, avatarAt });
+      if (p.showPublic && (p.username || p.name || p.x || avatarAt)) out.set(addresses[i].toLowerCase(), { username: p.username || undefined, name: p.name, x: p.x, bio: p.bio, avatarAt });
     } catch {
       // skip a malformed record
     }

@@ -5,6 +5,7 @@ import { roleClients } from "@/lib/chain/keeper";
 import { env } from "@/lib/env";
 import { take } from "@/lib/ratelimit";
 import { dripMessage } from "@/lib/drip";
+import { isRegistered, signupRequired } from "@/lib/members";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -45,11 +46,15 @@ export async function POST(req: NextRequest) {
   const signer = await recoverMessageAddress({ message: dripMessage(address, issuedAt!), signature }).catch(() => null);
   if (!signer || signer.toLowerCase() !== address.toLowerCase()) return NextResponse.json({ error: "Signature doesn't match this address." }, { status: 401 });
 
-  // 2. captcha (when configured)
+  // 2. only wallets that finished sign-up (invite code, verified email, username)
+  if (signupRequired() && !(await isRegistered(address).catch(() => false)))
+    return NextResponse.json({ error: "Finish your profile first (invite code and email) to get test funds." }, { status: 403 });
+
+  // 3. captcha (when configured)
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
   if (!(await turnstileOk(body.turnstileToken, ip))) return NextResponse.json({ error: "Captcha check failed. Please try again." }, { status: 403 });
 
-  // 3. one drip per address and per IP per 24 hours
+  // 4. one drip per address and per IP per 24 hours
   if (!(await take(`drip:addr:${address.toLowerCase()}`, WINDOW_SEC))) return NextResponse.json({ error: "This address already received test funds today." }, { status: 429 });
   if (!(await take(`drip:ip:${ip}`, WINDOW_SEC))) return NextResponse.json({ error: "Test funds were already sent to this network today." }, { status: 429 });
 

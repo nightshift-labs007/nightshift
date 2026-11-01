@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { addrUrl } from "@/lib/chain";
-import { AVATAR, EMPTY_PROFILE, LIMITS, signInMessage, validateProfile, type Profile } from "@/lib/profile-shared";
+import { AVATAR, EMPTY_PROFILE, LIMITS, USERNAME, signInMessage, validateProfile, type Membership, type Profile } from "@/lib/profile-shared";
 import { useWallet } from "@/lib/wallet";
 import { join, useBoard } from "./Leaderboard";
 import { PageShell } from "./Site";
@@ -11,12 +11,167 @@ import { toast } from "./Toast";
 import { usd } from "./useApi";
 import { ProfileAvatar, avatarChanged } from "./ProfileAvatar";
 import { ProfileMarket } from "./Markets";
+import { SIGNUP_STEPS, memberChanged } from "./Member";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const hex = (s: string) => `0x${Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, "0")).join("")}` as `0x${string}`;
 const cancelled = (e: unknown) => /reject|denied|cancel/i.test(String((e as Error)?.message ?? e));
 
-type Me = { enabled: boolean; signedIn?: boolean; address?: string; profile?: Profile; exists?: boolean; avatarAt?: number | null; error?: string };
+type Me = {
+  enabled: boolean;
+  signedIn?: boolean;
+  address?: string;
+  profile?: Profile;
+  exists?: boolean;
+  avatarAt?: number | null;
+  member?: Membership;
+  emailEnabled?: boolean;
+  error?: string;
+};
+
+const post = async (url: string, body: unknown) => {
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error ?? "Something went wrong. Please try again.");
+  return j;
+};
+
+/** Sign-up progress: invite code → email → username. */
+function Steps({ at }: { at: number }) {
+  return (
+    <ol className="su-steps" aria-label="Sign-up steps">
+      {SIGNUP_STEPS.map((label, i) => (
+        <li key={label} className={i < at ? "done" : i === at ? "on" : ""} aria-current={i === at ? "step" : undefined}>
+          <span className="su-dot">{i < at ? "✓" : i + 1}</span>
+          <span>{label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function InviteStep({ onDone }: { onDone: () => void }) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await post("/api/profile/invite", { code });
+      toast("Invite code accepted.", "ok");
+      onDone();
+    } catch (err) {
+      toast((err as Error).message, "warn");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="su-step" onSubmit={submit}>
+      <h3>Enter your invite code</h3>
+      <p className="muted">Nightshift is invite-only while it&apos;s on testnet. Your code looks like <span className="mono">NS-XXXX-XXXX</span>.</p>
+      <div className="su-row">
+        <input className="mono su-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="NS-XXXX-XXXX" maxLength={14} autoComplete="off" spellCheck={false} autoFocus />
+        <button className="btn primary" disabled={busy || code.replace(/[^A-Za-z0-9]/g, "").length < 8}>{busy ? "Checking…" : "Continue"}</button>
+      </div>
+      <p className="small muted">No code yet? Ask the Nightshift team or a friend who&apos;s already in.</p>
+    </form>
+  );
+}
+
+function EmailStep({ current, enabled, onDone, onCancel }: { current?: string | null; enabled: boolean; onDone: () => void; onCancel?: () => void }) {
+  const [email, setEmail] = useState("");
+  const [sentTo, setSentTo] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState<"" | "send" | "verify">("");
+  const send = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setBusy("send");
+    try {
+      await post("/api/profile/email", { email });
+      setSentTo(email.trim().toLowerCase());
+      setCode("");
+      toast("Code sent. Check your inbox (and spam).", "ok");
+    } catch (err) {
+      toast((err as Error).message, "warn");
+    } finally {
+      setBusy("");
+    }
+  };
+  const verify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy("verify");
+    try {
+      await post("/api/profile/email/verify", { code });
+      toast("Email verified.", "ok");
+      onDone();
+    } catch (err) {
+      toast((err as Error).message, "warn");
+    } finally {
+      setBusy("");
+    }
+  };
+  if (!enabled)
+    return (
+      <div className="su-step">
+        <h3>Verify your email</h3>
+        <p className="muted">Email verification is being switched on. Please check back shortly.</p>
+      </div>
+    );
+  if (sentTo)
+    return (
+      <form className="su-step" onSubmit={verify}>
+        <h3>Enter the 6-digit code</h3>
+        <p className="muted">We sent it to <b>{sentTo}</b>. It expires in 10 minutes.</p>
+        <div className="su-row">
+          <input
+            className="mono su-otp"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="000000"
+            autoFocus
+          />
+          <button className="btn primary" disabled={busy !== "" || code.length !== 6}>{busy === "verify" ? "Checking…" : "Verify"}</button>
+        </div>
+        <p className="small muted">
+          Didn&apos;t get it?{" "}
+          <button type="button" className="pf-link" onClick={() => send()} disabled={busy !== ""}>Send again</button> ·{" "}
+          <button type="button" className="pf-link" onClick={() => setSentTo("")}>Use a different email</button>
+        </p>
+      </form>
+    );
+  return (
+    <form className="su-step" onSubmit={send}>
+      <h3>{current ? "Change your email" : "Verify your email"}</h3>
+      <p className="muted">We&apos;ll email you a 6-digit code. Your email stays private: it&apos;s never shown or shared.</p>
+      <div className="su-row">
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@gmail.com" maxLength={LIMITS.email} autoComplete="email" autoFocus />
+        <button className="btn primary" disabled={busy !== "" || !email.includes("@")}>{busy === "send" ? "Sending…" : "Send code"}</button>
+      </div>
+      {onCancel && <button type="button" className="pf-link" onClick={onCancel}>Keep {current}</button>}
+    </form>
+  );
+}
+
+/** Live check that a username is still free (debounced). */
+function useUsernameFree(username: string, account: string, saved?: string) {
+  const [state, setState] = useState<"" | "checking" | "free" | "taken" | "invalid">("");
+  useEffect(() => {
+    if (!username || username === saved) return setState("");
+    if (!USERNAME.test(username)) return setState("invalid");
+    setState("checking");
+    const t = setTimeout(() => {
+      fetch(`/api/member?username=${encodeURIComponent(username)}&for=${account}`)
+        .then((r) => r.json())
+        .then((j: { available?: boolean }) => setState(j.available ? "free" : "taken"))
+        .catch(() => setState(""));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [username, account, saved]);
+  return state;
+}
 
 /** Crops a picture to a centred square and shrinks it to a small JPEG, in the browser, before it is uploaded. */
 async function toSquareJpeg(file: File): Promise<string> {
@@ -43,9 +198,10 @@ function Points({ account }: { account: string }) {
   const w = useWallet();
   const [busy, setBusy] = useState(false);
   const row = data?.rows.find((r) => r.address === account.toLowerCase());
-  const s = data?.scoring ?? { joined: 10, perMarket: 20, borrowing: 30, guardian: 25 };
+  const s = data?.scoring ?? { registered: 15, joined: 10, perMarket: 20, borrowing: 30, guardian: 25 };
   const items = [
-    { done: !!row?.joined, label: "Join the leaderboard", how: "One free signature, recorded on Algorand.", pts: s.joined, action: row?.joined ? null : "join" },
+    { done: !!row?.registered, label: "Finish sign-up", how: "Invite code, verified email and a username.", pts: s.registered, action: null },
+    { done: !!row?.joined, label: "Record your join on Algorand", how: "One free signature, stamped on Algorand TestNet.", pts: s.joined, action: row?.joined ? null : "join" },
     { done: !!row?.markets.length, label: row?.markets.length ? `Deposited ${row.markets.join(", ")}` : "Deposit an ETF token", how: "Each token you deposit in the Vault counts.", pts: s.perMarket * Math.max(1, row?.markets.length ?? 0), each: true, href: "/app" },
     { done: !!row?.borrowing, label: "Open a loan", how: "Borrow dUSDG against your deposit.", pts: s.borrowing, href: "/app" },
     { done: !!row?.guardian, label: "Switch on the Guardian", how: "Auto-protection for your loan.", pts: s.guardian, href: "/app#guardian" },
@@ -93,7 +249,7 @@ function Points({ account }: { account: string }) {
         ))}
       </ul>
       <p className="small muted pf-earn-foot">
-        Points come from public records: joins on Algorand TestNet. <Link href="/leaderboard">See the leaderboard →</Link>
+        Points come from your sign-up and public records on Algorand and Base. <Link href="/leaderboard">See the leaderboard →</Link>
       </p>
     </div>
   );
@@ -119,7 +275,7 @@ function Identity({ account, name }: { account: string; name?: string }) {
     ["Points", data ? row?.points ?? 0 : "…"],
     ["Rank", data ? (row ? <>#{row.rank}<small> of {data.rows.length}</small></> : "–") : "…"],
     ["Collateral", row?.collateralUsd ? usd(row.collateralUsd, 0) : "–"],
-    ["Badges", data ? [row?.joined, row?.markets.length, row?.borrowing, row?.guardian].filter(Boolean).length + " / 4" : "…"],
+    ["Badges", data ? [row?.registered, row?.joined, row?.markets.length, row?.borrowing, row?.guardian].filter(Boolean).length + " / 5" : "…"],
   ];
   return (
     <section className="pf-hero">
@@ -134,6 +290,7 @@ function Identity({ account, name }: { account: string; name?: string }) {
               {short(account)} <span aria-hidden="true">{copied ? "✓" : "⧉"}</span>
             </button>
             <a className="pf-chip" href={addrUrl(account)} target="_blank" rel="noopener noreferrer">Explorer ↗</a>
+            {row?.username && <span className="pf-chip">@{row.username}</span>}
             {row?.x && <a className="pf-chip" href={`https://x.com/${row.x}`} target="_blank" rel="noopener noreferrer">@{row.x}</a>}
             {row?.joinedAt && <span className="pf-chip">Joined {new Date(row.joinedAt * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
           </div>
@@ -168,6 +325,7 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
   const [form, setForm] = useState<Profile>(EMPTY_PROFILE);
   const [busy, setBusy] = useState<"" | "signin" | "save" | "delete" | "photo">("");
   const [saved, setSaved] = useState<Profile | null>(null);
+  const [changingEmail, setChangingEmail] = useState(false);
 
   const load = useCallback(async () => {
     const j = (await fetch("/api/profile", { cache: "no-store" }).then((r) => r.json()).catch(() => ({ enabled: false, error: "unreachable" }))) as Me;
@@ -179,6 +337,7 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
 
   const signedInHere = me?.signedIn && me.address === account.toLowerCase();
   const set = <K extends keyof Profile>(k: K, v: Profile[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const nameState = useUsernameFree(form.username, account, saved?.username);
   const dirty = JSON.stringify({ ...form, updatedAt: 0 }) !== JSON.stringify({ ...(saved ?? EMPTY_PROFILE), updatedAt: 0 });
 
   const signIn = async () => {
@@ -208,10 +367,13 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
       const res = await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v.profile) });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? "Couldn't save.");
+      const first = !me?.member?.registered;
       setForm(j.profile);
       setSaved(j.profile);
       onName(j.profile.name);
-      toast("Profile saved.", "ok");
+      if (j.member) setMe((m) => (m ? { ...m, member: j.member } : m));
+      if (first) memberChanged();
+      toast(first ? "You're in. Welcome to Nightshift!" : "Profile saved.", "ok");
     } catch (e) {
       toast((e as Error).message, "warn");
     } finally {
@@ -220,15 +382,15 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
   };
 
   const remove = async () => {
-    if (!window.confirm("Delete your profile? Your name, photo, email and links are removed. Points stay, because they come from public chains.")) return;
+    if (!window.confirm("Delete your profile? Your username, name, photo, email and links are removed, and you'll need to verify your email again to come back. Your invite code stays used. On-chain activity stays, because it lives on public chains.")) return;
     setBusy("delete");
     try {
       const res = await fetch("/api/profile", { method: "DELETE" });
       if (!res.ok) throw new Error((await res.json()).error ?? "Couldn't delete.");
-      setForm(EMPTY_PROFILE);
-      setSaved(EMPTY_PROFILE);
       onName("");
       avatarChanged(account, null);
+      memberChanged();
+      await load();
       toast("Profile deleted.", "ok");
     } catch (e) {
       toast((e as Error).message, "warn");
@@ -295,12 +457,44 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
       </div>
     );
 
+  const member = me.member ?? { invite: false, email: null, registered: false, registeredAt: null };
+  const step = !member.invite ? 0 : !member.email ? 1 : 2;
+  if (step < 2 || changingEmail)
+    return (
+      <div className="pf-card pf-signup">
+        <div className="pf-form-head">
+          <p className="pf-label">{changingEmail ? "Change email" : "Finish sign-up"}</p>
+          <button type="button" className="pf-link" onClick={signOut}>Sign out</button>
+        </div>
+        {!changingEmail && <Steps at={step} />}
+        {step === 0 ? (
+          <InviteStep onDone={load} />
+        ) : (
+          <EmailStep
+            enabled={!!me.emailEnabled}
+            current={changingEmail ? member.email : null}
+            onCancel={changingEmail ? () => setChangingEmail(false) : undefined}
+            onDone={async () => {
+              setChangingEmail(false);
+              await load();
+            }}
+          />
+        )}
+      </div>
+    );
+
   return (
     <form className="pf-card pf-form" onSubmit={save}>
       <div className="pf-form-head">
-        <p className="pf-label">Profile</p>
+        <p className="pf-label">{member.registered ? "Profile" : "Finish sign-up"}</p>
         <button type="button" className="pf-link" onClick={signOut}>Sign out</button>
       </div>
+      {!member.registered && (
+        <>
+          <Steps at={2} />
+          <p className="muted su-last">Last step: pick a username. It&apos;s unique to you and shown on the leaderboard. Everything else is optional.</p>
+        </>
+      )}
       <div className="pf-photo-row">
         <ProfileAvatar address={account} name={form.name} size={72} version={me.avatarAt ?? null} />
         <div>
@@ -316,11 +510,29 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
         </div>
       </div>
       <div className="pf-grid">
+        <Field
+          label="Username"
+          hint={
+            nameState === "checking" ? "Checking…"
+            : nameState === "free" ? "✓ Available"
+            : nameState === "taken" ? "Taken. Try another."
+            : nameState === "invalid" ? "3 to 20 lowercase letters, numbers or underscores."
+            : "Unique to you. 3 to 20 lowercase letters, numbers or underscores."
+          }
+        >
+          <div className={`pf-prefix ${nameState === "taken" || nameState === "invalid" ? "bad" : nameState === "free" ? "good" : ""}`}>
+            <span>@</span>
+            <input value={form.username} onChange={(e) => set("username", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} placeholder="nightowl" maxLength={20} autoComplete="username" required />
+          </div>
+        </Field>
         <Field label="Display name" hint="Shown on the leaderboard if you allow it below.">
           <input value={form.name} maxLength={LIMITS.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Night Owl" autoComplete="nickname" />
         </Field>
-        <Field label="Email" hint="Private. Never shown publicly or shared.">
-          <input type="email" value={form.email} maxLength={LIMITS.email} onChange={(e) => set("email", e.target.value)} placeholder="you@example.com" autoComplete="email" />
+        <Field label="Email" hint="Verified. Private: never shown publicly or shared.">
+          <div className="pf-verified">
+            <span>{member.email}</span>
+            <button type="button" className="pf-link" onClick={() => setChangingEmail(true)}>Change</button>
+          </div>
         </Field>
         <Field label="X (Twitter)">
           <div className="pf-prefix"><span>@</span><input value={form.x} onChange={(e) => set("x", e.target.value)} placeholder="handle" maxLength={40} /></div>
@@ -337,12 +549,14 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
       </div>
       <label className="pf-check">
         <input type="checkbox" checked={form.showPublic} onChange={(e) => set("showPublic", e.target.checked)} />
-        <span>Show my name, photo and X handle on the leaderboard. Email, Telegram and website always stay private.</span>
+        <span>Show my username, name, photo and X handle on the leaderboard. Email, Telegram and website always stay private.</span>
       </label>
       <div className="pf-actions">
-        <button type="button" className="pf-link danger" onClick={remove} disabled={busy !== "" || !saved?.updatedAt}>Delete profile</button>
+        <button type="button" className="pf-link danger" onClick={remove} disabled={busy !== "" || !member.registered}>Delete profile</button>
         <span className="small muted">{saved?.updatedAt ? `Saved ${new Date(saved.updatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "Not saved yet"}</span>
-        <button className="btn primary" type="submit" disabled={busy !== "" || !dirty}>{busy === "save" ? "Saving…" : "Save profile"}</button>
+        <button className="btn primary" type="submit" disabled={busy !== "" || (member.registered && !dirty) || nameState === "taken" || nameState === "invalid"}>
+          {busy === "save" ? "Saving…" : member.registered ? "Save profile" : "Finish sign-up"}
+        </button>
       </div>
     </form>
   );
@@ -365,7 +579,7 @@ export function ProfilePage() {
               </span>
               <p className="pf-label">Profile</p>
               <h1>Your Nightshift profile</h1>
-              <p className="muted">Add a name, a photo and your links, and see the points you&apos;ve collected. Your wallet is your login: one free signature, no password, no transaction.</p>
+              <p className="muted">Nightshift is invite-only for now. Connect a wallet, sign in with one free signature, then enter your invite code, verify your email and pick a username.</p>
               <p className="small muted">Connect a wallet with the <b>Connect wallet</b> button at the top to start.</p>
             </div>
           </div>

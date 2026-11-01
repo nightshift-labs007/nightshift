@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, deleteAvatar, profilesEnabled, readSession, saveAvatar } from "@/lib/profile";
 import { AVATAR } from "@/lib/profile-shared";
+import { getMember } from "@/lib/members";
 import { allow } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,8 @@ export async function PUT(req: NextRequest) {
   if (!profilesEnabled()) return NextResponse.json({ error: "Profiles aren't switched on yet." }, { status: 503 });
   const me = readSession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!me) return NextResponse.json({ error: "Sign in with your wallet first." }, { status: 401 });
+  const m = await getMember(me).catch(() => ({ invite: undefined, email: undefined }));
+  if (!m.invite || !m.email) return NextResponse.json({ error: "Finish sign-up (invite code and email) before adding a photo." }, { status: 403 });
   if (!(await allow(`profile:avatar:${me}`, 20, 3600)).ok) return NextResponse.json({ error: "Too many uploads. Try again in a while." }, { status: 429 });
   const { image } = (await req.json().catch(() => ({}))) as { image?: string };
   if (typeof image !== "string" || !image.startsWith(PREFIX)) return NextResponse.json({ error: "Please choose a photo (JPEG, PNG or WebP)." }, { status: 400 });

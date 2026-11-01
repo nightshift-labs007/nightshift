@@ -5,12 +5,13 @@ import { publicClient, readMany } from "@/lib/chain/keeper";
 import { explorerAccount, explorerTx, ledgerAddress, readJoins } from "@/lib/algorand";
 import { getTransactions, type BotId } from "@/lib/transactions";
 import { isTeamWallet } from "@/lib/team-wallets";
-import { publicProfiles } from "@/lib/profile";
+import { profilesEnabled, publicProfiles } from "@/lib/profile";
+import { people } from "@/lib/members";
 
 /**
- * The leaderboard: every wallet that joined (a signed message, recorded on Algorand) or used the Vault on Base
- * (read straight from the contract's position list), scored by what it has done. Nothing here is stored by the
- * site itself: both sources are public chains, so the list can't be edited.
+ * The leaderboard: every wallet that connected to Nightshift or registered (sign-up records in Redis), joined (a
+ * signed message, recorded on Algorand) or used the Vault on Base (read straight from the contract's position
+ * list), scored by what it has done. Activity comes from public chains, so it can't be edited.
  */
 export type LeaderRow = {
   rank: number;
@@ -24,7 +25,10 @@ export type LeaderRow = {
   guardian: boolean; // an auto-protect rule on any loan
   collateralUsd: number;
   debtUsd: number;
-  name?: string; // from the owner's profile, only if they chose to show it
+  registered: boolean; // finished sign-up: invite code, verified email, username
+  connectedAt: number | null; // unix seconds, first time the wallet connected to the site
+  username?: string; // from the owner's profile, only if they chose to show it
+  name?: string;
   x?: string;
   avatarAt?: number; // a public profile photo, and its version
   team?: boolean; // a wallet the Nightshift team runs to exercise the live contracts
@@ -33,9 +37,9 @@ export type LeaderRow = {
 export type Leaderboard = {
   updatedAt: string;
   rows: LeaderRow[];
-  totals: { wallets: number; joined: number; depositors: number; borrowers: number; guardians: number; collateralUsd: number };
+  totals: { wallets: number; registered: number; joined: number; depositors: number; borrowers: number; guardians: number; collateralUsd: number };
   scoring: Record<string, number>;
-  sources: { joins: "ok" | "unavailable"; vault: "ok" | "unavailable" };
+  sources: { joins: "ok" | "unavailable"; vault: "ok" | "unavailable"; members: "ok" | "unavailable" };
 };
 
 const SERVICES: Record<BotId, { name: string; job: string; chain: "Base" | "Algorand" }> = {
@@ -45,7 +49,7 @@ const SERVICES: Record<BotId, { name: string; job: string; chain: "Base" | "Algo
   ledger: { name: "Ledger", job: "Algorand prediction ledger", chain: "Algorand" },
 };
 
-export const POINTS = { joined: 10, perMarket: 20, borrowing: 30, guardian: 25 };
+export const POINTS = { registered: 15, joined: 10, perMarket: 20, borrowing: 30, guardian: 25 };
 
 type Pos = { user: string; col: string; collateral: bigint; debt: bigint };
 
@@ -73,7 +77,7 @@ export async function getLeaderboard(): Promise<Leaderboard> {
   const pub = publicClient();
   const symOf = new Map(Object.entries(DEPLOYMENT.tokens ?? {}).map(([s, t]) => [t.address.toLowerCase(), s]));
 
-  const [joinsRes, posRes, txRes] = await Promise.allSettled([
+  const [joinsRes, posRes, txRes, peopleRes] = await Promise.allSettled([
     readJoins(),
     (async () => {
       if (!isDeployed) throw new Error("Base retired"); // no EVM positions to read; the leaderboard falls back to joins
@@ -90,17 +94,24 @@ export async function getLeaderboard(): Promise<Leaderboard> {
       return { all, guarded, priceOf };
     })(),
     getTransactions(),
+    profilesEnabled() ? people() : Promise.resolve({ seen: {}, members: {} }),
   ]);
 
   const rows = new Map<string, Omit<LeaderRow, "rank" | "points">>();
   const row = (a: string) => {
     let r = rows.get(a);
     if (!r) {
-      r = { address: a, joined: false, joinedAt: null, joinTx: null, markets: [], borrowing: false, guardian: false, collateralUsd: 0, debtUsd: 0 };
+      r = { address: a, registered: false, connectedAt: null, joined: false, joinedAt: null, joinTx: null, markets: [], borrowing: false, guardian: false, collateralUsd: 0, debtUsd: 0 };
       rows.set(a, r);
     }
     return r;
   };
+
+  if (peopleRes.status === "fulfilled") {
+    const { seen, members } = peopleRes.value;
+    for (const [a, ms] of Object.entries(seen)) row(a).connectedAt = Math.floor(Number(ms) / 1000);
+    for (const a of Object.keys(members)) row(a).registered = true;
+  }
 
   if (joinsRes.status === "fulfilled")
     for (const j of joinsRes.value) Object.assign(row(j.address), { joined: true, joinedAt: j.at, joinTx: explorerTx(j.txId) });
@@ -122,7 +133,7 @@ export async function getLeaderboard(): Promise<Leaderboard> {
 
   const scored = [...rows.values()].map((r) => ({
     ...r,
-    points: (r.joined ? POINTS.joined : 0) + r.markets.length * POINTS.perMarket + (r.borrowing ? POINTS.borrowing : 0) + (r.guardian ? POINTS.guardian : 0),
+    points: (r.registered ? POINTS.registered : 0) + (r.joined ? POINTS.joined : 0) + r.markets.length * POINTS.perMarket + (r.borrowing ? POINTS.borrowing : 0) + (r.guardian ? POINTS.guardian : 0),
   }));
   const roles = DEPLOYMENT.roles;
   const wallet: Record<BotId, string | null> = { updater: roles?.updater ?? null, keeper: roles?.keeper ?? null, faucet: roles?.faucet ?? null, ledger: ledgerAddress() };
@@ -132,16 +143,17 @@ export async function getLeaderboard(): Promise<Leaderboard> {
     const stat = txRes.status === "fulfilled" ? txRes.value.bots[id] : { actions: 0, last: null };
     const { name, job, chain } = SERVICES[id];
     return [{
-      address: address.toLowerCase(), joined: false, joinedAt: null, joinTx: null, markets: [], borrowing: false, guardian: false, collateralUsd: 0, debtUsd: 0,
+      address: address.toLowerCase(), registered: false, connectedAt: null, joined: false, joinedAt: null, joinTx: null, markets: [], borrowing: false, guardian: false, collateralUsd: 0, debtUsd: 0,
       points: stat.actions, name, service: { job, chain, lastActive: stat.last },
     }];
   });
   const all = [...scored, ...services];
-  all.sort((a, b) => b.points - a.points || b.collateralUsd - a.collateralUsd || (a.joinedAt ?? Infinity) - (b.joinedAt ?? Infinity));
+  const since = (r: { joinedAt: number | null; connectedAt: number | null }) => Math.min(r.joinedAt ?? Infinity, r.connectedAt ?? Infinity);
+  all.sort((a, b) => b.points - a.points || b.collateralUsd - a.collateralUsd || since(a) - since(b));
   const shown = await publicProfiles(scored.map((r) => r.address)).catch(() => new Map());
   const ranked: LeaderRow[] = all.map((r, i) => {
     const p = shown.get(r.address);
-    return { ...r, rank: i + 1, ...(isTeamWallet(r.address) ? { team: true } : {}), ...(p ? { name: p.name || undefined, x: p.x || undefined, avatarAt: p.avatarAt } : {}) };
+    return { ...r, rank: i + 1, ...(isTeamWallet(r.address) ? { team: true } : {}), ...(p ? { username: p.username, name: p.name || undefined, x: p.x || undefined, avatarAt: p.avatarAt } : {}) };
   });
   const members = ranked.filter((r) => !r.service);
 
@@ -150,6 +162,7 @@ export async function getLeaderboard(): Promise<Leaderboard> {
     rows: ranked,
     totals: {
       wallets: members.length,
+      registered: members.filter((r) => r.registered).length,
       joined: members.filter((r) => r.joined).length,
       depositors: members.filter((r) => r.markets.length).length,
       borrowers: members.filter((r) => r.borrowing).length,
@@ -157,9 +170,13 @@ export async function getLeaderboard(): Promise<Leaderboard> {
       collateralUsd: members.reduce((s, r) => s + r.collateralUsd, 0),
     },
     scoring: POINTS,
-    sources: { joins: joinsRes.status === "fulfilled" ? "ok" : "unavailable", vault: posRes.status === "fulfilled" ? "ok" : "unavailable" },
+    sources: {
+      joins: joinsRes.status === "fulfilled" ? "ok" : "unavailable",
+      vault: posRes.status === "fulfilled" ? "ok" : "unavailable",
+      members: peopleRes.status === "fulfilled" ? "ok" : "unavailable",
+    },
   };
   // don't cache a result with a failed source for long: try again on the next request
-  if (data.sources.joins === "ok" && data.sources.vault === "ok" && txRes.status === "fulfilled") cache = { at: Date.now(), data };
+  if (data.sources.joins === "ok" && data.sources.vault === "ok" && data.sources.members === "ok" && txRes.status === "fulfilled") cache = { at: Date.now(), data };
   return data;
 }

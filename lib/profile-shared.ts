@@ -1,7 +1,8 @@
 /** Profile fields, limits and validation, shared by the profile API and the profile page. */
 export type Profile = {
+  username: string; // unique handle, lowercase; required to finish sign-up
   name: string;
-  email: string; // private: never returned by public endpoints
+  email: string; // private, set only by verifying a one-time code; never returned by public endpoints
   x: string; // X handle, without @
   telegram: string; // Telegram username, without @
   website: string;
@@ -9,9 +10,18 @@ export type Profile = {
   showPublic: boolean; // show name and X on the leaderboard
   updatedAt?: string;
 };
-export type PublicProfile = Pick<Profile, "name" | "x" | "bio"> & { avatarAt?: number };
+export type PublicProfile = Pick<Profile, "name" | "x" | "bio"> & { username?: string; avatarAt?: number };
 
-export const EMPTY_PROFILE: Profile = { name: "", email: "", x: "", telegram: "", website: "", bio: "", showPublic: true };
+/** Where a wallet is in sign-up: connect → invite code → verified email → username and profile. */
+export type Membership = { invite: boolean; email: string | null; registered: boolean; registeredAt: number | null };
+
+export const EMPTY_PROFILE: Profile = { username: "", name: "", email: "", x: "", telegram: "", website: "", bio: "", showPublic: true };
+export const USERNAME = /^[a-z0-9_]{3,20}$/;
+/** Invite codes are shown as NS-XXXX-XXXX; people may type them in any case, with or without dashes. */
+export const normalizeInvite = (s: string) => {
+  const c = String(s ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return c.length === 10 && c.startsWith("NS") ? c.slice(2) : c;
+};
 export const LIMITS = { name: 40, email: 254, bio: 160, website: 120 };
 /** Profile photos: the browser crops and resizes to a square JPEG before upload, so this cap is generous. */
 export const AVATAR = { size: 256, maxBytes: 80_000 };
@@ -25,6 +35,7 @@ const strip = (s: unknown) => String(s ?? "").replace(/[\u0000-\u001f\u007f]/g, 
 /** Cleans and checks a submitted profile. Returns the clean profile, or the first problem found. */
 export function validateProfile(input: Partial<Profile>): { ok: true; profile: Profile } | { ok: false; error: string } {
   const p: Profile = {
+    username: strip(input.username).replace(/^@/, "").toLowerCase(),
     name: strip(input.name),
     email: strip(input.email).toLowerCase(),
     x: strip(input.x).replace(/^@/, "").replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, "").replace(/[/?#].*$/, ""),
@@ -33,6 +44,7 @@ export function validateProfile(input: Partial<Profile>): { ok: true; profile: P
     bio: strip(input.bio),
     showPublic: input.showPublic !== false,
   };
+  if (!USERNAME.test(p.username)) return { ok: false, error: "Pick a username: 3 to 20 lowercase letters, numbers or underscores." };
   if (p.name.length > LIMITS.name) return { ok: false, error: `Name can be at most ${LIMITS.name} characters.` };
   if (p.email && (p.email.length > LIMITS.email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(p.email))) return { ok: false, error: "That email address doesn't look right." };
   if (p.x && !/^[A-Za-z0-9_]{1,15}$/.test(p.x)) return { ok: false, error: "X handles are 1 to 15 letters, numbers or underscores." };

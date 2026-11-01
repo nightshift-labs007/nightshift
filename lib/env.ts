@@ -18,6 +18,10 @@ export const env = {
   upstashUrl: v("UPSTASH_REDIS_REST_URL") || v("KV_REST_API_URL"),
   upstashToken: v("UPSTASH_REDIS_REST_TOKEN") || v("KV_REST_API_TOKEN"),
   turnstileSecret: v("TURNSTILE_SECRET_KEY"),
+  resendKey: v("RESEND_API_KEY"),
+  // a sender on a domain verified in Resend, e.g. "Nightshift <hello@nightshift.buzz>". Setting both switches on invite-only
+  // sign-up (onboarding@resend.dev works for tests but only delivers to the Resend account's own email)
+  resendFrom: v("RESEND_FROM"),
   telegramToken: v("TELEGRAM_BOT_TOKEN"),
   telegramChat: v("TELEGRAM_CHAT_ID"),
   walletConnect: v("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"),
@@ -38,6 +42,7 @@ export function configStatus() {
     priceFallback: env.twelveDataKey.length > 0,
     durableRateLimit: !!(env.upstashUrl && env.upstashToken),
     profiles: !!(env.upstashUrl && env.upstashToken && env.cronSecret.length >= 16),
+    email: !!(env.resendKey && env.resendFrom),
     captcha: !!(env.turnstileSecret && env.turnstileSite),
     alerts: !!(env.telegramToken && env.telegramChat),
     walletConnect: env.walletConnect.length > 0,

@@ -901,3 +901,31 @@ a.pf-chip:hover, button.pf-chip:hover { border-color: var(--mint); color: var(--
 @media (max-width: 1000px) { .in-board { grid-template-columns: repeat(3, minmax(0, 1fr)); } .in-top, .in-radar { grid-template-columns: 1fr; } }
 @media (max-width: 560px) { .in-board, .in-drivers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .market-desk { justify-self: start; }
+
+/* invite-only sign-up: steps, invite and email codes, the App gate */
+.su-steps { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 6px 0 20px; padding: 0 0 16px; border-bottom: 1px solid var(--border); }
+.su-steps li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-4); }
+.su-steps li.on { color: var(--text); font-weight: 600; }
+.su-steps li.done { color: var(--text-2); }
+.su-dot { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border-strong); font: 600 12px var(--mono); }
+.su-steps li.on .su-dot { border-color: var(--mint); color: var(--mint); }
+.su-steps li.done .su-dot { background: var(--mint); border-color: var(--mint); color: var(--mint-ink); }
+.su-step h3 { margin: 0 0 6px; }
+.su-step > p { margin: 0 0 14px; max-width: 520px; }
+.su-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.su-row input { flex: 1 1 220px; min-width: 0; padding: 11px 13px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--bg-alt); color: var(--text); font: 400 15px var(--sans); }
+.su-row input:focus { outline: none; border-color: var(--mint); }
+.su-row input.su-code { font: 500 17px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.su-row input.su-otp { flex: 0 1 200px; font: 600 24px var(--mono); letter-spacing: .4em; text-align: center; }
+.su-last { margin: 0 0 16px; }
+.pf-prefix.bad span, .pf-prefix.bad input { border-color: var(--red-line); }
+.pf-prefix.good span, .pf-prefix.good input { border-color: var(--green-line); }
+.pf-verified { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 15px; overflow-wrap: anywhere; }
+.pf-verified span::before { content: "✓ "; color: var(--green); }
+.lb-user { display: block; font: 500 12px var(--mono); color: var(--mint); margin-bottom: 1px; }
+.lb-badge.muted-badge { border-color: var(--border-strong); color: var(--text-4); }
+.member-gate { max-width: 560px; padding: 26px; }
+.member-gate h3 { margin: 4px 0 8px; }
+.member-steps { margin: 12px 0 18px; padding-left: 20px; color: var(--text-2); line-height: 1.9; }
+.member-gate-cta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+@media (max-width: 560px) { .su-row input.su-otp { flex-basis: 100%; } .su-row .btn { width: 100%; } }
