@@ -21,3 +21,5 @@ export const kvGet = (key: string) => cmd<string | null>(["GET", key]);
 export const kvSet = (key: string, value: string) => cmd<string>(["SET", key, value]);
 export const kvDel = (key: string) => cmd<number>(["DEL", key]);
 export const kvMGet = (keys: string[]) => (keys.length ? cmd<(string | null)[]>(["MGET", ...keys]) : Promise.resolve([]));
+export const kvHSet = (key: string, field: string, value: string) => cmd<number>(["HSET", key, field, value]);
+export const kvHLen = (key: string) => cmd<number>(["HLEN", key]);

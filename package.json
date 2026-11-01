@@ -14,7 +14,11 @@
     "formal:prove": "node --env-file-if-exists=.env.local scripts/formal.mjs prove",
     "formal:check": "node scripts/formal.mjs audit && node scripts/formal.mjs vectors && node scripts/formal.mjs manifest",
     "formal:test": "node scripts/test-formal.mjs && node --test test/guardian-rule.test.mjs",
-    "formal:anchor": "node --env-file-if-exists=.env.local scripts/formal.mjs anchor"
+    "formal:anchor": "node --env-file-if-exists=.env.local scripts/formal.mjs anchor",
+    "algo:build": "cd algorand && . .venv/bin/activate && ~/.local/bin/puyapy contracts --out-dir \"$PWD/artifacts\" --output-bytecode --output-arc56",
+    "algo:test": "cd algorand && uv run pytest -q",
+    "algo:deploy-oracle": "node --env-file=.env.local scripts/algo-deploy-oracle.mjs",
+    "algo:push": "node --env-file=.env.local scripts/algo-push-prices.mjs"
   },
   "engines": {
     "node": ">=20"

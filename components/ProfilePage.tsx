@@ -10,6 +10,7 @@ import { PageShell } from "./Site";
 import { toast } from "./Toast";
 import { usd } from "./useApi";
 import { ProfileAvatar, avatarChanged } from "./ProfileAvatar";
+import { ProfileMarket } from "./Markets";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const hex = (s: string) => `0x${Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, "0")).join("")}` as `0x${string}`;
@@ -92,7 +93,7 @@ function Points({ account }: { account: string }) {
         ))}
       </ul>
       <p className="small muted pf-earn-foot">
-        Points come from public chains: joins on Algorand, Vault activity on Base. <Link href="/leaderboard">See the leaderboard →</Link>
+        Points come from public records: joins on Algorand TestNet. <Link href="/leaderboard">See the leaderboard →</Link>
       </p>
     </div>
   );
@@ -369,6 +370,7 @@ export function ProfilePage() {
             </div>
           </div>
         </section>
+        <ProfileMarket />
       </PageShell>
     );
   return (
@@ -382,6 +384,7 @@ export function ProfilePage() {
           </div>
         </div>
       </section>
+      <ProfileMarket />
     </PageShell>
   );
 }

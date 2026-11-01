@@ -1,0 +1,13 @@
+[project]
+name = "nightshift-algorand"
+version = "0.1.0"
+description = "Nightshift smart contracts for Algorand TestNet (Algorand Python, compiled with puyapy)"
+requires-python = ">=3.12"
+dependencies = ["algorand-python>=2.0"]
+
+[dependency-groups]
+dev = ["algorand-python-testing>=0.5", "py-algorand-sdk>=2.6", "pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,4 +1,3 @@
-import { DEPLOYMENT, addrUrl } from "@/lib/chain";
 
 /** The menu's three sections, in the order a new visitor needs them. */
 export const PAGE_GROUPS = [
@@ -15,13 +14,16 @@ export const PAGES = [
   { group: "use", href: "/app", label: "Borrow", tech: "App", icon: "M4 9h16v10H4zM8 9V6a4 4 0 0 1 8 0v3", what: "Borrow against ETF tokens, with or without a wallet, and switch on Guardian protection." },
   { group: "use", href: "/app#stack", label: "Buy gold and silver automatically", tech: "Stack", icon: "M5 18h14M7 14h10M9 10h6M11 6h2", what: "Pick an amount and how often. Stack buys only at a fair price, straight to your wallet." },
   { group: "use", href: "/#earn", label: "Earn on idle dollars", tech: "Earn", icon: "M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7", what: "A live view of a Sentora vault where idle stablecoins could earn a protected rate." },
+  { group: "check", href: "/india", label: "India research desk", tech: "India", icon: "M4 20V10M10 20V4M16 20v-7M22 20H2", what: "A pre-open Nifty estimate, five years of backtests on overnight events, and a geopolitical news radar." },
   { group: "check", href: "/oracle", label: "Live prices", tech: "Oracle", icon: "M4 18 9 12l4 3 7-9M15 6h5v5", what: "What SPY, QQQ, gold, silver and bitcoin ETFs are worth right now, even while markets are closed." },
+  { group: "check", href: "/scorecard", label: "Weekly scorecard", tech: "Scorecard", icon: "M4 20V10M10 20V4M16 20v-7M22 20H2", what: "Our overnight price against the real open every week, wins and misses both shown." },
   { group: "check", href: "/transactions", label: "Every transaction", tech: "Transactions", icon: "M4 8h13l-3-3M20 16H7l3 3", what: "Loans, buys, price updates and records in one list, each linked to its block explorer." },
   { group: "check", href: "/transparency", label: "Check our work", tech: "Transparency", icon: "M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6zM9 12l2 2 4-4", what: "Our past predictions, the safety rules proven by math, and every contract address." },
-  { group: "check", href: "/proof", label: "Prove a loan is safe, privately", tech: "Proof", icon: "M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6zM12 9.5a2.5 2.5 0 1 0 0 5", what: "Show a loan is solvent without revealing its size, using a zero-knowledge proof." },
+  { group: "check", href: "/proof", label: "Prove a loan is solvent, privately", tech: "Proof", icon: "M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6zM12 9.5a2.5 2.5 0 1 0 0 5", what: "Show a loan is solvent without revealing its size, using a zero-knowledge proof." },
   { group: "more", href: "/docs", label: "How it works", tech: "Docs", icon: "M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h4", what: "Straight answers on prices, loans, protection and what is still a demo." },
   { group: "more", href: "/leaderboard", label: "Rankings", tech: "Leaderboard", icon: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3", what: "Everyone who has used Nightshift, ranked by what they've done." },
   { group: "more", href: "/#stocks", label: "Big stocks after hours", tech: "Stocks", icon: "M4 20V10M10 20V4M16 20v-7M22 20H2", what: "The world's biggest stocks, priced after the bell by the same engine." },
+  { group: "more", href: "/hi", label: "हिंदी में पढ़ें", tech: "Hindi", icon: "M4 5h16M12 5v14M7 12h10", what: "Nightshift explained in Hindi, with the India market rules and waitlist." },
   { group: "more", href: "/profile", label: "Your profile", tech: "Profile", icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6", what: "Your name, links and points. Your wallet is your login." },
 ] as const;
 
@@ -38,7 +40,6 @@ export type Integration = {
   proof: { href: string; label: string; external?: boolean };
 };
 
-const spyAdapter = DEPLOYMENT.tokens?.SPY?.adapter;
 
 export const INTEGRATIONS: Integration[] = [
   {
@@ -58,11 +59,11 @@ export const INTEGRATIONS: Integration[] = [
     handle: "Morpho",
     logo: "/logos/morpho.png",
     role: "Lending standard",
-    short: "The Vault follows Morpho Blue's rules, and Morpho-compatible price oracles are live on Base.",
-    uses: "The Vault follows Morpho Blue's rules (health factor, LLTV, liquidation incentive), and Nightshift publishes Morpho-compatible price oracles on Base that refuse prices more than a day old.",
-    matters: "Any Morpho market can price tokenized ETFs with Nightshift's overnight fair value instead of a frozen close, so loans stay fairly priced while Wall Street is shut.",
+    short: "The Vault follows Morpho Blue's lending and liquidation rules, rebuilt for Algorand TestNet.",
+    uses: "The Vault follows Morpho Blue's rules (health factor, LLTV, liquidation incentive). Morpho itself isn't on Algorand, so Nightshift uses its rules as the design and rebuilds them as an Algorand TestNet contract.",
+    matters: "Morpho's rules are battle-tested and already proven in Lean for Nightshift's Vault, so lenders get familiar, audited-style mechanics priced by an overnight fair value.",
     page: { href: "/app", label: "App" },
-    proof: spyAdapter ? { href: addrUrl(spyAdapter), label: "dSPY Morpho oracle on Base", external: true } : { href: "/docs#morpho", label: "How it works" },
+    proof: { href: "/transparency#verified", label: "See the proven Vault rules" },
   },
   {
     name: "Algorand",
@@ -79,7 +80,7 @@ export const INTEGRATIONS: Integration[] = [
     name: "Sentora",
     handle: "SentoraHQ",
     logo: "/logos/sentora.png",
-    role: "Yield for idle USDG",
+    role: "Yield for idle stablecoins",
     short: "A live view of a Sentora PYUSD vault, with deposits on Sentora's own site.",
     uses: "The Earn panel shows a Sentora PYUSD vault live: current yield, size and history, with a link to deposit on Sentora's own site.",
     matters: "Borrowed or idle stablecoins shouldn't sit still. Sentora gives a curated, protected RWA rate, while Nightshift never touches the funds.",
@@ -93,8 +94,8 @@ export const INTEGRATIONS: Integration[] = [
     light: true,
     role: "Zero-knowledge standards",
     short: "Cloak's Groth16 solvency proofs follow the proof system covered by ZKProof's open standards work.",
-    uses: "Cloak proves a loan is solvent at the Oracle price with a Groth16 proof, a proof system covered by the ZKProof community's open standards work. It is checked by the server and by a contract on Base.",
-    matters: "Public loans show exactly where a liquidation would trigger. Cloak proves a loan is safe without revealing its size or liquidation level, so large borrowers aren't a target.",
+    uses: "Cloak proves a loan is solvent at the Oracle price with a Groth16 proof, a proof system covered by the ZKProof community's open standards work. It is checked by the server today, and by an Algorand TestNet contract next.",
+    matters: "Public loans show exactly where a liquidation would trigger. Cloak proves a loan is solvent without revealing its size or liquidation level, so large borrowers aren't a target.",
     page: { href: "/proof", label: "Proof" },
     proof: { href: "/proof", label: "Generate a proof" },
   },

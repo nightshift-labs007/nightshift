@@ -123,7 +123,7 @@ export function LeaderboardPage() {
       <PageHero
         overline="LEADERBOARD"
         title="Everyone who's tried Nightshift."
-        lead="Every wallet that joined, or used the Vault on Base, ranked by what it has done. The list lives on public chains (joins on Algorand, loans on Base), so nobody can edit it, including us."
+        lead="Every wallet that joined, ranked by what it has done. The list lives on Algorand TestNet, so nobody can edit it, including us."
       />
       <section className="block">
         <div className="wrap">
@@ -222,7 +222,7 @@ export function LeaderboardPage() {
           </div>
           <p className="small muted" style={{ marginTop: 14 }}>
             Ties go to more collateral, then to whoever joined first. Wallets that used the Vault appear even if they haven&apos;t joined, because
-            Vault activity is already public on Base. Demo assets only: points have no value. <Link href="/app">Open the App</Link> to earn them.
+            Vault activity counts once the Vault is live on Algorand TestNet. Points have no value. <Link href="/app">Open the App</Link> to earn them.
           </p>
         </div>
       </section>

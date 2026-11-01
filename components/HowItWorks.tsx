@@ -2,7 +2,7 @@
 import { isDeployed, isMainnet } from "@/lib/chain";
 import { verifiedCount } from "./Verified";
 
-const ONCHAIN = isDeployed ? (isMainnet ? "Live on Base · demo" : "Live on testnet") : "Testnet-ready";
+const ONCHAIN = isDeployed ? (isMainnet ? "Live on Base · demo" : "Live on testnet") : "Paper · Algorand next";
 
 type Logo = { name: string; src: string; rel: string };
 
@@ -50,7 +50,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
     href: "/proof",
     status: "Live ZK proofs",
     tone: "live",
-    what: "Proves a loan is safely backed at the Oracle price with a zero-knowledge proof, without revealing its size or liquidation level.",
+    what: "Proves a loan is fully backed (health factor above 1) at the Oracle price with a zero-knowledge proof, without revealing its size or liquidation level.",
     icon: "M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6zM12 9.5a2.5 2.5 0 1 0 0 5M4 4l16 16",
     logos: [
       { name: "Zcash", src: "/logos/zcash.svg", rel: "Same proof system" },
@@ -73,7 +73,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
     href: "/#earn",
     status: "Read-only",
     tone: "ready",
-    what: "Idle USDG earns the Sentora protected RWA rate. Live yield today; deposits stay on Sentora.",
+    what: "Live view of Sentora's protected RWA vault (PYUSD on Ethereum). Read-only: deposits happen on Sentora.",
     icon: "M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5",
     logos: [{ name: "Sentora", src: "/logos/sentora.png", rel: "Vault curator, third party" }],
   },

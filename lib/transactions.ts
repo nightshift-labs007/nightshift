@@ -1,6 +1,6 @@
 import "server-only";
 import { decodeEventLog, formatEther, zeroAddress, type Address, type Log } from "viem";
-import { ABI, DEPLOYMENT, addrUrl, txUrl } from "@/lib/chain";
+import { ABI, DEPLOYMENT, addrUrl, isDeployed, txUrl } from "@/lib/chain";
 import { publicClient } from "@/lib/chain/keeper";
 import { EARN_TXS, EARN_WALLET } from "@/lib/team-wallets";
 import { explorerTx, ledgerAddress, readJoins, readStamps } from "@/lib/algorand";
@@ -227,7 +227,7 @@ const TTL_MS = 60_000;
 
 export async function getTransactions(): Promise<Transactions> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.data;
-  const [baseRes, algoRes] = await Promise.allSettled([baseRows(), algorandRows()]);
+  const [baseRes, algoRes] = await Promise.allSettled([isDeployed ? baseRows() : Promise.reject(new Error("Base retired")), algorandRows()]);
   const base = baseRes.status === "fulfilled" ? baseRes.value : null;
   const algo = algoRes.status === "fulfilled" ? algoRes.value : null;
   // the team's Sentora deposit on Ethereum: two fixed transactions, verifiable on Etherscan

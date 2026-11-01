@@ -14,10 +14,10 @@ type Snarkjs = {
     fullProve: (input: Record<string, string>, wasm: string, zkey: string) => Promise<{ proof: Groth16Proof; publicSignals: string[] }>;
   };
 };
-type Groth16Proof = { pi_a: string[]; pi_b: string[][]; pi_c: string[]; protocol: string; curve: string };
+export type Groth16Proof = { pi_a: string[]; pi_b: string[][]; pi_c: string[]; protocol: string; curve: string };
 
 let snarkjsPromise: Promise<Snarkjs> | null = null;
-function loadSnarkjs(): Promise<Snarkjs> {
+export function loadSnarkjs(): Promise<Snarkjs> {
   const w = window as unknown as { snarkjs?: Snarkjs };
   if (w.snarkjs) return Promise.resolve(w.snarkjs);
   snarkjsPromise ??= new Promise((resolve, reject) => {
@@ -30,7 +30,7 @@ function loadSnarkjs(): Promise<Snarkjs> {
   return snarkjsPromise;
 }
 
-function randomFieldSalt() {
+export function randomFieldSalt() {
   const b = new Uint8Array(31); // < BN254 field size
   crypto.getRandomValues(b);
   return BigInt("0x" + Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("")).toString();
@@ -391,7 +391,7 @@ export function VerifyProof() {
       <div className="unit">Verify a shared proof</div>
       <p className="small muted" style={{ margin: "8px 0 12px" }}>
         Paste a proof copied from the Cloak. The server checks the cryptography and that its price matches the live Oracle. You
-        learn the loan is safe, and nothing about its size.
+        learn the loan is solvent, and nothing about its size.
       </p>
       <textarea
         value={text}

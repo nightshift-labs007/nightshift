@@ -7,11 +7,14 @@ import { useEffect } from "react";
 import type { OracleSnapshot } from "@/lib/oracle";
 import type { StockBoard } from "@/lib/stocks";
 import { isDeployed, isMainnet } from "@/lib/chain";
-const LIVE = isDeployed ? (isMainnet ? "Live on Base · demo" : "Live on testnet") : "Testnet-ready";
+const LIVE = isDeployed ? (isMainnet ? "Live on Base · demo" : "Live on testnet") : "Paper mode · moving to Algorand";
 import { CountUp } from "./CountUp";
 import { Earn } from "./Earn";
 import { HowItWorks } from "./HowItWorks";
 import { Integrations } from "./Integrations";
+import { ProtocolShowcase } from "./ProtocolShowcase";
+import { MarketPanel } from "./Markets";
+import { marketFirst, useMarket } from "@/lib/markets";
 import { SectionHead, SiteFooter, SiteNav } from "./Site";
 import { TopStocks } from "./Stocks";
 import { usd, useApi } from "./useApi";
@@ -26,10 +29,11 @@ function EngineHero() {
 }
 
 function MarketStrip({ snap }: { snap: OracleSnapshot | null }) {
+  const [market] = useMarket();
   return (
     <div className="market-strip" aria-label="Live Oracle prices">
       <div className="wrap strip-inner">
-        {(snap?.quotes ?? []).map((q) => (
+        {marketFirst(snap?.quotes ?? [], (q) => q.token, market).map((q) => (
           <Link key={q.token} className="strip-item" href="/oracle">
             <span className="strip-token">{q.token}</span>
             <span className="strip-price">
@@ -50,7 +54,7 @@ function MarketStrip({ snap }: { snap: OracleSnapshot | null }) {
 
 const ROADMAP = [
   { phase: "Live", title: "Oracle and shift reports", body: "Off-hours fair values for SPY, QQQ, gold and Bitcoin ETF tokens, a public API, and a graded track record." },
-  { phase: LIVE, title: "Vault on Morpho", body: "Smart contracts with Morpho Blue's rules and a Morpho-compatible oracle adapter, on Base. Next: markets on Morpho itself." },
+  { phase: LIVE, title: "Vault", body: "Lending with Morpho Blue's liquidation rules, in paper mode today. Next: the Vault rebuilt as an Algorand TestNet contract." },
   { phase: LIVE, title: "Guardian", body: "Borrowers opt in on-chain; a keeper protects loans around the clock. Next: alerts by email and Telegram." },
   { phase: "Live proofs", title: "Cloak", body: "Solvency proofs verified by the server and by a smart contract. Next: shielded positions and an auditor view key." },
 ];
@@ -93,6 +97,11 @@ export function Dashboard() {
         <div className="wrap start-wrap">
           <GettingStarted />
         </div>
+        <section className="block" id="market">
+          <div className="wrap">
+            <MarketPanel />
+          </div>
+        </section>
         <section className="block" id="stocks">
           <div className="wrap">
             <SectionHead
@@ -109,7 +118,7 @@ export function Dashboard() {
             <SectionHead
               overline="Product"
               title="One live price, and the products built on it."
-              lead="The Oracle produces a fair value every minute. The Vault lends against it, the Guardian monitors loans with it, the Cloak proves solvency at it, and the Ledger records it before every open. Earn shows where idle USDG could earn yield."
+              lead="The Oracle produces a fair value every minute. The Vault lends against it, the Guardian monitors loans with it, the Cloak proves solvency at it, and the Ledger records it before every open. Earn shows a live, read-only view of a Sentora PYUSD yield vault on Ethereum."
             />
             <div className="problem-grid">
               <div className="card problem">
@@ -129,6 +138,17 @@ export function Dashboard() {
           </div>
         </section>
 
+        <section className="block" id="proofs">
+          <div className="wrap">
+            <SectionHead
+              overline="See it working"
+              title="Don't take our word for it. Check each piece live."
+              lead="Every claim on this page can be checked from your browser: generate a real zero-knowledge proof, read the live Sentora vault, open the Algorand stamps and the on-chain Oracle on Algorand TestNet, and read the machine-checked rules."
+            />
+            <ProtocolShowcase snap={snap} />
+          </div>
+        </section>
+
         <section className="block alt" id="integrations">
           <div className="wrap">
             <SectionHead
@@ -144,8 +164,8 @@ export function Dashboard() {
           <div className="wrap">
             <SectionHead
               overline="Earn · Sentora"
-              title="Idle USDG could earn a protected RWA rate."
-              lead="A live, read-only view of a Sentora PYUSD vault: current yield, size and history, with a link to deposit on Sentora. Nightshift never touches your funds."
+              title="Idle stablecoins could earn a protected RWA rate."
+              lead="A live, read-only view of Sentora's PYUSD vault on Ethereum: current yield, size and history. It is shown as third-party data only: Nightshift sends no transactions to Ethereum or any mainnet. Deposits happen on Sentora; Nightshift never touches your funds."
             />
             <Earn />
           </div>

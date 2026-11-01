@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { DEPLOYMENT, addrUrl, isDeployed, sym, txUrl } from "@/lib/chain";
+import algoRecord from "@/lib/algorand-testnet.json";
+
+const ALGO = algoRecord as { oracle?: { appId: number } };
 import type { OracleSnapshot } from "@/lib/oracle";
 import { PageHero, PageShell } from "./Site";
 import { useApi } from "./useApi";
@@ -234,7 +237,7 @@ function LltvStudy() {
 
 function MorphoMarkets() {
   const m = DEPLOYMENT.morpho;
-  if (!m) return null;
+  if (!m || !isDeployed) return null; // the Base demo market is retired with the Base deployment
   return (
     <div className="docs-box">
       <p>
@@ -309,7 +312,7 @@ export function DocsPage() {
       <PageHero
         overline="DOCS · HOW NIGHTSHIFT WORKS"
         title="What's live, how it works, and what isn't done yet."
-        lead="Straight answers to the questions partners and reviewers ask most. Where something is a demo or not built yet, it says so. Nightshift is an unaudited demonstration: the Vault on Base uses demo assets with no value."
+        lead="Straight answers to the questions partners and reviewers ask most. Where something is a demo or not built yet, it says so. Nightshift is an unaudited demonstration that runs on Algorand TestNet and in paper mode: nothing on any mainnet, no real funds."
       />
       <section className="block">
         <div className="wrap docs">
@@ -387,12 +390,31 @@ export function DocsPage() {
                 <li><code>GET /api/v1/history?token=SPY&amp;range=12H</code>: fair-value history (1H, 4H, 12H, 24H)</li>
                 <li><code>GET /api/v1/track-record</code>: predicted versus actual opens, last 10 sessions</li>
               </ul>
-              <p>
+              {!isDeployed && (
+                <p>
+                  <b>On-chain (Algorand TestNet):</b>{" "}
+                  {ALGO.oracle ? (
+                    <>
+                      the Oracle is app{" "}
+                      <a href={`https://lora.algokit.io/testnet/application/${ALGO.oracle.appId}`} target="_blank" rel="noopener noreferrer">
+                        {ALGO.oracle.appId}
+                      </a>
+                      .{" "}
+                    </>
+                  ) : (
+                    "the Oracle app is being deployed. "
+                  )}
+                  Each symbol is a global-state key <code>p:SPY</code> holding price (uint64, USD with 6 decimals), confidence (uint8, 0–100) and update time
+                  (uint64, unix seconds), 17 bytes in all; other apps read it for free with <code>app_global_get_ex</code>, or call the read-only ABI method{" "}
+                  <code>get_price(string)</code>. A push that moves a price more than 15% is skipped unless the owner confirms it.
+                </p>
+              )}
+              {isDeployed && <p>
                 <b>On-chain (Base):</b> <code>NightshiftOracle.getPrice(token)</code> returns price, confidence and update time. Each token
                 also has a <b>Chainlink-style feed</b> (<code>AggregatorV3Interface</code>: <code>latestRoundData()</code>, 8 decimals, plus{" "}
                 <code>confidence()</code>; there is no round history, so <code>getRoundData</code> answers only the latest round) and a{" "}
                 <b>Morpho Blue oracle</b> (<code>price()</code> at Morpho&apos;s 10³⁶ scale) that refuses prices older than one day.
-              </p>
+              </p>}
               {isDeployed && (
                 <table className="contracts">
                   <tbody>
@@ -504,15 +526,23 @@ export function DocsPage() {
           <Q id="morpho" q="Is the Vault a live Morpho Blue market?">
             <Now>
               <MorphoMarkets />
-              <p>
+              {isDeployed ? (
+                <p>
                 The Vault itself is not a Morpho market: it is Nightshift&apos;s own contract on Base that follows Morpho Blue&apos;s rules (health factor, LLTV, liquidation
                 incentive). The Morpho oracles listed above were tested against the real Morpho Blue contract on a fork of Base: the market was
                 created, borrowing to the limit worked, one unit more was refused, and a 20% price drop made the loan liquidatable. They now also
                 refuse prices older than one day.
               </p>
+              ) : (
+                <p>
+                  No. The Vault follows Morpho Blue&apos;s rules (health factor, LLTV, liquidation incentive), and those rules are proven in Lean, but Morpho itself
+                  isn&apos;t on Algorand. Nightshift ran a demo Morpho market on Base until November 2026; that deployment is retired, and the Vault is being
+                  rebuilt as Nightshift&apos;s own Algorand TestNet contract with the same rules.
+                </p>
+              )}
             </Now>
             <Next>
-              <p>A demo market on Morpho Blue on Base; then a market with a licensed tokenized-ETF collateral and a real loan asset, listed by a Morpho curator, after an audit.</p>
+              <p>The Vault and Guardian as Algorand TestNet contracts, tested against the same Lean proof vectors; then an independent audit before any real asset.</p>
             </Next>
           </Q>
 
@@ -569,7 +599,7 @@ export function DocsPage() {
               <p>
                 <b>Who verifies:</b> the server checks the proof and that its price matches the live Oracle (within 0.5%) and its LLTV matches
                 the market.{" "}
-                {DEPLOYMENT.contracts.cloakRegistry ? (
+                {isDeployed && DEPLOYMENT.contracts.cloakRegistry ? (
                   <>
                     On Base, the <b>CloakRegistry</b> contract ({link(DEPLOYMENT.contracts.cloakRegistry)}) enforces all three on-chain: the
                     Groth16 proof must be valid, its price must match NightshiftOracle within 1% (from a price less than a day old), and its LLTV
@@ -577,7 +607,7 @@ export function DocsPage() {
                     commitment. &ldquo;Verify on-chain&rdquo; in the app uses it.
                   </>
                 ) : (
-                  <>&ldquo;Verify on-chain&rdquo; has the Groth16 verifier contract on Base check the math, then compares the proof&apos;s price and LLTV with the on-chain Oracle and Vault.</>
+                  <>On-chain verification moves to an Algorand TestNet contract next (Algorand supports the BN254 pairing check Groth16 needs); today the server verifies.</>
                 )}
               </p>
               <p><b>Not yet:</b> proofs of a specific health level, binding a proof to a specific Vault position, and a multi-party trusted setup (today&apos;s setup was run by one party).</p>

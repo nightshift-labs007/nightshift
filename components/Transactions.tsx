@@ -58,7 +58,7 @@ export function TransactionsPage() {
       <PageHero
         overline="TRANSACTIONS"
         title="Every transaction, in one place."
-        lead="Loans, Guardian saves, Oracle price updates and proofs on Base, plus prediction stamps and sign-ups on Algorand. Each row is read from a public chain and links to its explorer, so nothing on this page can be edited or hidden by us."
+        lead="Prediction stamps, Oracle price updates and sign-ups on Algorand TestNet, plus the team's read-only Sentora deposit on Ethereum. Each row is read from a public chain and links to its explorer, so nothing on this page can be edited or hidden by us."
       />
       <section className="block">
         <div className="wrap">
@@ -68,7 +68,7 @@ export function TransactionsPage() {
             ))}
           </div>
           {!data ? (
-            <div className="skeleton">Reading Base, Ethereum and Algorand…</div>
+            <div className="skeleton">Reading Algorand TestNet…</div>
           ) : data.error ? (
             <p className="muted">Couldn&apos;t load transactions right now. Try again in a minute.</p>
           ) : rows.length === 0 ? (
@@ -117,7 +117,7 @@ const FLOWS: [TxKind, string, string][] = [
 /** Counts and the latest explorer link for each kind of transaction: the on-chain footprint of every flow. */
 export function ActivityProof() {
   const { data } = useApi<Transactions & { error?: string }>("/api/transactions", 60_000);
-  if (!data) return <div className="skeleton">Reading Base and Algorand…</div>;
+  if (!data) return <div className="skeleton">Reading Algorand TestNet…</div>;
   if (data.error) return <p className="muted">Couldn&apos;t load the activity right now.</p>;
   return (
     <>

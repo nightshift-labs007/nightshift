@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NETWORK, isDeployed, isMainnet, sym } from "@/lib/chain";
+import { MarketChoice } from "./Markets";
 
 type Step = { kicker: string; title: string; body: React.ReactNode; cta?: { href: string; label: string } };
 
@@ -15,9 +16,11 @@ const HOME: Step[] = [
       <>
         <p>
           Tokens like SPY, QQQ, gold and bitcoin ETFs trade around the clock on-chain, but their prices freeze when Wall Street closes.
-          Nightshift keeps pricing them overnight, so you can lend and borrow against them safely while the market sleeps.
+          Nightshift keeps pricing them overnight, so loans against them are valued at a current price, not Friday's close.
         </p>
         <p className="guide-note">This is a demo: the tokens have no value and nothing costs money except a few cents of gas.</p>
+        <p className="guide-market-q">Where are you following from?</p>
+        <MarketChoice compact />
       </>
     ),
   },
