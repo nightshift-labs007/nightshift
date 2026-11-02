@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Funnel_Sans, Geist_Mono, Instrument_Serif, Unbounded } from "next/font/google";
+import { Funnel_Sans, Geist_Mono, Inter_Tight, Playfair_Display, Unbounded } from "next/font/google";
 import "./globals.css";
 import "./theme.css";
 import { WalletProvider } from "@/lib/wallet";
@@ -8,7 +8,8 @@ import { Nyx } from "@/components/Nyx";
 
 const display = Unbounded({ subsets: ["latin"], weight: ["300", "400", "500"], variable: "--font-display", display: "swap" });
 const sans = Funnel_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
-const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: "italic", variable: "--font-serif", display: "swap" });
+const wordmark = Inter_Tight({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-wordmark", display: "swap" });
+const serif = Playfair_Display({ subsets: ["latin"], weight: "500", style: "italic", variable: "--font-serif", display: "swap" });
 const mono = Geist_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
@@ -25,7 +26,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable} ${serif.variable} ${mono.variable}`}>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${serif.variable} ${wordmark.variable} ${mono.variable}`}>
       <body>
         <WalletProvider>
           <AlwaysOnAudio />
