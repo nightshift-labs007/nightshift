@@ -822,8 +822,6 @@ a.pf-chip:hover, button.pf-chip:hover { border-color: var(--mint); color: var(--
 @media (max-width: 720px) { .sc-stats { grid-template-columns: 1fr; } }
 
 /* ---------- Hindi page ---------- */
-.nav-lang { flex: none; display: grid; place-items: center; min-width: 36px; height: 36px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-2); font-size: 13px; }
-.nav-lang:hover { border-color: var(--border-strong); }
 .hi-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
 .hi-product { display: flex; flex-direction: column; gap: 8px; padding: 18px; color: var(--text); transition: border-color .15s; }
 .hi-product:hover { border-color: var(--border-strong); }

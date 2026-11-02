@@ -14,7 +14,6 @@ export const PAGES = [
   { group: "use", href: "/app", label: "Borrow", tech: "App", icon: "M4 9h16v10H4zM8 9V6a4 4 0 0 1 8 0v3", what: "Borrow against ETF tokens, with or without a wallet, and switch on Guardian protection." },
   { group: "use", href: "/app#stack", label: "Buy gold and silver automatically", tech: "Stack", icon: "M5 18h14M7 14h10M9 10h6M11 6h2", what: "Pick an amount and how often. Stack buys only at a fair price, straight to your wallet." },
   { group: "use", href: "/#earn", label: "Earn on idle dollars", tech: "Earn", icon: "M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7", what: "A live view of a Sentora vault where idle stablecoins could earn a protected rate." },
-  { group: "check", href: "/india", label: "India research desk", tech: "India", icon: "M4 20V10M10 20V4M16 20v-7M22 20H2", what: "A pre-open Nifty estimate, five years of backtests on overnight events, and a geopolitical news radar." },
   { group: "check", href: "/oracle", label: "Live prices", tech: "Oracle", icon: "M4 18 9 12l4 3 7-9M15 6h5v5", what: "What SPY, QQQ, gold, silver and bitcoin ETFs are worth right now, even while markets are closed." },
   { group: "check", href: "/scorecard", label: "Weekly scorecard", tech: "Scorecard", icon: "M4 20V10M10 20V4M16 20v-7M22 20H2", what: "Our overnight price against the real open every week, wins and misses both shown." },
   { group: "check", href: "/transactions", label: "Every transaction", tech: "Transactions", icon: "M4 8h13l-3-3M20 16H7l3 3", what: "Loans, buys, price updates and records in one list, each linked to its block explorer." },
@@ -23,7 +22,6 @@ export const PAGES = [
   { group: "more", href: "/docs", label: "How it works", tech: "Docs", icon: "M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h4", what: "Straight answers on prices, loans, protection and what is still a demo." },
   { group: "more", href: "/leaderboard", label: "Rankings", tech: "Leaderboard", icon: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3", what: "Everyone who has used Nightshift, ranked by what they've done." },
   { group: "more", href: "/#stocks", label: "Big stocks after hours", tech: "Stocks", icon: "M4 20V10M10 20V4M16 20v-7M22 20H2", what: "The world's biggest stocks, priced after the bell by the same engine." },
-  { group: "more", href: "/hi", label: "हिंदी में पढ़ें", tech: "Hindi", icon: "M4 5h16M12 5v14M7 12h10", what: "Nightshift explained in Hindi, with the India market rules and waitlist." },
   { group: "more", href: "/profile", label: "Your profile", tech: "Profile", icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6", what: "Your name, links and points. Your wallet is your login." },
 ] as const;
 

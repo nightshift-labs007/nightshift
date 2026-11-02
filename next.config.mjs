@@ -5,6 +5,13 @@ const nextConfig = {
   serverExternalPackages: ["snarkjs"],
   // Lets a verification build run beside `next dev` without sharing .next
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // the Hindi page and the India desk were retired
+  async redirects() {
+    return [
+      { source: "/hi", destination: "/", permanent: true },
+      { source: "/india", destination: "/", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -55,9 +55,6 @@ export function SiteNav() {
         <Link className="brand" href="/">
           <BrandMark /> Nightshift
         </Link>
-        <Link className="nav-lang" href={path === "/hi" ? "/" : "/hi"} lang={path === "/hi" ? "en" : "hi"} title={path === "/hi" ? "English" : "हिंदी में पढ़ें"}>
-          {path === "/hi" ? "EN" : "हिं"}
-        </Link>
         <MarketSwitch />
         <WalletButton />
         {path !== "/app" && (

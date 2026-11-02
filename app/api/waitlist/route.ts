@@ -7,7 +7,7 @@ import { allow } from "@/lib/ratelimit";
 export const dynamic = "force-dynamic";
 
 // Per-market waitlists (plan §3, §8). Upstash when connected; a local file in development; off otherwise.
-const MARKETS = ["india", "usa", "global"] as const;
+const MARKETS = ["usa", "global"] as const;
 type MarketId = (typeof MARKETS)[number];
 type Entry = { contact: string; kind: "email" | "telegram"; market: MarketId; at: string };
 
@@ -32,7 +32,7 @@ async function counts(): Promise<Record<MarketId, number> | null> {
 
 export async function GET() {
   const c = await counts();
-  return NextResponse.json({ enabled: c !== null, counts: c ?? { india: 0, usa: 0, global: 0 } });
+  return NextResponse.json({ enabled: c !== null, counts: c ?? { usa: 0, global: 0 } });
 }
 
 export async function POST(req: NextRequest) {

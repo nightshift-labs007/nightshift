@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
  * Market selector (plan §3): a preference that decides which tokens lead, which legal text shows and which features are on.
  * It is not an eligibility check. Each market has its own switch, so one market's problem can't take down another.
  */
-export type MarketId = "india" | "usa" | "global";
+export type MarketId = "usa" | "global";
 export type Readiness = "live" | "data" | "soon";
 
 export type Market = {
@@ -21,16 +21,6 @@ export type Market = {
 };
 
 export const MARKETS: Market[] = [
-  {
-    id: "india",
-    name: "India",
-    tagline: "A research desk for the Nifty 50: pre-open estimates, backtested overnight events and a geopolitical news radar. Data first.",
-    tokens: ["SPY", "QQQ", "GLD", "SLV", "IBIT"],
-    features: { prices: "live", alerts: "soon", lending: "soon" },
-    legal:
-      "Data only for India. Lending is not offered to Indian residents. Tokenized stocks are not regulated investments in India, and income from virtual digital assets is taxed at a flat 30% plus 4% cess, with 1% TDS on most transfers. Not investment or tax advice.",
-    next: "Live now: the India research desk. Next: pre-open alerts on Telegram and WhatsApp.",
-  },
   {
     id: "usa",
     name: "USA",

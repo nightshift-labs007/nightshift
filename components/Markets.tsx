@@ -170,11 +170,6 @@ export function MarketPanel() {
           </div>
         ))}
       </div>
-      {market.id === "india" && (
-        <a className="btn primary market-desk" href="/india">
-          Open the India research desk →
-        </a>
-      )}
       <p className="market-legal">{market.legal}</p>
       <p className="market-next">
         {market.next}

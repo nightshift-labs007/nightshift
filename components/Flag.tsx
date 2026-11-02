@@ -7,19 +7,6 @@ const r3 = (x: number) => Math.round(x * 1000) / 1000;
 export function Flag({ id, size = 20 }: { id: MarketId | null; size?: number }) {
   const h = Math.round((size * 2) / 3);
   const common = { width: size, height: h, className: "flag", "aria-hidden": true as const };
-  if (id === "india")
-    return (
-      <svg viewBox="0 0 30 20" {...common}>
-        <rect width="30" height="20" fill="#fff" />
-        <rect width="30" height="6.67" fill="#FF9933" />
-        <rect y="13.33" width="30" height="6.67" fill="#138808" />
-        <circle cx="15" cy="10" r="2.6" fill="none" stroke="#000080" strokeWidth="0.6" />
-        <circle cx="15" cy="10" r="0.6" fill="#000080" />
-        {Array.from({ length: 12 }, (_, i) => (
-          <line key={i} x1="15" y1="10" x2={r3(15 + 2.6 * Math.cos((i * Math.PI) / 6))} y2={r3(10 + 2.6 * Math.sin((i * Math.PI) / 6))} stroke="#000080" strokeWidth="0.3" />
-        ))}
-      </svg>
-    );
   if (id === "usa")
     return (
       <svg viewBox="0 0 30 20" {...common}>
