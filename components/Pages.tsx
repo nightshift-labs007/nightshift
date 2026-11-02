@@ -29,18 +29,12 @@ import algoRecord from "@/lib/algorand-testnet.json";
 
 const ALGO = algoRecord as { oracle?: { appId: number } };
 
-const HERO: Record<AppTab, { overline: string; title: string; lead: string }> = {
-  prices: {
-    overline: "APP · PRICES",
-    title: "What every ETF is worth, right now.",
-    lead: "When Wall Street is closed, Nightshift prices each tokenized ETF from markets that never sleep, with a confidence score. When it's open, you see the real price. Below each one: the call we locked on Algorand before the last open, and how it did.",
-  },
-  borrow: { overline: "APP · BORROW", title: "Borrow against ETF tokens, priced overnight.", lead: "" },
-  stack: {
-    overline: "APP · STACK",
-    title: "Stack gold and silver, automatically.",
-    lead: "Pick a metal, an amount and how often. Stack buys on schedule, but only at a fair price, and your tokens go straight to your wallet.",
-  },
+const INTRO: Record<AppTab, string> = {
+  prices: "Real prices while Wall Street is open. Nightshift fair value while it's closed.",
+  borrow: isDeployed
+    ? `Borrow ${sym("USDG")} against ETF tokens. Practice without a wallet, or connect one and get free test funds.`
+    : "Borrow against ETF tokens with a practice account. No wallet needed.",
+  stack: "Buy gold and silver on a schedule, only at a fair price.",
 };
 
 const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
@@ -90,34 +84,23 @@ export function AppPage() {
     window.history.replaceState(null, "", t === "stack" ? "#stack" : t === "borrow" ? "#vault" : window.location.pathname);
     window.dispatchEvent(new HashChangeEvent("hashchange")); // replaceState is silent; tell the guide which tab is showing
   };
-  const hero = HERO[tab];
+  const hero = INTRO[tab];
   useEffect(() => {
     if (tab === "prices") markStep("price");
   }, [tab]);
   return (
     <PageShell>
-      <PageHero
-        overline={hero.overline}
-        title={hero.title}
-        lead={
-          tab !== "borrow"
-            ? hero.lead
-            : isDeployed
-            ? isMainnet
-              ? `Live on ${NETWORK} with demo assets that have no value: connect a wallet (it switches to ${NETWORK} for you), get demo funds, deposit collateral and borrow ${sym("USDG")}. You only pay a few cents of ETH gas. Health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation. Unaudited demo.`
-              : `Connect a wallet (it switches to ${NETWORK} for you), get free test funds, deposit collateral and borrow ${sym("USDG")}. The health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation.`
-            : "The on-chain Vault is being rebuilt for Algorand TestNet. Until then, try the full flow without a wallet: your paper account starts with 10 SPY, 10 QQQ, 20 GLD, 100 SLV and 200 IBIT."
-        }
-      />
-      <section className="block app-tabs-row">
+      <section className="block app-top">
         <div className="wrap">
-          <GettingStarted />
-          <MarketNotice />
-          <div className="seg app-tabs" role="tablist" aria-label="App sections">
-            <button role="tab" aria-selected={tab === "prices"} className={tab === "prices" ? "on" : ""} onClick={() => pick("prices")}>Prices</button>
-            <button role="tab" aria-selected={tab === "borrow"} className={tab === "borrow" ? "on" : ""} onClick={() => pick("borrow")}>Borrow</button>
-            <button role="tab" aria-selected={tab === "stack"} className={tab === "stack" ? "on" : ""} onClick={() => pick("stack")}>Stack</button>
+          <div className="app-top-row">
+            <div className="seg app-tabs" role="tablist" aria-label="App sections">
+              <button role="tab" aria-selected={tab === "prices"} className={tab === "prices" ? "on" : ""} onClick={() => pick("prices")}>Prices</button>
+              <button role="tab" aria-selected={tab === "borrow"} className={tab === "borrow" ? "on" : ""} onClick={() => pick("borrow")}>Borrow</button>
+              <button role="tab" aria-selected={tab === "stack"} className={tab === "stack" ? "on" : ""} onClick={() => pick("stack")}>Stack</button>
+            </div>
+            <p className="app-intro">{hero}</p>
           </div>
+          {tab === "borrow" && <MarketNotice />}
         </div>
       </section>
       {tab === "prices" ? (
@@ -175,6 +158,11 @@ export function AppPage() {
       </section>
       </>
       )}
+      <section className="block app-start">
+        <div className="wrap">
+          <GettingStarted />
+        </div>
+      </section>
     </PageShell>
   );
 }

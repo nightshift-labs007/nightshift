@@ -87,7 +87,7 @@ function LastCall({ call, pending }: { call: Call | null; pending: Call | null }
     return (
       <div className="fp-call">
         <div className="fp-call-head">
-          <span>Our call · {dayLabel(pending.session)} open</span>
+          <span>Our call · {dayLabel(pending.session)}</span>
           {pending.explorer && <a href={pending.explorer} target="_blank" rel="noreferrer">Algorand ↗</a>}
         </div>
         <div className="fp-call-row">
@@ -102,29 +102,29 @@ function LastCall({ call, pending }: { call: Call | null; pending: Call | null }
   return (
     <div className="fp-call">
       <div className="fp-call-head">
-        <span>Our call · {dayLabel(call.session)} open</span>
+        <span>Our call · {dayLabel(call.session)}</span>
         {call.explorer && <a href={call.explorer} target="_blank" rel="noreferrer">Algorand ↗</a>}
       </div>
-      <div className="fp-call-sub">{call.lockedAt ? `Locked ${etTime(call.lockedAt)}, before the bell` : "Replayed from market data"}</div>
+      <div className="fp-call-sub">{call.lockedAt ? `Locked ${etTime(call.lockedAt)}` : "Replayed from market data"}</div>
       <div className="fp-call-row">
-        <span>We predicted</span>
+        <span>Predicted</span>
         <b className="mono">{usd(call.predicted)}</b>
       </div>
       {call.actual !== null && (
         <div className="fp-call-row">
-          <span>It opened at</span>
+          <span>Opened at</span>
           <b className="mono">{usd(call.actual)}</b>
         </div>
       )}
       {call.errPct !== null && (
         <div className="fp-call-row">
-          <span>We were off by</span>
+          <span>Our miss</span>
           <b className={`mono ${beat ? "fp-good" : ""}`}>{call.errPct.toFixed(2)}%</b>
         </div>
       )}
       {call.frozenErrPct !== null && (
         <div className="fp-call-row muted-row">
-          <span>Frozen price off by</span>
+          <span>Frozen price miss</span>
           <span className="mono">{call.frozenErrPct.toFixed(2)}%</span>
         </div>
       )}

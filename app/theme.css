@@ -962,3 +962,12 @@ a.pf-chip:hover, button.pf-chip:hover { border-color: var(--mint); color: var(--
 .fp-links { display: flex; gap: 18px; flex-wrap: wrap; }
 .fp-links a { color: var(--mint); text-decoration: none; }
 @media (max-width: 560px) { .fp-status-side { text-align: left; } }
+
+/* App: no hero; the tabs lead */
+section.block.app-top { padding: 36px 0 0; }
+section.block.app-top + section.block { padding-top: 22px; }
+.app-top-row { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
+.app-intro { margin: 0; color: var(--text-2); font-size: 15px; }
+.app-top .market-notice { margin: 14px 0 0; }
+section.block.app-start { padding-top: 8px; }
+.fp-status h2 { font-size: clamp(1.25rem, 2.4vw, 1.55rem); }
