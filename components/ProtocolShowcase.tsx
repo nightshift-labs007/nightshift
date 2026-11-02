@@ -188,7 +188,7 @@ function SentoraTile() {
         {data?.tvl ? ` · ${usd(data.tvl / 1e6, 2)}M deposited` : ""}
         {data?.coverActive ? " · Firelight cover" : ""}. Read-only; deposits happen on Sentora.
       </p>
-      <Link href="/#earn">See the live vault →</Link>
+      <Link href="/earn">See the live vault →</Link>
     </article>
   );
 }

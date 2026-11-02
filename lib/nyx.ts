@@ -35,7 +35,7 @@ export type Intent =
 
 export const PAGE_HREF: Record<Page, string> = {
   home: "/", app: "/app", guardian: "/app#guardian", oracle: "/oracle", proof: "/proof", transparency: "/transparency",
-  docs: "/docs", leaderboard: "/leaderboard", profile: "/profile", stocks: "/#stocks", earn: "/#earn",
+  docs: "/docs", leaderboard: "/leaderboard", profile: "/profile", stocks: "/#stocks", earn: "/earn",
 };
 export const PAGE_NAME: Record<Page, string> = {
   home: "the home page", app: "the App", guardian: "the Guardian", oracle: "the Oracle", proof: "the Proof page",

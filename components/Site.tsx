@@ -52,8 +52,8 @@ export function SiteNav() {
           </span>
           <span className="xp-btn-label">Menu</span>
         </button>
-        <Link className="brand" href="/">
-          <BrandMark /> Nightshift
+        <Link className="brand" href="/" aria-label="Nightshift home">
+          <BrandMark /> <span className="wordmark">Night<em>shift</em></span>
         </Link>
         <MarketSwitch />
         <WalletButton />

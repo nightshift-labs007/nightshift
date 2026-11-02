@@ -70,7 +70,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
   {
     n: "06",
     name: "Earn",
-    href: "/#earn",
+    href: "/earn",
     status: "Read-only",
     tone: "ready",
     what: "Live view of Sentora's protected RWA vault (PYUSD on Ethereum). Read-only: deposits happen on Sentora.",

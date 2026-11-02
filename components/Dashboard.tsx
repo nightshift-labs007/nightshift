@@ -1,23 +1,16 @@
 "use client";
 
-import { GettingStarted } from "./GettingStarted";
-import { InfoTip } from "./InfoTip";
 import Link from "next/link";
 import { useEffect } from "react";
 import type { OracleSnapshot } from "@/lib/oracle";
 import type { StockBoard } from "@/lib/stocks";
 import { isDeployed, isMainnet } from "@/lib/chain";
 const LIVE = isDeployed ? (isMainnet ? "Live on Base · demo" : "Live on testnet") : "Paper mode · moving to Algorand";
-import { CountUp } from "./CountUp";
-import { Earn } from "./Earn";
-import { HowItWorks } from "./HowItWorks";
 import { Integrations } from "./Integrations";
 import { ProtocolShowcase } from "./ProtocolShowcase";
-import { MarketPanel } from "./Markets";
-import { marketFirst, useMarket } from "@/lib/markets";
 import { SectionHead, SiteFooter, SiteNav } from "./Site";
 import { TopStocks } from "./Stocks";
-import { usd, useApi } from "./useApi";
+import { useApi } from "./useApi";
 
 /** The Nightshift engine scene (the city with the live engine), served from /engine. */
 function EngineHero() {
@@ -25,30 +18,6 @@ function EngineHero() {
     <section className="engine-hero" id="top" aria-label="Nightshift engine, interactive">
       <iframe src="/engine/index.html" title="Nightshift live engine" allow="autoplay" />
     </section>
-  );
-}
-
-function MarketStrip({ snap }: { snap: OracleSnapshot | null }) {
-  const [market] = useMarket();
-  return (
-    <div className="market-strip" aria-label="Live Oracle prices">
-      <div className="wrap strip-inner">
-        {marketFirst(snap?.quotes ?? [], (q) => q.token, market).map((q) => (
-          <Link key={q.token} className="strip-item" href="/oracle">
-            <span className="strip-token">{q.token}</span>
-            <span className="strip-price">
-              <CountUp value={q.fairValue} format={(x) => usd(x)} />
-            </span>
-            <span className={`strip-move ${q.driftPct >= 0 ? "up" : "down"}`}>
-              {q.driftPct >= 0 ? "+" : "−"}
-              {Math.abs(q.driftPct).toFixed(2)}%
-            </span>
-            <span className="strip-conf">Conf. {q.confidence} <InfoTip k="confidence" label="Conf." /></span>
-          </Link>
-        ))}
-        <span className="strip-meta">{snap ? `${snap.market.open ? "NYSE open" : "NYSE closed"} · ${snap.market.etTime}` : "Loading prices…"}</span>
-      </div>
-    </div>
   );
 }
 
@@ -81,7 +50,7 @@ function useReveal() {
   }, []);
 }
 
-/** Landing page: what Nightshift does, live prices, the stock board and Earn; the app itself lives at /app. */
+/** Landing page: the engine hero, the stock board, live checks, integrations and the roadmap; the app itself lives at /app. */
 export function Dashboard() {
   const { data: snap } = useApi<OracleSnapshot>("/api/oracle", 60_000);
   const { data: board } = useApi<StockBoard>("/api/stocks", 120_000);
@@ -91,17 +60,8 @@ export function Dashboard() {
     <>
       <SiteNav />
       <EngineHero />
-      <MarketStrip snap={snap} />
 
       <main>
-        <div className="wrap start-wrap">
-          <GettingStarted />
-        </div>
-        <section className="block" id="market">
-          <div className="wrap">
-            <MarketPanel />
-          </div>
-        </section>
         <section className="block" id="stocks">
           <div className="wrap">
             <SectionHead
@@ -110,31 +70,6 @@ export function Dashboard() {
               lead="The same engine that prices the ETF tokens estimates where each of these stocks would trade right now, from index futures and each stock's own measured sensitivity to them."
             />
             <TopStocks board={board} />
-          </div>
-        </section>
-
-        <section className="block" id="how">
-          <div className="wrap">
-            <SectionHead
-              overline="Product"
-              title="One live price, and the products built on it."
-              lead="The Oracle produces a fair value every minute. The Vault lends against it, the Guardian monitors loans with it, the Cloak proves solvency at it, and the Ledger records it before every open. Earn shows a live, read-only view of a Sentora PYUSD yield vault on Ethereum."
-            />
-            <div className="problem-grid">
-              <div className="card problem">
-                <h3>Prices go stale</h3>
-                <p>Tokens trade 24/7, but traditional feeds stop at Friday&apos;s close.</p>
-              </div>
-              <div className="card problem">
-                <h3>Loans are visible</h3>
-                <p>Public positions show exactly where a liquidation would trigger.</p>
-              </div>
-              <div className="card problem">
-                <h3>Monday gaps</h3>
-                <p>Weekend news reaches prices all at once at the open.</p>
-              </div>
-            </div>
-            <HowItWorks />
           </div>
         </section>
 
@@ -157,17 +92,6 @@ export function Dashboard() {
               lead="Nightshift prices tokenized ETFs overnight. These protocols make that price provable, usable for lending, private, on the record, and productive."
             />
             <Integrations />
-          </div>
-        </section>
-
-        <section className="block" id="earn">
-          <div className="wrap">
-            <SectionHead
-              overline="Earn · Sentora"
-              title="Idle stablecoins could earn a protected RWA rate."
-              lead="A live, read-only view of Sentora's PYUSD vault on Ethereum: current yield, size and history. It is shown as third-party data only: Nightshift sends no transactions to Ethereum or any mainnet. Deposits happen on Sentora; Nightshift never touches your funds."
-            />
-            <Earn />
           </div>
         </section>
 

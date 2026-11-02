@@ -191,7 +191,7 @@ export function MarketNotice() {
       {practice
         ? `${market.name}: lending isn't offered here yet. Everything on this page is practice with paper or demo tokens that have no value.`
         : `${market.name}: demo lending with tokens that have no value, on unaudited contracts.`}{" "}
-      <a href="/#market">Change market</a>
+      <a href="/profile">Change market</a>
     </p>
   );
 }

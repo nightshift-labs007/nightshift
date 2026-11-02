@@ -971,3 +971,32 @@ section.block.app-top + section.block { padding-top: 22px; }
 .app-top .market-notice { margin: 14px 0 0; }
 section.block.app-start { padding-top: 8px; }
 .fp-status h2 { font-size: clamp(1.25rem, 2.4vw, 1.55rem); }
+
+/* ---------- nav: a floating pill ---------- */
+.nav { position: sticky; top: 0; padding: 14px 16px 0; background: transparent; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; pointer-events: none; }
+.nav.scrolled { border: 0; }
+.nav > * { pointer-events: auto; }
+.nav-inner {
+  --text: #0b0f0e; --text-2: #26302c; --text-3: #5e6965; --border: rgba(11, 20, 16, 0.12); --border-strong: rgba(11, 20, 16, 0.24);
+  --surface: #ffffff; --surface-2: #f2f5f4; --surface-3: #e9eeec; --bg-alt: #f3f6f5;
+  height: 64px; max-width: 1240px; margin: 0 auto; padding: 0 10px 0 14px; border-radius: 999px; background: #fff; color: var(--text);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+.nav-inner .brand { color: #0b0f0e; font: 500 1.6rem var(--sans); letter-spacing: -0.035em; gap: 9px; }
+.nav-inner .brand:hover { color: #0b0f0e; }
+.nav-inner .brand-mark { color: #0b0f0e; width: 28px; height: 28px; }
+.wordmark em { font-family: var(--font-serif), "Instrument Serif", Georgia, serif; font-style: italic; font-weight: 400; letter-spacing: -0.01em; padding-left: 0.02em; }
+.nav-inner .nav-cta { background: #97f0d5; color: #06231a; border-color: transparent; padding: 0 22px; height: 46px; border-radius: 999px; font-size: 16px; }
+.nav-inner .nav-cta:hover { background: #7fe9c8; }
+.nav-inner .xp-btn { border-radius: 999px; }
+.nav-inner .xp-btn:hover, .nav-inner .xp-btn[aria-expanded="true"] { border-color: #0b0f0e; }
+.nav-inner .nav-profile:hover { border-color: #0b0f0e; }
+.engine-hero iframe { height: calc(100vh - 78px); }
+@media (max-width: 560px) { .nav { padding: 10px 10px 0; } .nav-inner { height: 56px; padding: 0 8px 0 10px; } .nav-inner .brand { font-size: 1.3rem; } }
+@media (max-width: 420px) { .nav-inner > .brand .wordmark { display: none; } }
+/* the mint mark is drawn for dark backgrounds: darken it on the white pill */
+.nav-inner .brand-mark { filter: brightness(0.35) saturate(1.6); }
+/* landing page: the pill floats over the engine scene */
+.engine-hero { margin-top: -78px; }
+.engine-hero iframe { height: 100vh; min-height: 760px; }
+@media (max-width: 560px) { .engine-hero { margin-top: -66px; } }
