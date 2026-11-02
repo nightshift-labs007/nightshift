@@ -282,7 +282,7 @@ export function Nyx() {
           return `${trend}A common starting point is a broad index fund like an S&P 500 ETF, which spreads your money across hundreds of companies. Keep an emergency fund first, match risk to how long you can stay invested, and only invest what you can afford to lose. This is information, not financial advice.`;
         }
         case "money":
-          if (path !== "/app") router.push("/app");
+          router.push("/app#vault");
           return "For your safety, I never move money by voice. I've opened the App: choose the amount there, and confirm in your wallet.";
         case "wallet":
           window.dispatchEvent(new Event("ns:wallet-open"));

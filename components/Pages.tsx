@@ -19,13 +19,29 @@ import { VaultApp } from "./VaultApp";
 import { Verified } from "./Verified";
 import { ActivityProof } from "./Transactions";
 import { GettingStarted } from "./GettingStarted";
+import { FairPrices } from "./FairPrices";
 import { MarketNotice } from "./Markets";
+import { appTab, type AppTab } from "@/lib/app-tabs";
 import { markStep } from "@/lib/onboarding";
 import { useAccount } from "@/lib/paper";
 import { useWallet } from "@/lib/wallet";
 import algoRecord from "@/lib/algorand-testnet.json";
 
 const ALGO = algoRecord as { oracle?: { appId: number } };
+
+const HERO: Record<AppTab, { overline: string; title: string; lead: string }> = {
+  prices: {
+    overline: "APP · PRICES",
+    title: "What every ETF is worth, right now.",
+    lead: "When Wall Street is closed, Nightshift prices each tokenized ETF from markets that never sleep, with a confidence score. When it's open, you see the real price. Below each one: the call we locked on Algorand before the last open, and how it did.",
+  },
+  borrow: { overline: "APP · BORROW", title: "Borrow against ETF tokens, priced overnight.", lead: "" },
+  stack: {
+    overline: "APP · STACK",
+    title: "Stack gold and silver, automatically.",
+    lead: "Pick a metal, an amount and how often. Stack buys on schedule, but only at a fair price, and your tokens go straight to your wallet.",
+  },
+};
 
 const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
 
@@ -46,8 +62,8 @@ export function AppPage() {
   useEffect(() => {
     if (wallet.account && isDeployed && !picked.current) setModeState("testnet");
   }, [wallet.account]);
-  // Borrow and Stack are two tabs of the same page; /app#stack opens Stack
-  const [tab, setTab] = useState<"borrow" | "stack">("borrow");
+  // Prices, Borrow and Stack are tabs of the same page: /app opens Prices, /app#vault (or #guardian) Borrow, /app#stack Stack
+  const [tab, setTab] = useState<AppTab>("prices");
   // the landing page's "Try it free" button lands here: start in the no-wallet paper account
   useEffect(() => {
     const read = () => {
@@ -61,24 +77,31 @@ export function AppPage() {
     return () => window.removeEventListener("hashchange", read);
   }, []);
   useEffect(() => {
-    const sync = () => setTab(window.location.hash === "#stack" ? "stack" : "borrow");
+    const sync = () => {
+      const q = new URLSearchParams(window.location.search);
+      setTab(appTab(window.location.hash, q.has("try") || q.has("loan")));
+    };
     sync();
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
   }, []);
-  const pick = (t: "borrow" | "stack") => {
+  const pick = (t: AppTab) => {
     setTab(t);
-    window.history.replaceState(null, "", t === "stack" ? "#stack" : window.location.pathname);
+    window.history.replaceState(null, "", t === "stack" ? "#stack" : t === "borrow" ? "#vault" : window.location.pathname);
     window.dispatchEvent(new HashChangeEvent("hashchange")); // replaceState is silent; tell the guide which tab is showing
   };
+  const hero = HERO[tab];
+  useEffect(() => {
+    if (tab === "prices") markStep("price");
+  }, [tab]);
   return (
     <PageShell>
       <PageHero
-        overline={tab === "stack" ? "APP · STACK" : "APP · BORROW"}
-        title={tab === "stack" ? "Stack gold and silver, automatically." : "Borrow against ETF tokens, priced overnight."}
+        overline={hero.overline}
+        title={hero.title}
         lead={
-          tab === "stack"
-            ? "Pick a metal, an amount and how often. Stack buys on schedule, but only at a fair price, and your tokens go straight to your wallet."
+          tab !== "borrow"
+            ? hero.lead
             : isDeployed
             ? isMainnet
               ? `Live on ${NETWORK} with demo assets that have no value: connect a wallet (it switches to ${NETWORK} for you), get demo funds, deposit collateral and borrow ${sym("USDG")}. You only pay a few cents of ETH gas. Health factor and borrow limit update live with the Oracle, and the Guardian protects your loan before liquidation. Unaudited demo.`
@@ -91,12 +114,19 @@ export function AppPage() {
           <GettingStarted />
           <MarketNotice />
           <div className="seg app-tabs" role="tablist" aria-label="App sections">
+            <button role="tab" aria-selected={tab === "prices"} className={tab === "prices" ? "on" : ""} onClick={() => pick("prices")}>Prices</button>
             <button role="tab" aria-selected={tab === "borrow"} className={tab === "borrow" ? "on" : ""} onClick={() => pick("borrow")}>Borrow</button>
             <button role="tab" aria-selected={tab === "stack"} className={tab === "stack" ? "on" : ""} onClick={() => pick("stack")}>Stack</button>
           </div>
         </div>
       </section>
-      {tab === "stack" ? (
+      {tab === "prices" ? (
+        <section className="block" id="prices">
+          <div className="wrap">
+            <FairPrices snap={snap} />
+          </div>
+        </section>
+      ) : tab === "stack" ? (
         <section className="block" id="stack">
           <div className="wrap">
             <MemberGate what="Stack">

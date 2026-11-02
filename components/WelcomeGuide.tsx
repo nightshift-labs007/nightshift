@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NETWORK, isDeployed, isMainnet, sym } from "@/lib/chain";
+import { appTab } from "@/lib/app-tabs";
 import { MarketChoice } from "./Markets";
 
 type Step = { kicker: string; title: string; body: React.ReactNode; cta?: { href: string; label: string } };
@@ -58,7 +59,7 @@ const HOME: Step[] = [
         </ul>
       </>
     ),
-    cta: { href: "/app", label: "Open the App" },
+    cta: { href: "/app#vault", label: "Open the App" },
   },
   {
     kicker: "Step 3 · Protect",
@@ -113,6 +114,32 @@ const APP: Step[] = [
   },
 ];
 
+/** The App's Prices tab (/app) opens first. */
+const PRICES: Step[] = [
+  {
+    kicker: "Using the App",
+    title: "Prices that don't stop at 4pm",
+    body: (
+      <ul className="guide-list">
+        <li><b>Market closed</b>: each card shows Nightshift&apos;s <b>fair value</b>, what the ETF is worth right now, with a <b>confidence</b> score.</li>
+        <li><b>Market open</b>: you see the real market price.</li>
+        <li><b>Our call</b>: under each card, the opening price we locked on Algorand before the last open, and how far off it was next to a frozen price.</li>
+      </ul>
+    ),
+  },
+  {
+    kicker: "Next",
+    title: "Use these prices",
+    body: (
+      <p>
+        Open <b>Borrow</b> to take a loan valued at these prices, protected by the Guardian, or <b>Stack</b> to buy gold and silver
+        automatically, only at a fair price.
+      </p>
+    ),
+    cta: { href: "/app#vault", label: "Try borrowing" },
+  },
+];
+
 /** The App's Stack tab (/app#stack) has its own short guide. */
 const STACK: Step[] = [
   {
@@ -156,9 +183,9 @@ export function WelcomeGuide() {
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
   }, []);
-  const stackTab = path === "/app" && hash === "#stack";
-  const steps = path === "/app" ? (stackTab ? STACK : APP) : HOME;
-  const guideKey = stackTab ? "/app#stack" : path;
+  const tab = path === "/app" ? appTab(hash) : null;
+  const steps = tab === "stack" ? STACK : tab === "borrow" ? APP : tab === "prices" ? PRICES : HOME;
+  const guideKey = tab === "stack" ? "/app#stack" : tab === "borrow" ? "/app#vault" : path;
   const auto = path === "/" || path === "/app";
   const [open, setOpen] = useState(false);
   const [i, setI] = useState(0);
@@ -185,7 +212,8 @@ export function WelcomeGuide() {
   // first visit only: opening a page shows its guide once; switching tabs later doesn't pop it up again
   useEffect(() => {
     if (!auto) return;
-    const key = path === "/app" && window.location.hash === "#stack" ? "/app#stack" : path;
+    const at = path === "/app" ? appTab(window.location.hash) : null;
+    const key = at === "stack" ? "/app#stack" : at === "borrow" ? "/app#vault" : path;
     if (read(KEY(key))) return;
     const t = setTimeout(show, 900); // let the page settle first
     return () => clearTimeout(t);

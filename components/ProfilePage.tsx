@@ -202,8 +202,8 @@ function Points({ account }: { account: string }) {
   const items = [
     { done: !!row?.registered, label: "Finish sign-up", how: "Invite code, verified email and a username.", pts: s.registered, action: null },
     { done: !!row?.joined, label: "Record your join on Algorand", how: "One free signature, stamped on Algorand TestNet.", pts: s.joined, action: row?.joined ? null : "join" },
-    { done: !!row?.markets.length, label: row?.markets.length ? `Deposited ${row.markets.join(", ")}` : "Deposit an ETF token", how: "Each token you deposit in the Vault counts.", pts: s.perMarket * Math.max(1, row?.markets.length ?? 0), each: true, href: "/app" },
-    { done: !!row?.borrowing, label: "Open a loan", how: "Borrow dUSDG against your deposit.", pts: s.borrowing, href: "/app" },
+    { done: !!row?.markets.length, label: row?.markets.length ? `Deposited ${row.markets.join(", ")}` : "Deposit an ETF token", how: "Each token you deposit in the Vault counts.", pts: s.perMarket * Math.max(1, row?.markets.length ?? 0), each: true, href: "/app#vault" },
+    { done: !!row?.borrowing, label: "Open a loan", how: "Borrow dUSDG against your deposit.", pts: s.borrowing, href: "/app#vault" },
     { done: !!row?.guardian, label: "Switch on the Guardian", how: "Auto-protection for your loan.", pts: s.guardian, href: "/app#guardian" },
   ];
   const doneCount = items.filter((i) => i.done).length;
