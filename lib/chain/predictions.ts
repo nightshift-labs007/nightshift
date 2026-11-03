@@ -120,14 +120,14 @@ async function syncMembers(c: NonNullable<ReturnType<typeof roleClients>>, pm: A
 }
 
 /** After 20:00 ET (or later, on weekends and holidays): lock the evening call and open the next session's rounds. */
-async function openRounds(c: NonNullable<ReturnType<typeof roleClients>>, pm: Address) {
+async function openRounds(c: NonNullable<ReturnType<typeof roleClients>>, pm: Address, early = false) {
   const now = Date.now();
   const snap = await getOracleSnapshot();
   if (snap.market.open) return { skipped: "market open" };
   const session = nextSessionDate(now);
   const lastClose = Math.max(...snap.quotes.map((q) => Date.parse(q.lastCloseAt)));
   // the evening call: four hours after the last close (20:00 ET on a normal day)
-  if (now < lastClose + 4 * 3600_000) return { skipped: "before the evening call", session };
+  if (now < lastClose + 4 * 3600_000 && !early) return { skipped: "before the evening call", session };
   const lockTime = Math.floor(etToUtcMs(session, 9, 0) / 1000);
   const marketOpen = Math.floor(etToUtcMs(session, 9, 30) / 1000);
   if (lockTime - now / 1000 < 30 * 60) return { skipped: "too close to the open", session };
@@ -214,6 +214,14 @@ async function settleRounds(c: NonNullable<ReturnType<typeof roleClients>>, pm: 
     out.cancelled = [...((out.cancelled as string[]) ?? []), `${r.token} ${r.session}`];
   }
   return Object.keys(out).length ? out : { idle: true };
+}
+
+/** Team-only: open the next session's rounds now instead of waiting for 20:00 ET (still only while the market is closed). */
+export async function openRoundsNow() {
+  const pm = PM();
+  const c = roleClients("keeper");
+  if (!pm || !c) return { skipped: "predictions not deployed or keeper not configured" };
+  return openRounds(c, pm, true);
 }
 
 export async function runPredictions() {
