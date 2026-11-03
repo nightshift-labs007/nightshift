@@ -36,7 +36,7 @@ const INTRO: Record<AppTab, string> = {
     ? `Borrow ${sym("USDG")} against ETF tokens. Practice without a wallet, or connect one and get free test funds.`
     : "Borrow against ETF tokens with a practice account. No wallet needed.",
   stack: "Buy gold and silver on a schedule, only at a fair price.",
-  predict: "Bet whether each ETF opens higher or lower than Nightshift's call. Test tokens only.",
+  predict: "Predict whether each ETF opens higher or lower than Nightshift's call. Test tokens only.",
 };
 
 const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;

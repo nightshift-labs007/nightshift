@@ -29,11 +29,11 @@ function friendly(e: unknown): string {
   if (/insufficient funds|gas required exceeds/i.test(msg)) return `Not enough ETH on ${NETWORK} for gas (a few cents is enough).`;
   const reasons: [RegExp, string][] = [
     [/not registered/, "Your sign-up is still being added on-chain. Try again in a few minutes."],
-    [/closed/, "Betting on this round has closed."],
+    [/closed/, "Predictions for this round have closed."],
     [/other side/, "You've already backed the other side of this round."],
     [/wallet cap/, "That's more than one wallet can stake on a round."],
     [/"amount"|: amount/, "That amount isn't allowed. Check the limits under the card."],
-    [/paused/, "Betting is paused for a moment."],
+    [/paused/, "Predictions are paused for a moment."],
     [/nothing to claim/, "Nothing to claim yet."],
     [/faucet cooldown/, `You can claim test ${sym("USDG")} once an hour. Try again a little later.`],
     [/allowance|balance/, `Not enough ${sym("USDG")}. Tap “Get test ${sym("USDG")}” first.`],
@@ -52,7 +52,7 @@ function until(unix: number) {
   return d ? `${d}d ${h}h` : h ? `${h}h ${m % 60}m` : `${m}m`;
 }
 
-/** The rounds that matter now: the newest session's rounds (betting, waiting for the open, or just settled). */
+/** The rounds that matter now: the newest session's rounds (open for predictions, waiting for the open, or just settled). */
 function currentRounds(rounds: PredictRound[]) {
   if (!rounds.length) return [];
   const latest = rounds.reduce((a, r) => (r.marketOpen > a ? r.marketOpen : a), 0);
@@ -91,6 +91,16 @@ export function PredictTab() {
     return () => clearInterval(id);
   }, [refreshMe]);
 
+  const [joining, setJoining] = useState(false);
+  useEffect(() => {
+    if (!account || registered !== true || !me || me.member || joining) return;
+    setJoining(true);
+    fetch("/api/predict/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: account }) })
+      .then(() => refreshMe())
+      .catch(() => {})
+      .finally(() => setTimeout(() => setJoining(false), 30_000)); // the keeper retries every 5 minutes anyway
+  }, [account, registered, me, joining, refreshMe]);
+
   async function write(label: string, address: Address, abi: readonly unknown[], functionName: string, args: unknown[]) {
     if (!wallet.provider || !chain || !account || !pub) throw new Error("wallet");
     await ensureGas(wallet.provider, account, await pub.getBalance({ address: account })); // Nightshift pays the test gas
@@ -111,9 +121,9 @@ export function PredictTab() {
         toast(`Step 1 of 2: allow the prediction contract to use your ${sym("USDG")} (up to ${fmt(state?.limits?.maxPerWallet ?? 5000, 0)}).`);
         await write("Allow", DEPLOYMENT.contracts.usdg, ABI.token, "approve", [pm, parseEther(String(Math.max(amount, state?.limits?.maxPerWallet ?? 5000)))]);
       }
-      toast(`${me.allowance < amount ? "Step 2 of 2: " : ""}confirm your ${side} bet on ${r.token} in your wallet.`);
-      await write("Bet", pm, ABI.predictions, "bet", [BigInt(r.id), SIDE[side], parseEther(String(amount))]);
-      toast(`You're in: ${fmt(amount, 0)} ${sym("USDG")} on ${r.token} opening ${side.toLowerCase()} than our call.`, "ok");
+      toast(`${me.allowance < amount ? "Step 2 of 2: " : ""}confirm your ${side} prediction on ${r.token} in your wallet.`);
+      await write("Prediction", pm, ABI.predictions, "bet", [BigInt(r.id), SIDE[side], parseEther(String(amount))]);
+      toast(`Prediction placed: ${r.token} opens ${side.toLowerCase()} than our call, ${fmt(amount, 0)} ${sym("USDG")} staked.`, "ok");
       await refreshMe();
     } catch (e) {
       toast(friendly(e), "error");
@@ -175,10 +185,10 @@ export function PredictTab() {
       <div className={`panel pd-status ${betting ? "open" : ""}`}>
         <div>
           <p className="mono xs muted">CALL THE OPEN · TEST TOKENS, NO VALUE</p>
-          <h2>{betting ? "Betting is open." : current.length ? "Betting is closed for this session." : "The first rounds open soon."}</h2>
+          <h2>{betting ? "Predictions are open." : current.length ? "Predictions are closed for this session." : "The first rounds open soon."}</h2>
           <p>
-            Every evening at 20:00 ET, Nightshift locks its call for each ETF&apos;s next opening price on Algorand. Bet whether the real open comes
-            in <b>higher</b> or <b>lower</b>. Winners split the pool; early bets count more.
+            Every evening at 20:00 ET, Nightshift locks its call for each ETF&apos;s next opening price on Algorand. Predict whether the real open comes
+            in <b>higher</b> or <b>lower</b>. Correct predictions split the pool; early predictions count more.
           </p>
         </div>
         <div className="pd-status-side">
@@ -225,6 +235,7 @@ export function PredictTab() {
               quote={snap?.quotes.find((q) => q.token === r.token)}
               position={me?.positions.find((p) => p.id === r.id)}
               canBet={canBet}
+              pending={!!account && registered === true && !!me && !me.member}
               busy={busy === `bet-${r.id}`}
               onBet={(side, amount) => placeBet(r, side, amount)}
             />
@@ -274,7 +285,7 @@ function AccountBar(p: {
   if (p.registered === false)
     return (
       <div className="panel pd-account">
-        <span>Only registered Nightshift users can bet: invite code, verified email and a username.</span>
+        <span>Only registered Nightshift users can make predictions: invite code, verified email and a username.</span>
         <Link className="btn primary small" href="/profile">Finish sign-up</Link>
       </div>
     );
@@ -282,7 +293,7 @@ function AccountBar(p: {
     <div className="panel pd-account">
       <span>
         Balance <b className="mono">{p.me ? fmt(p.me.balance, 0) : "…"} {sym("USDG")}</b>
-        {p.me && !p.me.member && p.registered && <span className="pd-note"> · adding your sign-up on-chain (up to 5 minutes)</span>}
+        {p.me && !p.me.member && p.registered && <span className="pd-note"> · getting your wallet ready to predict (a few seconds)</span>}
       </span>
       <span className="pd-account-actions">
         {p.owedTotal > 0 && (
@@ -304,6 +315,7 @@ function RoundCard({
   quote,
   position,
   canBet,
+  pending,
   busy,
   onBet,
 }: {
@@ -312,6 +324,7 @@ function RoundCard({
   quote?: OracleSnapshot["quotes"][number];
   position?: Me["positions"][number];
   canBet: boolean;
+  pending: boolean;
   busy: boolean;
   onBet: (side: "Higher" | "Lower", amount: number) => void;
 }) {
@@ -338,7 +351,7 @@ function RoundCard({
           <div className="xs muted">for the {day(r.marketOpen)} open</div>
         </div>
         {r.algorandTx ? (
-          <a className="xs" href={algoTxUrl(r.algorandTx)} target="_blank" rel="noreferrer" title="The call, locked on Algorand before betting opened">Algorand ↗</a>
+          <a className="xs" href={algoTxUrl(r.algorandTx)} target="_blank" rel="noreferrer" title="The call, locked on Algorand before predictions opened">Algorand ↗</a>
         ) : (
           <span className="xs muted">Locked on Base</span>
         )}
@@ -349,9 +362,9 @@ function RoundCard({
       </div>
       {!settled && quote && vsCall !== null && (
         <div className="pd-row">
-          <span className="muted">{quote.marketOpen ? "Live price" : "Fair value now"}</span>
+          <span className="muted">{quote.marketOpen ? "Live" : "Now"}</span>
           <span className="mono">
-            {usd(quote.fairValue)} <span className={vsCall >= 0 ? "up" : "down"}>({signed(vsCall)} vs call)</span>
+            {usd(quote.fairValue)} <span className={vsCall >= 0 ? "up" : "down"}>{signed(vsCall)}</span>
           </span>
         </div>
       )}
@@ -360,7 +373,7 @@ function RoundCard({
           {r.status === "Cancelled" ? (
             "Cancelled: every stake is refunded."
           ) : r.outcome === "Refund" ? (
-            <>Opened at {usd(r.openPrice ?? 0)}. {r.stakeHigher && r.stakeLower ? "A tie" : "Only one side had bets"}: every stake is refunded.</>
+            <>Opened at {usd(r.openPrice ?? 0)}. {r.stakeHigher && r.stakeLower ? "A tie" : "Only one side had predictions"}: every stake is refunded.</>
           ) : (
             <>
               Opened at <b>{usd(r.openPrice ?? 0)}</b>: <b>{r.outcome}</b> wins. Our call was off by {fmt(Math.abs(((r.openPrice ?? 0) / r.strike - 1) * 100), 2)}%.
@@ -392,7 +405,7 @@ function RoundCard({
 
       {position && position.stake > 0 && (
         <div className="pd-mine">
-          Your bet: <b>{fmt(position.stake, 0)}</b> on <b>{position.side}</b>
+          Your prediction: <b>{position.side}</b>, <b>{fmt(position.stake, 0)}</b> staked
           {position.claimed ? " · paid" : position.owed > 0 ? ` · claim ${fmt(position.owed, 2)}` : settled ? " · lost" : ""}
         </div>
       )}
@@ -420,15 +433,15 @@ function RoundCard({
             disabled={!canBet || !chosen || !(amt > 0) || amt > limits.maxBet || busy}
             onClick={() => chosen && onBet(chosen, amt)}
           >
-            {busy ? "Confirming…" : chosen ? `Bet ${fmt(amt, 0)} on ${chosen}` : "Pick Higher or Lower"}
+            {busy ? "Confirming…" : pending ? "Getting your wallet ready…" : chosen ? `Predict ${chosen} · ${fmt(amt, 0)} ${sym("USDG")}` : "Pick Higher or Lower"}
           </button>
           <p className="xs muted">
-            Your bet counts {Math.round(w * 100)}% weight now (early bets count more).
+            A prediction now counts {Math.round(w * 100)}% weight (early predictions count more).
             {chosen && amt > 0 ? ` If ${chosen} wins at today's pools: about ${fmt(amt * mult(chosen), 2)} back.` : ""}
           </p>
         </div>
       )}
-      {!open && r.status === "Open" && <p className="xs muted">Betting closed at {time(r.lockTime)}. Settles after the 09:30 ET open.</p>}
+      {!open && r.status === "Open" && <p className="xs muted">Predictions closed at {time(r.lockTime)}. Settles after the 09:30 ET open.</p>}
     </div>
   );
 }
@@ -479,11 +492,11 @@ function Rules({ state }: { state: PredictState }) {
       <summary>Rules and how a round settles</summary>
       <ul>
         <li><b>The call:</b> each evening at 20:00 ET, Nightshift&apos;s fair value for each ETF is locked on Algorand and becomes that round&apos;s strike on {NETWORK}.</li>
-        <li><b>Betting:</b> open to registered users until 09:00 ET. One side per round; you can add to it. Up to {fmt(l?.maxBet ?? 1000, 0)} per bet and {fmt(l?.maxPerWallet ?? 5000, 0)} per round.</li>
-        <li><b>Early bets count more:</b> a bet placed when the round opens counts 100%, falling to {Math.round((l?.minWeightBps ?? 5000) / 100)}% at close.</li>
+        <li><b>Predictions:</b> open to registered users until 09:00 ET. One side per round; you can add to it. Up to {fmt(l?.maxBet ?? 1000, 0)} per prediction and {fmt(l?.maxPerWallet ?? 5000, 0)} per round.</li>
+        <li><b>Early predictions count more:</b> a prediction made when the round opens counts 100%, falling to {Math.round((l?.minWeightBps ?? 5000) / 100)}% at close.</li>
         <li><b>The result:</b> the official NYSE opening price is proposed on-chain after 09:30 ET. Any registered user can dispute it within {Math.round((l?.challengeWindow ?? 7200) / 3600)} hours; undisputed, it&apos;s final. Above the call: Higher wins. Below: Lower wins.</li>
-        <li><b>Payouts:</b> winners get their stake back plus the losing pool{l?.feeBps ? ` minus a ${l.feeBps / 100}% fee` : ""}, split by weighted shares. Ties, one-sided rounds and rounds not settled within a day are refunded in full.</li>
-        <li><b>Test tokens only:</b> {sym("USDG")} has no value, can&apos;t be bought or cashed out. This is a game and a public test of Nightshift&apos;s calls, not gambling or investment advice.</li>
+        <li><b>Payouts:</b> correct predictions get their stake back plus the other side's pool{l?.feeBps ? ` minus a ${l.feeBps / 100}% fee` : ""}, split by weighted shares. Ties, one-sided rounds and rounds not settled within a day are refunded in full.</li>
+        <li><b>Test tokens only:</b> {sym("USDG")} has no value, can&apos;t be bought or cashed out. This is a game and a public test of Nightshift&apos;s calls, not investment advice.</li>
       </ul>
       {state.address && (
         <p className="xs muted">

@@ -216,6 +216,20 @@ async function settleRounds(c: NonNullable<ReturnType<typeof roleClients>>, pm: 
   return Object.keys(out).length ? out : { idle: true };
 }
 
+/** Adds one registered wallet to the contract's allow-list right away (the 5-minute sync would also get to it). */
+export async function addMemberNow(address: string) {
+  const pm = PM();
+  const c = roleClients("keeper");
+  if (!pm || !c) throw new Error("predictions not deployed or keeper not configured");
+  const a = address.toLowerCase() as Address;
+  if (await c.pub.readContract({ address: pm, abi: ABI.predictions, functionName: "isMember", args: [a] })) return { added: false, already: true };
+  const hash = await c.wallet.writeContract({ address: pm, abi: ABI.predictions, functionName: "setMembers", args: [[a], true] });
+  const r = await c.pub.waitForTransactionReceipt({ hash });
+  if (r.status !== "success") throw new Error(`setMembers failed: ${hash}`);
+  if (kvEnabled()) await kvHSet(PUSHED, a, String(Date.now()));
+  return { added: true, tx: hash };
+}
+
 /** Team-only: open the next session's rounds now instead of waiting for 20:00 ET (still only while the market is closed). */
 export async function openRoundsNow() {
   const pm = PM();
