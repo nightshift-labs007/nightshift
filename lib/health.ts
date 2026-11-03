@@ -4,6 +4,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { ABI, DEPLOYMENT, isDeployed, isMainnet } from "@/lib/chain";
 import { publicClient } from "@/lib/chain/keeper";
 import { configProblems, configStatus, env } from "./env";
+import { emailStatus } from "./members";
 
 // alarm when an on-chain price is older than this; default 45 min to match the 30-minute keeper schedule (set 15 for 5-minute runs)
 const STALE_SEC = Number(process.env.PRICE_STALE_MINUTES ?? 45) * 60;
@@ -19,6 +20,12 @@ export async function getHealth() {
   const problems = configProblems();
   const issues: string[] = [...problems];
   const out: Record<string, unknown> = { at: new Date().toISOString(), deployed: isDeployed, config, problems };
+  if (config.email) {
+    const email = await emailStatus().catch(() => null);
+    out.email = email;
+    if (email?.last && !email.last.ok) issues.push(`email sending failed: ${email.last.reason}`);
+    if (email && !email.keyLooksValid) issues.push("RESEND_API_KEY doesn't look like a Resend key (re_…)");
+  }
   if (!isDeployed) {
     out.ok = problems.length === 0;
     out.issues = issues;

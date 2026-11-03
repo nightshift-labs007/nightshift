@@ -5,6 +5,8 @@ import "server-only";
  * itself off when its setting is missing, and /api/health and the UI say so plainly.
  */
 const v = (k: string) => (process.env[k] ?? "").trim();
+// values pasted into a dashboard with their .env quotes ("…" or '…') would otherwise reach the API with the quotes in
+const unquoted = (k: string) => v(k).replace(/^(["'])(.*)\1$/s, "$2").trim();
 
 export const env = {
   cronSecret: v("CRON_SECRET"),
@@ -18,10 +20,10 @@ export const env = {
   upstashUrl: v("UPSTASH_REDIS_REST_URL") || v("KV_REST_API_URL"),
   upstashToken: v("UPSTASH_REDIS_REST_TOKEN") || v("KV_REST_API_TOKEN"),
   turnstileSecret: v("TURNSTILE_SECRET_KEY"),
-  resendKey: v("RESEND_API_KEY"),
+  resendKey: unquoted("RESEND_API_KEY"),
   // a sender on a domain verified in Resend, e.g. "Nightshift <hello@nightshift.buzz>". Setting both switches on invite-only
   // sign-up (onboarding@resend.dev works for tests but only delivers to the Resend account's own email)
-  resendFrom: v("RESEND_FROM"),
+  resendFrom: unquoted("RESEND_FROM"),
   telegramToken: v("TELEGRAM_BOT_TOKEN"),
   telegramChat: v("TELEGRAM_CHAT_ID"),
   walletConnect: v("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"),

@@ -21,6 +21,7 @@ const inviteUsesKey = (c: string) => `invite-uses:${c}`;
 const usernameKey = (u: string) => `username:${u.toLowerCase()}`;
 const emailKey = (e: string) => `email-owner:${e.toLowerCase()}`;
 const otpKey = (a: string) => `otp:${a.toLowerCase()}`;
+const EMAIL_STATUS = "email:last"; // the last send: ok, or the provider's reason it failed
 
 type MemberRecord = { invite?: string; inviteAt?: number; email?: string; emailAt?: number };
 export type Invite = { code: string; max: number; used: number; note: string; createdAt: number; usedBy: string[] };
@@ -109,6 +110,13 @@ export async function redeemInvite(address: string, input: string): Promise<{ ok
 // ---------------------------------------------------------------- email one-time codes
 
 export const emailEnabled = () => !!(env.resendKey && env.resendFrom);
+
+/** The last email send (no addresses or codes): for /api/health. */
+export async function emailStatus() {
+  const raw = await kvGet(EMAIL_STATUS).catch(() => null);
+  const sender = env.resendFrom.match(/@([^>\s]+)/)?.[1] ?? null;
+  return { senderDomain: sender, keyLooksValid: /^re_[A-Za-z0-9_]{20,}$/.test(env.resendKey), last: raw ? JSON.parse(raw) : null };
+}
 /** Invite-only sign-up is enforced (App wallet tools, faucet) once both the store and email are configured. */
 export const signupRequired = () => !!(env.upstashUrl && env.upstashToken && env.cronSecret.length >= 16) && emailEnabled();
 
@@ -144,9 +152,13 @@ export async function sendEmailCode(address: string, email: string): Promise<{ o
   if (!res?.ok) {
     await kvDel(otpKey(address));
     const j = (await res?.json().catch(() => null)) as { message?: string } | null;
-    console.error("resend:", res?.status, j?.message);
+    const reason = (j?.message ?? (res ? `HTTP ${res.status}` : "no response")).slice(0, 200);
+    console.error("resend:", res?.status, reason);
+    // kept for /api/health, so a misconfigured key or sender shows up without digging through logs
+    await kvSetEx(EMAIL_STATUS, JSON.stringify({ ok: false, at: new Date().toISOString(), status: res?.status ?? null, reason }), 7 * 86400).catch(() => {});
     return { ok: false, error: "We couldn't send the email right now. Please try again in a minute.", status: 502 };
   }
+  await kvSetEx(EMAIL_STATUS, JSON.stringify({ ok: true, at: new Date().toISOString() }), 7 * 86400).catch(() => {});
   return { ok: true };
 }
 
