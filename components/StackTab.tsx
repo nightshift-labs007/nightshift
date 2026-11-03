@@ -7,7 +7,7 @@ import { useWallet } from "@/lib/wallet";
 import { toast } from "./Toast";
 import { WalletButton } from "./WalletButton";
 import { Turnstile, turnstileEnabled } from "./Turnstile";
-import { getDemoFunds } from "./demoFunds";
+import { ensureGas, getDemoFunds } from "./demoFunds";
 import { markStep } from "@/lib/onboarding";
 
 /** Contract and wallet errors in plain English. */
@@ -201,7 +201,7 @@ export function StackTab() {
 
   async function write(label: string, address: Address, abi: readonly unknown[], functionName: string, args: unknown[]) {
     if (!wallet.provider || !chain || !account || !pub) throw new Error("wallet");
-    if ((await pub.getBalance({ address: account })) < 20_000_000_000_000n) throw new Error("insufficient funds for gas");
+    await ensureGas(wallet.provider, account, await pub.getBalance({ address: account })); // Nightshift pays the test gas
     // dry-run first: a revert is caught here with the contract's reason, before the wallet asks to sign
     await pub.simulateContract({ address, abi: abi as never, functionName: functionName as never, args: args as never, account } as never);
     const client = createWalletClient({ chain, transport: custom(wallet.provider), account });

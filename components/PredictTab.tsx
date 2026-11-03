@@ -11,6 +11,7 @@ import { useRegistered } from "./Member";
 import { toast } from "./Toast";
 import { signed, usd, useApi } from "./useApi";
 import { WalletButton } from "./WalletButton";
+import { ensureGas, getDemoFunds } from "./demoFunds";
 
 type Me = {
   enabled: boolean;
@@ -80,7 +81,7 @@ export function PredictTab() {
   const current = currentRounds(rounds);
   const ids = rounds.map((r) => r.id).join(",");
   const refreshMe = useCallback(async () => {
-    if (!account || !ids) return setMe(null);
+    if (!account) return setMe(null);
     const r = await fetch(`/api/predict/me?address=${account}&ids=${ids}`, { cache: "no-store" }).then((x) => x.json()).catch(() => null);
     if (r && !r.error) setMe(r);
   }, [account, ids]);
@@ -92,7 +93,7 @@ export function PredictTab() {
 
   async function write(label: string, address: Address, abi: readonly unknown[], functionName: string, args: unknown[]) {
     if (!wallet.provider || !chain || !account || !pub) throw new Error("wallet");
-    if ((await pub.getBalance({ address: account })) < 20_000_000_000_000n) throw new Error("insufficient funds for gas");
+    await ensureGas(wallet.provider, account, await pub.getBalance({ address: account })); // Nightshift pays the test gas
     await pub.simulateContract({ address, abi: abi as never, functionName: functionName as never, args: args as never, account } as never);
     const client = createWalletClient({ chain, transport: custom(wallet.provider), account });
     const hash = await client.writeContract({ address, abi: abi as never, functionName: functionName as never, args: args as never, chain } as never);
@@ -136,10 +137,20 @@ export function PredictTab() {
   }
 
   async function getFunds() {
+    if (!wallet.provider || !account) return;
     setBusy("faucet");
     try {
-      await write(`Get test ${sym("USDG")}`, DEPLOYMENT.contracts.usdg, ABI.token, "faucet", []);
-      toast(`Added test ${sym("USDG")} to your wallet.`, "ok");
+      // the daily faucet sends test tokens and gas; after that, the token's own hourly faucet (gas paid by Nightshift)
+      try {
+        toast("Sign the free message in your wallet. Nightshift sends the test tokens and covers the gas.");
+        const sent = await getDemoFunds(wallet.provider, account, null);
+        toast(sent.length ? `Sent ${sent.map((x) => x.what).join(", ")}` : `You already have test ${sym("USDG")}.`, "ok");
+      } catch (e) {
+        if (!/already|today/i.test((e as Error).message ?? "")) throw e;
+        await write(`Get test ${sym("USDG")}`, DEPLOYMENT.contracts.usdg, ABI.token, "faucet", []);
+        toast(`Added test ${sym("USDG")} to your wallet.`, "ok");
+      }
+      await new Promise((r) => setTimeout(r, 3000));
       await refreshMe();
     } catch (e) {
       toast(friendly(e), "error");
