@@ -140,6 +140,31 @@ const PRICES: Step[] = [
   },
 ];
 
+/** The App's Predict tab (/app#predict): "Call the Open". */
+const PREDICT: Step[] = [
+  {
+    kicker: "Call the Open",
+    title: "Higher or lower than our call?",
+    body: (
+      <ol className="guide-list numbered">
+        <li><b>The call:</b> every evening at 20:00 ET, Nightshift locks its predicted opening price for each ETF on Algorand.</li>
+        <li><b>Your bet:</b> pick Higher or Lower and stake test tokens until 09:00 ET. Early bets count more.</li>
+        <li><b>The open:</b> after 09:30 ET the real opening price settles it. Winners split the pool; ties are refunded.</li>
+      </ol>
+    ),
+  },
+  {
+    kicker: "Before you play",
+    title: "Registered users, test tokens",
+    body: (
+      <p>
+        Only registered users can bet (invite code, verified email, username). Stakes are test {sym("USDG")}: no value, nothing to buy or
+        cash out. Tap <b>Get test {sym("USDG")}</b> on the page if you need some.
+      </p>
+    ),
+  },
+];
+
 /** The App's Stack tab (/app#stack) has its own short guide. */
 const STACK: Step[] = [
   {
@@ -184,8 +209,8 @@ export function WelcomeGuide() {
     return () => window.removeEventListener("hashchange", sync);
   }, []);
   const tab = path === "/app" ? appTab(hash) : null;
-  const steps = tab === "stack" ? STACK : tab === "borrow" ? APP : tab === "prices" ? PRICES : HOME;
-  const guideKey = tab === "stack" ? "/app#stack" : tab === "borrow" ? "/app#vault" : path;
+  const steps = tab === "stack" ? STACK : tab === "predict" ? PREDICT : tab === "borrow" ? APP : tab === "prices" ? PRICES : HOME;
+  const guideKey = tab === "stack" ? "/app#stack" : tab === "predict" ? "/app#predict" : tab === "borrow" ? "/app#vault" : path;
   const auto = path === "/" || path === "/app";
   const [open, setOpen] = useState(false);
   const [i, setI] = useState(0);
@@ -213,7 +238,7 @@ export function WelcomeGuide() {
   useEffect(() => {
     if (!auto) return;
     const at = path === "/app" ? appTab(window.location.hash) : null;
-    const key = at === "stack" ? "/app#stack" : at === "borrow" ? "/app#vault" : path;
+    const key = at === "stack" ? "/app#stack" : at === "predict" ? "/app#predict" : at === "borrow" ? "/app#vault" : path;
     if (read(KEY(key))) return;
     const t = setTimeout(show, 900); // let the page settle first
     return () => clearTimeout(t);
