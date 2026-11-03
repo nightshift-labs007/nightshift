@@ -7,17 +7,22 @@ if (!D.deployed) throw new Error("not deployed");
 const stdJsonInput = JSON.parse(fs.readFileSync("contracts/build/standard-input.json", "utf8"));
 const { version } = JSON.parse(fs.readFileSync("contracts/build/compiler.json", "utf8"));
 // SOURCIFY_ONLY=upgrade: just the contracts from the security-review upgrade (scripts/deploy-upgrade.mjs); the earlier
-// ones were verified at their own deploy, against the sources they were compiled from.
+// ones were verified at their own deploy, against the sources they were compiled from. SOURCIFY_ONLY=predictions: just
+// NightshiftPredictions (scripts/deploy-predictions.mjs).
 const upgrade = [
   ["NightshiftVault.sol:NightshiftVault", D.contracts.vault],
   ...(D.contracts.cloakRegistry ? [["CloakRegistry.sol:CloakRegistry", D.contracts.cloakRegistry]] : []),
   ...Object.values(D.tokens).map((t) => ["NightshiftOracle.sol:MorphoOracleAdapter", t.adapter]),
   ...Object.values(D.tokens).filter((t) => t.feed).map((t) => ["NightshiftOracle.sol:NightshiftAggregatorV3", t.feed]),
 ];
+const predictions = D.predictions ? [["NightshiftPredictions.sol:NightshiftPredictions", D.predictions.address]] : [];
 const targets =
   process.env.SOURCIFY_ONLY === "upgrade"
     ? upgrade
+    : process.env.SOURCIFY_ONLY === "predictions"
+    ? predictions
     : [
+        ...predictions,
         ...upgrade,
         ["NightshiftOracle.sol:NightshiftOracle", D.contracts.oracle],
         ["SolvencyVerifier.sol:Groth16Verifier", D.contracts.verifier],

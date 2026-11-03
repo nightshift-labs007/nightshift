@@ -93,8 +93,8 @@ export function ExplorePanel({ open, setOpen }: { open: boolean; setOpen: (v: bo
             <ul className="xp-pages">
               {PAGES.filter((p) => p.group === g.id).map((p) => {
                 const [pPath, pHash = ""] = p.href.split("#");
-                // the landing-page sections (/#stocks, /#earn) are never "current"; /app is Borrow unless the Stack tab is open
-                const active = pPath === path && pPath !== "/" && (pHash ? hash === `#${pHash}` : hash !== "#stack");
+                // the landing-page sections (/#stocks) are never "current"; /app is Prices unless another tab is open
+                const active = pPath === path && pPath !== "/" && (pHash ? hash === `#${pHash}` : !["#stack", "#predict", "#vault", "#guardian"].includes(hash));
                 return (
                   <li key={p.href}>
                     <Link

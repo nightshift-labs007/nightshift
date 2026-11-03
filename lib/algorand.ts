@@ -4,6 +4,8 @@ import { createHash } from "crypto";
 const ALGOD = "https://testnet-api.algonode.cloud";
 const INDEXER = "https://testnet-idx.algonode.cloud";
 export const NOTE_PREFIX = "nightshift:v1:";
+/** The evening call (20:00 ET) that sets the strike of the "Call the Open" prediction rounds; kept apart from the morning stamps. */
+export const EVENING_PREFIX = "nightshift:eve:v1:";
 
 export const explorerTx = (id: string) => `https://lora.algokit.io/testnet/transaction/${id}`;
 export const explorerAccount = (addr: string) => `https://lora.algokit.io/testnet/account/${addr}`;
@@ -29,7 +31,7 @@ export function ledgerAddress(): string | null {
 }
 
 /** Writes the prediction into a 0-ALGO self-payment note on TestNet. Returns the tx id. */
-export async function stampPrediction(pred: Prediction): Promise<{ txId: string; hash: string }> {
+export async function stampPrediction(pred: Prediction, prefix = NOTE_PREFIX): Promise<{ txId: string; hash: string }> {
   const acct = account();
   if (!acct) throw new Error("ALGORAND_MNEMONIC not configured");
   const hash = hashPrediction(pred);
@@ -39,7 +41,7 @@ export async function stampPrediction(pred: Prediction): Promise<{ txId: string;
     sender: acct.addr,
     receiver: acct.addr,
     amount: 0,
-    note: new TextEncoder().encode(NOTE_PREFIX + JSON.stringify({ ...pred, h: hash })),
+    note: new TextEncoder().encode(prefix + JSON.stringify({ ...pred, h: hash })),
     suggestedParams,
   });
   const { txid } = await algod.sendRawTransaction(txn.signTxn(acct.sk)).do();
@@ -50,8 +52,8 @@ export async function stampPrediction(pred: Prediction): Promise<{ txId: string;
 export type StampedPrediction = Prediction & { h: string; txId: string; round: number; roundTime: number };
 
 /** The ledger doubles as the database: read our own past stamps back from the indexer. */
-export async function readStamps(addr: string, limit = 15): Promise<StampedPrediction[]> {
-  const prefix = Buffer.from(NOTE_PREFIX).toString("base64");
+export async function readStamps(addr: string, limit = 15, notePrefix = NOTE_PREFIX): Promise<StampedPrediction[]> {
+  const prefix = Buffer.from(notePrefix).toString("base64");
   const url = `${INDEXER}/v2/accounts/${addr}/transactions?note-prefix=${encodeURIComponent(prefix)}&limit=${limit}`;
   const res = await fetch(url, { next: { revalidate: 60 }, signal: AbortSignal.timeout(6000) });
   if (!res.ok) throw new Error(`indexer ${res.status}`);
@@ -60,8 +62,8 @@ export async function readStamps(addr: string, limit = 15): Promise<StampedPredi
   for (const tx of json.transactions ?? []) {
     try {
       const note = Buffer.from(tx.note, "base64").toString("utf8");
-      if (!note.startsWith(NOTE_PREFIX)) continue;
-      const body = JSON.parse(note.slice(NOTE_PREFIX.length));
+      if (!note.startsWith(notePrefix)) continue;
+      const body = JSON.parse(note.slice(notePrefix.length));
       out.push({ ...body, txId: tx.id, round: tx["confirmed-round"], roundTime: tx["round-time"] });
     } catch {
       // ignore malformed notes

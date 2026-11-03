@@ -13,6 +13,8 @@ export type Deployment = {
   upgradeStartBlock?: number;
   /** Nightshift Stack (recurring buys): the plan contract and the demo pool it buys from */
   stack?: { plan: Address; pool: Address; deployedAt: string };
+  /** "Call the Open" prediction rounds (scripts/deploy-predictions.mjs); the Pyth path is off until setPyth is called */
+  predictions?: { address: Address; deployedAt: string; startBlock: number; pyth: Address; pythFeeds: Record<string, `0x${string}`> };
   keeper: Address;
   owner?: Address;
   roles?: { updater: Address; keeper: Address; faucet: Address };
@@ -50,6 +52,7 @@ export const ABI = {
   cloakRegistry: abis.CloakRegistry,
   stackPlan: abis.StackPlan,
   stackPool: abis.StackDemoPool,
+  predictions: abis.NightshiftPredictions,
 } as const;
 
 export function chainOf(d: Deployment = DEPLOYMENT): Chain {

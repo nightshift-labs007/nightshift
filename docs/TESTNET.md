@@ -16,6 +16,7 @@ Base mainnet is retired (its record is kept in `lib/chain/deployment-base-mainne
 | CloakRegistry | [`0x15834d9c8cdcb5773235db6840e0ced62b4a0374`](https://sepolia.basescan.org/address/0x15834d9c8cdcb5773235db6840e0ced62b4a0374) |
 | StackPlan | [`0x40e8edf7bbb1a7074821fd02e851b79b74dd023b`](https://sepolia.basescan.org/address/0x40e8edf7bbb1a7074821fd02e851b79b74dd023b) |
 | StackDemoPool | [`0x25b0c9f15bec09c096ed61865f930ef6ee58163e`](https://sepolia.basescan.org/address/0x25b0c9f15bec09c096ed61865f930ef6ee58163e) |
+| NightshiftPredictions ("Call the Open") | [`0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4`](https://sepolia.basescan.org/address/0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4) |
 | tSPY (LLTV 0.77) | [`0x671df7bd033d8a8da2b0a63f1bdb4b13e4affd85`](https://sepolia.basescan.org/address/0x671df7bd033d8a8da2b0a63f1bdb4b13e4affd85) |
 | tQQQ (LLTV 0.77) | [`0x13d2033b8c21e49f40ab90e9c04c0f8163f43437`](https://sepolia.basescan.org/address/0x13d2033b8c21e49f40ab90e9c04c0f8163f43437) |
 | tGLD (LLTV 0.77) | [`0x2a81fc5d4885d1a5f16494c0e4b369a0c72d2cb9`](https://sepolia.basescan.org/address/0x2a81fc5d4885d1a5f16494c0e4b369a0c72d2cb9) |

@@ -20,6 +20,7 @@ import { Verified } from "./Verified";
 import { ActivityProof } from "./Transactions";
 import { GettingStarted } from "./GettingStarted";
 import { FairPrices } from "./FairPrices";
+import { PredictTab } from "./PredictTab";
 import { MarketNotice } from "./Markets";
 import { appTab, type AppTab } from "@/lib/app-tabs";
 import { markStep } from "@/lib/onboarding";
@@ -35,6 +36,7 @@ const INTRO: Record<AppTab, string> = {
     ? `Borrow ${sym("USDG")} against ETF tokens. Practice without a wallet, or connect one and get free test funds.`
     : "Borrow against ETF tokens with a practice account. No wallet needed.",
   stack: "Buy gold and silver on a schedule, only at a fair price.",
+  predict: "Bet whether each ETF opens higher or lower than Nightshift's call. Test tokens only.",
 };
 
 const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
@@ -81,7 +83,7 @@ export function AppPage() {
   }, []);
   const pick = (t: AppTab) => {
     setTab(t);
-    window.history.replaceState(null, "", t === "stack" ? "#stack" : t === "borrow" ? "#vault" : window.location.pathname);
+    window.history.replaceState(null, "", t === "stack" ? "#stack" : t === "predict" ? "#predict" : t === "borrow" ? "#vault" : window.location.pathname);
     window.dispatchEvent(new HashChangeEvent("hashchange")); // replaceState is silent; tell the guide which tab is showing
   };
   const hero = INTRO[tab];
@@ -97,6 +99,7 @@ export function AppPage() {
               <button role="tab" aria-selected={tab === "prices"} className={tab === "prices" ? "on" : ""} onClick={() => pick("prices")}>Prices</button>
               <button role="tab" aria-selected={tab === "borrow"} className={tab === "borrow" ? "on" : ""} onClick={() => pick("borrow")}>Borrow</button>
               <button role="tab" aria-selected={tab === "stack"} className={tab === "stack" ? "on" : ""} onClick={() => pick("stack")}>Stack</button>
+              <button role="tab" aria-selected={tab === "predict"} className={tab === "predict" ? "on" : ""} onClick={() => pick("predict")}>Predict</button>
             </div>
             <p className="app-intro">{hero}</p>
           </div>
@@ -107,6 +110,12 @@ export function AppPage() {
         <section className="block" id="prices">
           <div className="wrap">
             <FairPrices snap={snap} />
+          </div>
+        </section>
+      ) : tab === "predict" ? (
+        <section className="block" id="predict">
+          <div className="wrap">
+            <PredictTab />
           </div>
         </section>
       ) : tab === "stack" ? (

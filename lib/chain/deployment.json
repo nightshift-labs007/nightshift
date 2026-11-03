@@ -57,5 +57,18 @@
     "plan": "0x40e8edf7bbb1a7074821fd02e851b79b74dd023b",
     "pool": "0x25b0c9f15bec09c096ed61865f930ef6ee58163e",
     "deployedAt": "2026-11-01T20:43:46.043Z"
+  },
+  "predictions": {
+    "address": "0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4",
+    "deployedAt": "2026-11-03T19:41:52.108Z",
+    "startBlock": 54065076,
+    "pyth": "0xA2aa501b19aff244D90cc15a4Cf739D2725B5729",
+    "pythFeeds": {
+      "SPY": "0x19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5",
+      "QQQ": "0x9695e2b96ea7b3859da9ed25b7a46a920a776e2fdae19a7bcfdf2b219230452d",
+      "GLD": "0xe190f467043db04548200354889dfe0d9d314c08b8d4e62fabf4d5a3140fecca",
+      "SLV": "0x6fc08c9963d266069cbd9780d98383dabf2668322a5bef0b9491e11d67e5d7e7",
+      "IBIT": "0x9db6bc1e6e9e5e60f6884e1cd8e4399cca9d0454c6e7234ad79680cf139748f5"
+    }
   }
 }

@@ -996,3 +996,52 @@ section.block.app-start { padding-top: 8px; }
 .engine-hero { margin-top: -78px; }
 .engine-hero iframe { height: 100vh; min-height: 760px; }
 @media (max-width: 560px) { .engine-hero { margin-top: -66px; } }
+
+/* App · Predict tab ("Call the Open") */
+.pd { display: grid; gap: 14px; }
+.pd-status { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+.pd-status > div:first-child { flex: 1 1 460px; min-width: 0; }
+.pd-status h2 { margin: 6px 0 6px; font-size: clamp(1.25rem, 2.4vw, 1.55rem); }
+.pd-status p { margin: 0; color: var(--text-2); max-width: 700px; }
+.pd-status.open { border-color: var(--mint); }
+.pd-status-side { display: grid; gap: 2px; text-align: right; }
+.pd-status-side b { font-family: var(--mono); }
+.pd-account { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; font-size: 14px; }
+.pd-account-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.pd-note { color: var(--amber); }
+.pd-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); }
+.pd-card { min-width: 0; }
+.pd-card { display: flex; flex-direction: column; gap: 8px; padding: 18px; }
+.pd-card.done { opacity: 0.92; }
+.pd-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.pd-card-top a { color: var(--mint); text-decoration: none; }
+.pd-card .ticker { font-family: var(--mono); font-weight: 500; letter-spacing: 0.04em; font-size: 15px; }
+.pd-call { display: grid; gap: 2px; margin-top: 4px; }
+.pd-call b { font-family: var(--sans); font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.pd-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.pd-result { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--bg-alt); border: 1px solid var(--border); color: var(--text-2); }
+.pd-result.higher, .pd-result.lower { border-color: var(--mint); color: var(--text); }
+.pd-result.pending { border-color: var(--amber); }
+.pd-pools { display: grid; gap: 6px; margin-top: 2px; }
+.pd-pool-bar { height: 6px; border-radius: 99px; background: var(--red); opacity: 0.85; overflow: hidden; }
+.pd-pool-bar i { display: block; height: 100%; background: var(--mint); }
+.pd-pool-row { display: flex; justify-content: space-between; gap: 6px; font-size: 13px; }
+.pd-pool-row b { font-weight: 600; }
+.pd-mine { font-size: 13px; color: var(--text-2); }
+.pd-bet { display: grid; gap: 8px; margin-top: auto; padding-top: 6px; }
+.pd-bet > * { min-width: 0; }
+.pd-bet .btn { width: 100%; min-width: 0; padding: 0 10px; justify-content: center; }
+.pd-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pd-side { min-width: 0; width: 100%; padding: 0 6px; height: 38px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-2); font: 600 14px var(--sans); cursor: pointer; }
+.pd-side.higher.on { border-color: var(--mint); background: var(--mint-soft); color: var(--mint); }
+.pd-side.lower.on { border-color: var(--red); background: rgba(242, 154, 154, 0.08); color: var(--red); }
+.pd-side:disabled { opacity: 0.35; cursor: not-allowed; }
+.pd-amount { min-width: 0; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; }
+.pd-amount input { flex: 1; width: 100%; min-width: 0; height: 38px; background: transparent; border: 0; color: var(--text); font: 500 15px var(--mono); outline: none; }
+.pd-bet p { margin: 0; }
+.pd-empty { text-align: center; color: var(--text-2); }
+.pd-history .sub-title { margin: 10px 0 10px; }
+.pd-rules summary { cursor: pointer; font-weight: 600; }
+.pd-rules ul { margin: 12px 0 8px; padding-left: 18px; display: grid; gap: 6px; color: var(--text-2); font-size: 14px; }
+.pd-rules a { color: var(--mint); word-break: break-all; }
+@media (max-width: 560px) { .pd-status-side { text-align: left; } }
