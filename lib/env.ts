@@ -8,6 +8,12 @@ const v = (k: string) => (process.env[k] ?? "").trim();
 // values pasted into a dashboard with their .env quotes ("…" or '…') would otherwise reach the API with the quotes in
 const unquoted = (k: string) => v(k).replace(/^(["'])(.*)\1$/s, "$2").trim();
 
+// Resend only sends from a domain verified in the account (nightshift.buzz). A personal mailbox (gmail.com, outlook.com…)
+// can never be verified, so a RESEND_FROM like that falls back to the verified Nightshift sender.
+const DEFAULT_SENDER = "Nightshift <hello@nightshift.buzz>";
+const PERSONAL_MAIL = /@(gmail|googlemail|yahoo|outlook|hotmail|live|icloud|me|proton|protonmail|aol)\.[a-z.]+>?$/i;
+const senderFrom = (raw: string) => (raw && PERSONAL_MAIL.test(raw) ? DEFAULT_SENDER : raw);
+
 export const env = {
   cronSecret: v("CRON_SECRET"),
   algorandMnemonic: v("ALGORAND_MNEMONIC"),
@@ -23,7 +29,7 @@ export const env = {
   resendKey: unquoted("RESEND_API_KEY"),
   // a sender on a domain verified in Resend, e.g. "Nightshift <hello@nightshift.buzz>". Setting both switches on invite-only
   // sign-up (onboarding@resend.dev works for tests but only delivers to the Resend account's own email)
-  resendFrom: unquoted("RESEND_FROM"),
+  resendFrom: senderFrom(unquoted("RESEND_FROM")),
   telegramToken: v("TELEGRAM_BOT_TOKEN"),
   telegramChat: v("TELEGRAM_CHAT_ID"),
   walletConnect: v("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"),
