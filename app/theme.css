@@ -1049,3 +1049,6 @@ section.block.app-start { padding-top: 8px; }
 .pd-add { position: relative; display: inline-flex; }
 .pd-add-box { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: min(320px, 80vw); display: grid; gap: 6px; padding: 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); font-size: 13px; color: var(--text-2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
 .pd-add-box .pf-link { justify-self: start; }
+.wl-email { border-color: var(--mint); background: var(--mint-soft); }
+.wl-icon-email { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--mint); color: var(--mint-ink); font: 600 16px var(--sans); }
+.wl-or { margin: 6px 0 0; font-size: 12px; color: var(--text-3); text-align: center; }

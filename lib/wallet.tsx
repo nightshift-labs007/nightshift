@@ -1,14 +1,17 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import type { EIP1193Provider } from "viem";
 import { baseSepolia } from "viem/chains";
-import { DEPLOYMENT, chainOf, isDeployed } from "@/lib/chain";
+import { DEPLOYMENT, PREDICT_STAKE, chainOf, isDeployed } from "@/lib/chain";
 
 /**
  * One wallet connection for the whole site.
  * - Browser wallets (MetaMask, Rabby, Coinbase Wallet, Brave, ...) are discovered with EIP-6963; no API key needed.
  * - WalletConnect (phone wallets via QR) needs NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID from cloud.reown.com.
+ * - Nightshift wallets: email login through Privy creates a wallet for the user; the site signs its transactions without
+ *   a popup, but only to Nightshift's own contracts and USDC (guardEmbedded), and never signs token permits.
  * Nightshift never sees private keys: every action is signed in the user's own wallet.
  */
 
@@ -27,7 +30,53 @@ type WalletState = {
   connect: (w: WalletInfo) => Promise<void>;
   disconnect: () => Promise<void>;
   switchToTarget: () => Promise<void>;
+  /** the connected wallet is the user's Nightshift wallet (email login), not their own MetaMask etc. */
+  embedded: boolean;
+  /** log in with email (Privy): creates the Nightshift wallet on first login and connects it */
+  loginWithEmail: () => void;
+  /** the Privy access token, for the server to verify the email login */
+  privyToken: () => Promise<string | null>;
+  /** shows the Nightshift wallet's private key (Privy's own secure screen), so users can always take their funds elsewhere */
+  exportKey: () => Promise<void>;
 };
+
+const NIGHTSHIFT_WALLET = "Nightshift wallet";
+
+/**
+ * The Nightshift wallet signs without a popup, so it may only send transactions to Nightshift's contracts and the stake
+ * token (USDC), and may not sign typed data (token permits could hand spending rights to anyone). A withdrawal is a USDC
+ * transfer, which the page confirms with the user first.
+ */
+function guardEmbedded(p: EIP1193Provider): EIP1193Provider {
+  const d = DEPLOYMENT;
+  const allowed = new Set(
+    [
+      ...Object.values(d.contracts ?? {}),
+      ...Object.values(d.tokens ?? {}).map((t) => t.address),
+      d.stack?.plan,
+      d.stack?.pool,
+      d.predictions?.address,
+      PREDICT_STAKE.address,
+    ]
+      .filter(Boolean)
+      .map((a) => String(a).toLowerCase()),
+  );
+  const request = (async (args: { method: string; params?: unknown }) => {
+    if (args.method === "eth_sendTransaction") {
+      const tx = (args.params as { to?: string; value?: string }[] | undefined)?.[0];
+      if (!tx?.to || !allowed.has(tx.to.toLowerCase())) throw new Error("A Nightshift wallet only sends transactions to Nightshift's contracts and USDC.");
+      if (tx.value && BigInt(tx.value) > 0n) throw new Error("A Nightshift wallet doesn't send ETH from the site.");
+    }
+    if (/^eth_signTypedData/.test(args.method) || args.method === "eth_sign" || args.method === "eth_signTransaction")
+      throw new Error("A Nightshift wallet doesn't sign that kind of request.");
+    return p.request(args as never);
+  }) as EIP1193Provider["request"];
+  return {
+    request,
+    on: (...a: unknown[]) => (p.on as (...x: unknown[]) => void)?.(...a),
+    removeListener: (...a: unknown[]) => (p.removeListener as (...x: unknown[]) => void)?.(...a),
+  } as unknown as EIP1193Provider;
+}
 
 const Ctx = createContext<WalletState | null>(null);
 const LAST = "ns.wallet.last";
@@ -77,6 +126,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [chainId, setChainId] = useState<number | null>(null);
   const [connecting, setConnecting] = useState(false);
   const wcRef = useRef<{ disconnect: () => Promise<void> } | null>(null);
+  const privy = usePrivy();
+  const { wallets: privyWallets } = useWallets();
+  const embeddedWallet = privyWallets.find((w) => w.walletClientType === "privy");
+  const wantEmbedded = useRef(false); // set when the user picks email login, so the Nightshift wallet connects once ready
 
   // discover browser wallets (EIP-6963), with window.ethereum as a fallback for older wallets
   useEffect(() => {
@@ -135,6 +188,40 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     };
   }, [provider]);
 
+  // connect the Nightshift wallet after an email login, or after a reload when it was the last wallet used
+  useEffect(() => {
+    if (!privy.ready || !privy.authenticated || !embeddedWallet) return;
+    let last: string | null = null;
+    try {
+      last = localStorage.getItem(LAST);
+    } catch {
+      /* storage unavailable */
+    }
+    if (!wantEmbedded.current && last !== "privy") return;
+    if (walletName === NIGHTSHIFT_WALLET && account?.toLowerCase() === embeddedWallet.address.toLowerCase()) return;
+    let alive = true;
+    (async () => {
+      try {
+        await embeddedWallet.switchChain(target.id).catch(() => {});
+        const p = guardEmbedded((await embeddedWallet.getEthereumProvider()) as unknown as EIP1193Provider);
+        if (!alive) return;
+        if (await attach(p, NIGHTSHIFT_WALLET, false)) {
+          wantEmbedded.current = false;
+          try {
+            localStorage.setItem(LAST, "privy");
+          } catch {
+            /* storage unavailable */
+          }
+        }
+      } catch {
+        /* Privy not ready yet: the next render retries */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [privy.ready, privy.authenticated, embeddedWallet, account, walletName, attach, target.id]);
+
   // restore a phone-wallet (WalletConnect) session after a reload, without a new QR scan
   useEffect(() => {
     let last: string | null = null;
@@ -161,7 +248,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* storage unavailable */
     }
-    if (!last || account) return;
+    if (!last || last === "privy" || account) return;
     const w = injected.find((x) => x.id === last);
     if (w?.provider) attach(w.provider, w.name, false).catch(() => {});
   }, [injected, account, attach]);
@@ -199,6 +286,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   );
 
   const disconnect = useCallback(async () => {
+    if (walletName === NIGHTSHIFT_WALLET) await privy.logout().catch(() => {});
     try {
       await wcRef.current?.disconnect();
     } catch {
@@ -206,7 +294,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
     const wasWc = !!wcRef.current;
     wcRef.current = null;
-    if (!wasWc) {
+    if (!wasWc && walletName !== NIGHTSHIFT_WALLET) {
       try {
         // let browser wallets forget the site where they support it
         await provider?.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] } as never);
@@ -223,7 +311,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setWalletName(null);
     setAccount(null);
     setChainId(null);
-  }, [provider]);
+  }, [provider, walletName, privy]);
+
+  const loginWithEmail = useCallback(() => {
+    wantEmbedded.current = true;
+    if (!privy.authenticated) privy.login();
+    else setAccount(null); // already logged in: the effect above connects the Nightshift wallet
+  }, [privy]);
 
   const switchToTarget = useCallback(async () => {
     if (!provider) return;
@@ -267,6 +361,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     connect,
     disconnect,
     switchToTarget,
+    embedded: walletName === NIGHTSHIFT_WALLET,
+    loginWithEmail,
+    privyToken: () => privy.getAccessToken(),
+    exportKey: () => (embeddedWallet ? privy.exportWallet({ address: embeddedWallet.address }) : Promise.resolve()),
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

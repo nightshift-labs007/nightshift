@@ -242,3 +242,43 @@ export async function releaseMember(address: string, profile: Profile | null) {
   await putMember(address, { invite: m.invite, inviteAt: m.inviteAt });
   await kvHDel(MEMBERS, address.toLowerCase());
 }
+
+// ---------------------------------------------------------------- Nightshift wallets (Privy email login)
+
+/**
+ * Links an email that Privy has already verified to a wallet: claims the one-email-per-wallet lock and records it.
+ * Returns false when the email belongs to another wallet (the caller moves that member over instead).
+ */
+export async function bindVerifiedEmail(address: string, email: string): Promise<boolean> {
+  const a = address.toLowerCase();
+  if (!(await kvSetNX(emailKey(email), a)) && (await kvGet(emailKey(email))) !== a) return false;
+  const m = await getMember(a);
+  if (m.email && m.email !== email) await kvDel(emailKey(m.email));
+  await putMember(a, { ...m, email, emailAt: Date.now() });
+  return true;
+}
+
+/** The wallet a verified email is linked to, if any. */
+export async function emailOwner(email: string) {
+  return kvGet(emailKey(email));
+}
+
+/**
+ * Moves a member (invite, email, username, profile, registration time) from an old wallet to their new Nightshift wallet,
+ * when they log in with the same verified email. The old wallet keeps its on-chain history but stops being a member.
+ */
+export async function moveMember(from: string, to: string, profile: Profile | null): Promise<void> {
+  const [f, t] = [from.toLowerCase(), to.toLowerCase()];
+  const m = await getMember(f);
+  const registeredAt = (await kvHGetAll(MEMBERS))[f];
+  if (profile?.username) {
+    if ((await usernameOwner(profile.username)) === f) await kvSet(usernameKey(profile.username), t);
+  }
+  await kvSet(emailKey(m.email!), t);
+  await putMember(t, { invite: m.invite, inviteAt: m.inviteAt, email: m.email, emailAt: Date.now() });
+  if (registeredAt) {
+    await kvHSetNX(MEMBERS, t, registeredAt);
+    await kvHDel(MEMBERS, f);
+  }
+  await putMember(f, {}); // the old wallet keeps nothing: no invite, no email
+}

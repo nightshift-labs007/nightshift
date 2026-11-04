@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPublicClient, createWalletClient, custom, parseUnits, type Address } from "viem";
+import { createPublicClient, createWalletClient, custom, isAddress, parseUnits, type Address } from "viem";
 import { ABI, DEPLOYMENT, NETWORK, PREDICT_STAKE, chainOf, chainTransport, isDeployed, txUrl } from "@/lib/chain";
 import type { OracleSnapshot } from "@/lib/oracle";
 import { SIDE, algoTxUrl, payoutMultiple, weightAt, type PredictRound, type PredictState } from "@/lib/predictions-shared";
@@ -151,6 +151,26 @@ export function PredictTab() {
     }
   }
 
+  async function withdraw(to: string, amount: number) {
+    if (!me) return;
+    const dest = to.trim();
+    if (!isAddress(dest)) return toast("That isn't a valid address. It should start with 0x and be 42 characters.", "warn");
+    if (dest.toLowerCase() === account?.toLowerCase()) return toast("That's this wallet's own address.", "warn");
+    if (!(amount > 0) || amount > me.balance + 1e-9) return toast(`Enter an amount up to your balance (${fmt(me.balance, 2)} ${STAKE}).`, "warn");
+    const ok = window.confirm(`Send ${fmt(amount, 2)} ${STAKE} on ${NETWORK} to\n${dest}?\n\nCheck the address: transfers can't be undone, and it must accept ${STAKE} on the ${NETWORK} network.`);
+    if (!ok) return;
+    setBusy("withdraw");
+    try {
+      await write(`Withdraw ${STAKE}`, PREDICT_STAKE.address, ABI.token, "transfer", [dest as Address, units(amount)]);
+      toast(`Sent ${fmt(amount, 2)} ${STAKE}.`, "ok");
+      await refreshMe();
+    } catch (e) {
+      toast(friendly(e), "error");
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function getFunds() {
     if (!wallet.provider || !account) return;
     setBusy("faucet");
@@ -228,6 +248,9 @@ export function PredictTab() {
         onSwitch={() => wallet.switchToTarget().catch((e) => toast(friendly(e), "warn"))}
         onFunds={getFunds}
         onClaim={() => claimAll(claimable.map((p) => p.id))}
+        embedded={wallet.embedded}
+        onWithdraw={withdraw}
+        onExport={() => wallet.exportKey().catch(() => toast("Couldn't open the export screen. Please try again.", "warn"))}
       />
 
       {current.length ? (
@@ -263,6 +286,9 @@ export function PredictTab() {
 }
 
 function AccountBar(p: {
+  embedded: boolean;
+  onWithdraw: (to: string, amount: number) => void;
+  onExport: () => void;
   account: Address | null;
   onTarget: boolean;
   registered: boolean | null;
@@ -307,7 +333,10 @@ function AccountBar(p: {
           </button>
         )}
         {REAL ? (
-          <AddFunds account={p.account} />
+          <>
+            <AddFunds account={p.account} />
+            {p.embedded && <Withdraw balance={p.me?.balance ?? 0} busy={p.busy === "withdraw"} onWithdraw={p.onWithdraw} onExport={p.onExport} />}
+          </>
         ) : (
           <button className="btn small" disabled={p.busy === "faucet"} onClick={p.onFunds}>
             {p.busy === "faucet" ? "Sending…" : `Get demo ${STAKE}`}
@@ -323,14 +352,42 @@ function AddFunds({ account }: { account: Address }) {
   const [open, setOpen] = useState(false);
   return (
     <span className="pd-add">
-      <button className="btn small" onClick={() => setOpen((x) => !x)}>Add {STAKE}</button>
+      <button className="btn small" onClick={() => setOpen((x) => !x)}>Deposit {STAKE}</button>
       {open && (
         <span className="pd-add-box">
-          Send {STAKE} on <b>{NETWORK}</b> to your wallet:
+          Deposit: send {STAKE} on <b>{NETWORK}</b> to your wallet address:
           <button className="mono pf-link" onClick={() => navigator.clipboard?.writeText(account).then(() => toast("Address copied.", "ok")).catch(() => {})}>
             {account.slice(0, 8)}…{account.slice(-6)} ⧉
           </button>
           From Coinbase, Binance or any exchange, withdraw {STAKE} and pick the <b>Base</b> network. Gas is covered by Nightshift.
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Nightshift wallet: send USDC out to any address (confirmed first), or export the wallet's key. */
+function Withdraw({ balance, busy, onWithdraw, onExport }: { balance: number; busy: boolean; onWithdraw: (to: string, amount: number) => void; onExport: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [to, setTo] = useState("");
+  const [amount, setAmount] = useState("");
+  return (
+    <span className="pd-add">
+      <button className="btn small" onClick={() => setOpen((x) => !x)}>Withdraw</button>
+      {open && (
+        <span className="pd-add-box">
+          <b>Withdraw {STAKE}</b>
+          <input className="mono" value={to} onChange={(e) => setTo(e.target.value.trim())} placeholder="0x… address on Base" spellCheck={false} aria-label="Send to" />
+          <span className="pd-amount">
+            <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))} placeholder="Amount" aria-label="Amount" />
+            <button type="button" className="pf-link" onClick={() => setAmount(String(Math.floor(balance * 100) / 100))}>Max</button>
+          </span>
+          <button className="btn primary small" disabled={busy || !to || !(Number(amount) > 0)} onClick={() => onWithdraw(to, Number(amount))}>
+            {busy ? "Sending…" : `Send ${STAKE}`}
+          </button>
+          <span className="xs">
+            Or take your whole wallet elsewhere: <button type="button" className="pf-link" onClick={onExport}>export its private key</button>.
+          </span>
         </span>
       )}
     </span>

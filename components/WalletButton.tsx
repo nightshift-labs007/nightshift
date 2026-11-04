@@ -97,6 +97,17 @@ export function WalletButton() {
             <a className="btn primary small" href="/profile" onClick={() => setMenu(false)}>
               Your profile
             </a>
+            {w.embedded && (
+              <button
+                className="tab"
+                onClick={() => {
+                  setMenu(false);
+                  w.exportKey().catch(() => toast("Couldn't open the export screen. Please try again.", "warn"));
+                }}
+              >
+                Export private key
+              </button>
+            )}
             <button
               className="tab"
               onClick={() => {
@@ -140,6 +151,20 @@ export function WalletButton() {
               </button>
             </div>
             <div className="wl-list">
+              <button
+                className="wl-item wl-email"
+                onClick={() => {
+                  setOpen(false);
+                  w.loginWithEmail();
+                }}
+              >
+                <span className="wl-icon wl-icon-email" aria-hidden="true">@</span>
+                <span>
+                  <b>Continue with email</b>
+                  <small>Get a Nightshift wallet. No app or extension needed.</small>
+                </span>
+              </button>
+              {w.wallets.length > 0 && <p className="wl-or">or use your own wallet</p>}
               {w.wallets.map((x) => (
                 <button key={x.id} className="wl-item" onClick={() => pick(x)} disabled={w.connecting}>
                   <WalletIcon w={x} />
@@ -151,7 +176,7 @@ export function WalletButton() {
               ))}
               {w.wallets.length === 0 && (
                 <p className="wl-empty">
-                  No wallet found in this browser. Install{" "}
+                  Have your own wallet? Install{" "}
                   <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer">
                     MetaMask
                   </a>{" "}
@@ -164,8 +189,8 @@ export function WalletButton() {
               )}
             </div>
             <p className="wl-note">
-              Nightshift runs on {w.targetChain.name}{isMainnet ? " with demo assets that have no value; you pay a few cents of real ETH for gas." : " (a test network: no real money)."} Your keys stay in your wallet; every action asks for your
-              approval.
+              Nightshift runs on {w.targetChain.name}. With email you get a Nightshift wallet: you can export its key any time, and the site only uses it
+              for Nightshift&apos;s contracts and USDC. With your own wallet, every action asks for your approval. Gas is covered for members.
             </p>
           </div>
         </div>,

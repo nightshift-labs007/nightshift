@@ -3,6 +3,7 @@ import { Funnel_Sans, Geist_Mono, Inter_Tight, Playfair_Display, Unbounded } fro
 import "./globals.css";
 import "./theme.css";
 import { WalletProvider } from "@/lib/wallet";
+import { PrivyRoot } from "@/components/PrivyRoot";
 import { AlwaysOnAudio } from "@/components/AlwaysOnAudio";
 import { Nyx } from "@/components/Nyx";
 
@@ -28,11 +29,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${serif.variable} ${wordmark.variable} ${mono.variable}`}>
       <body>
+        <PrivyRoot>
         <WalletProvider>
           <AlwaysOnAudio />
           {children}
           <Nyx />
         </WalletProvider>
+        </PrivyRoot>
       </body>
     </html>
   );

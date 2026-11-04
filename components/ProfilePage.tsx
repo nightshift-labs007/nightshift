@@ -207,6 +207,65 @@ function EmailStep({ current, enabled, onDone, onCancel }: { current?: string | 
   );
 }
 
+/**
+ * Nightshift wallet (email login through Privy): Privy has already verified the email, so the server signs the wallet in
+ * from the Privy login itself. A new member only adds their invite code.
+ */
+function WalletSignUp({ onDone }: { onDone: () => void }) {
+  const w = useWallet();
+  const [state, setState] = useState<"checking" | "invite" | "error">("checking");
+  const [invite, setInvite] = useState("");
+  const [busy, setBusy] = useState(false);
+  const go = useCallback(
+    async (code?: string) => {
+      setBusy(true);
+      try {
+        const token = await w.privyToken();
+        if (!token) throw new Error("Your login has expired. Log in with your email again.");
+        const res = await fetch("/api/profile/privy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, invite: code }) });
+        const j = await res.json().catch(() => ({}));
+        if (res.ok) {
+          if (code) toast("Invite code accepted.", "ok");
+          onDone();
+        } else if (j.needInvite) setState("invite");
+        else {
+          if (code || state !== "checking") toast(j.error ?? "Couldn't sign you in. Please try again.", "warn");
+          setState(code ? "invite" : "error");
+        }
+      } catch (e) {
+        toast((e as Error).message, "warn");
+        setState("error");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [w, onDone, state],
+  );
+  useEffect(() => {
+    go();
+    // once, when the card opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  if (state === "checking") return <p className="muted">Signing you in with your Nightshift wallet…</p>;
+  if (state === "error")
+    return (
+      <div className="su-step">
+        <p className="muted">We couldn&apos;t sign you in just now.</p>
+        <button className="btn primary" onClick={() => go()} disabled={busy}>{busy ? "Trying…" : "Try again"}</button>
+      </div>
+    );
+  return (
+    <form className="su-step" onSubmit={(e) => { e.preventDefault(); go(invite); }}>
+      <h3>Enter your invite code</h3>
+      <p className="muted">Your email is verified and your Nightshift wallet is ready. Nightshift is invite-only for now: your code looks like <span className="mono">NS-XXXX-XXXX</span>.</p>
+      <div className="su-row">
+        <input className="mono su-code" value={invite} onChange={(e) => setInvite(e.target.value.toUpperCase())} placeholder="NS-XXXX-XXXX" maxLength={14} autoComplete="off" spellCheck={false} autoFocus aria-label="Invite code" />
+        <button className="btn primary" disabled={busy || invite.replace(/[^A-Za-z0-9]/g, "").length < 8}>{busy ? "Checking…" : "Continue"}</button>
+      </div>
+    </form>
+  );
+}
+
 /** Live check that a username is still free (debounced). */
 function useUsernameFree(username: string, account: string, saved?: string) {
   const [state, setState] = useState<"" | "checking" | "free" | "taken" | "invalid">("");
@@ -427,7 +486,7 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
           <p className="pf-label">{registered ? "Sign in" : "Sign up"}</p>
         </div>
         {!registered && <Steps at={0} />}
-        {registered === null ? <p className="muted">Checking your wallet…</p> : <SignUp account={account} member={!!registered} onDone={load} />}
+        {w.embedded ? <WalletSignUp onDone={load} /> : registered === null ? <p className="muted">Checking your wallet…</p> : <SignUp account={account} member={!!registered} onDone={load} />}
       </div>
     );
 
@@ -553,8 +612,9 @@ export function ProfilePage() {
               </span>
               <p className="pf-label">Profile</p>
               <h1>Your Nightshift profile</h1>
-              <p className="muted">Nightshift is invite-only for now. Connect a wallet, enter your invite code and email, type the 6-digit code we send you and pick a username. No signatures.</p>
-              <p className="small muted">Connect a wallet with the <b>Connect wallet</b> button at the top to start.</p>
+              <p className="muted">Nightshift is invite-only for now. Sign up with your email: we create your Nightshift wallet, you add your invite code and pick a username. No app or extension needed.</p>
+              <button className="btn primary" onClick={() => w.loginWithEmail()}>Sign up with email</button>
+              <p className="small muted">Have your own wallet (MetaMask, Rabby…)? Use <b>Connect wallet</b> at the top instead.</p>
             </div>
           </div>
         </section>

@@ -30,6 +30,9 @@ export const env = {
   // a sender on a domain verified in Resend, e.g. "Nightshift <hello@nightshift.buzz>". Setting both switches on invite-only
   // sign-up (onboarding@resend.dev works for tests but only delivers to the Resend account's own email)
   resendFrom: senderFrom(unquoted("RESEND_FROM")),
+  // Nightshift wallets (Privy): email login that creates a wallet for each user. The app id is public.
+  privyAppId: v("NEXT_PUBLIC_PRIVY_APP_ID") || "cmw2jfbf400020gi962dylmzx",
+  privySecret: unquoted("PRIVY_APP_SECRET"),
   telegramToken: v("TELEGRAM_BOT_TOKEN"),
   telegramChat: v("TELEGRAM_CHAT_ID"),
   walletConnect: v("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"),
