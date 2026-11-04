@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { NETWORK, isDeployed, isMainnet, sym } from "@/lib/chain";
+import { NETWORK, PREDICT_STAKE, isDeployed, isMainnet, sym } from "@/lib/chain";
 import { appTab } from "@/lib/app-tabs";
 import { MarketChoice } from "./Markets";
 
@@ -148,15 +148,20 @@ const PREDICT: Step[] = [
     body: (
       <ol className="guide-list numbered">
         <li><b>The call:</b> every evening at 20:00 ET, Nightshift locks its predicted opening price for each ETF on Algorand.</li>
-        <li><b>Your prediction:</b> pick Higher or Lower and stake demo tokens until 09:00 ET. Early predictions count more.</li>
+        <li><b>Your prediction:</b> pick Higher or Lower and stake until 09:00 ET. Early predictions count more.</li>
         <li><b>The open:</b> after 09:30 ET the real opening price settles it. Correct predictions split the pool; ties are refunded.</li>
       </ol>
     ),
   },
   {
     kicker: "Before you play",
-    title: "Registered users, demo tokens",
-    body: (
+    title: PREDICT_STAKE.real ? `Registered users, real ${PREDICT_STAKE.symbol}` : "Registered users, demo tokens",
+    body: PREDICT_STAKE.real ? (
+      <p>
+        Only registered users can make predictions (invite code, verified email, username). Stakes are real {PREDICT_STAKE.symbol} on {NETWORK}, capped
+        small: this is an educational beta with an unaudited contract, so only stake what you can afford to lose. Nightshift covers the gas.
+      </p>
+    ) : (
       <p>
         Only registered users can make predictions (invite code, verified email, username). Stakes are demo {sym("USDG")}: no value, nothing to buy or
         cash out. Tap <b>Get demo {sym("USDG")}</b> on the page if you need some.

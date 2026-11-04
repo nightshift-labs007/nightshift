@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { formatEther, isAddress, type Address } from "viem";
-import { ABI, DEPLOYMENT } from "@/lib/chain";
+import { formatUnits, isAddress, type Address } from "viem";
+import { ABI, DEPLOYMENT, PREDICT_STAKE } from "@/lib/chain";
 import { publicClient, readMany } from "@/lib/chain/keeper";
 
 export const dynamic = "force-dynamic";
 
 const SIDES = ["None", "Higher", "Lower"] as const;
+const d = PREDICT_STAKE.decimals;
 
 /** One wallet's positions in the given rounds (?address=0x…&ids=1,2,3): side, stake, shares, claimed, what it's owed. */
 export async function GET(req: NextRequest) {
@@ -19,8 +20,8 @@ export async function GET(req: NextRequest) {
   try {
     const res = (await readMany(pub, [
       { address: pm, abi: ABI.predictions, functionName: "isMember", args: [address] },
-      { address: DEPLOYMENT.contracts.usdg, abi: ABI.token, functionName: "balanceOf", args: [address] },
-      { address: DEPLOYMENT.contracts.usdg, abi: ABI.token, functionName: "allowance", args: [address, pm] },
+      { address: PREDICT_STAKE.address, abi: ABI.token, functionName: "balanceOf", args: [address] },
+      { address: PREDICT_STAKE.address, abi: ABI.token, functionName: "allowance", args: [address, pm] },
       ...ids.flatMap((id) => [
         { address: pm, abi: ABI.predictions, functionName: "positions", args: [BigInt(id), address] },
         { address: pm, abi: ABI.predictions, functionName: "payoutOf", args: [BigInt(id), address] },
@@ -31,11 +32,11 @@ export async function GET(req: NextRequest) {
       .map((id, i) => {
         const [side, claimed, stake, shares] = rest[i * 2] as [number, boolean, bigint, bigint];
         const owed = rest[i * 2 + 1] as bigint;
-        return { id, side: SIDES[side], claimed, stake: Number(formatEther(stake)), shares: Number(formatEther(shares)), owed: Number(formatEther(owed)) };
+        return { id, side: SIDES[side], claimed, stake: Number(formatUnits(stake, d)), shares: Number(formatUnits(shares, d)), owed: Number(formatUnits(owed, d)) };
       })
       .filter((p) => p.stake > 0);
     return NextResponse.json(
-      { enabled: true, member, balance: Number(formatEther(balance)), allowance: Number(formatEther(allowance)), positions },
+      { enabled: true, member, balance: Number(formatUnits(balance, d)), allowance: Number(formatUnits(allowance, d)), positions },
       { headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (e) {

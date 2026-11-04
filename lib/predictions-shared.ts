@@ -36,6 +36,7 @@ export type PredictState = {
   address?: string;
   explorer?: string;
   stakeSymbol?: string;
+  stakeReal?: boolean; // real USDC (beta, small stakes) or demo tokens
   limits?: { maxBet: number; maxPerWallet: number; challengeWindow: number; minWeightBps: number; feeBps: number };
   rounds: PredictRound[];
   updatedAt: string;

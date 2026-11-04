@@ -109,9 +109,9 @@
     "deployedAt": "2026-10-26T21:02:17.101Z"
   },
   "predictions": {
-    "address": "0xf401c66015d55fe0ae69b1caa9fbeac170f69f12",
-    "deployedAt": "2026-11-04T19:02:22.484Z",
-    "startBlock": 53514785,
+    "address": "0xb8eb03befbc88fdcc5ca089ebb224c80057b64ea",
+    "deployedAt": "2026-11-04T19:42:50.472Z",
+    "startBlock": 53515996,
     "pyth": "0x8250f4aF4B972684F7b336503E2D6dFeDeB1487a",
     "pythFeeds": {
       "SPY": "0x19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5",
@@ -119,6 +119,18 @@
       "GLD": "0xe190f467043db04548200354889dfe0d9d314c08b8d4e62fabf4d5a3140fecca",
       "SLV": "0x6fc08c9963d266069cbd9780d98383dabf2668322a5bef0b9491e11d67e5d7e7",
       "IBIT": "0x9db6bc1e6e9e5e60f6884e1cd8e4399cca9d0454c6e7234ad79680cf139748f5"
+    },
+    "stake": {
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "symbol": "USDC",
+      "decimals": 6,
+      "real": true
     }
-  }
+  },
+  "predictionsPrevious": [
+    {
+      "address": "0xf401c66015d55fe0ae69b1caa9fbeac170f69f12",
+      "retiredAt": "2026-11-04T19:42:50.474Z"
+    }
+  ]
 }

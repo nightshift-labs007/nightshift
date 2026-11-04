@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPublicClient, createWalletClient, custom, parseEther, type Address } from "viem";
-import { ABI, DEPLOYMENT, NETWORK, chainOf, chainTransport, isDeployed, sym, txUrl } from "@/lib/chain";
+import { createPublicClient, createWalletClient, custom, parseUnits, type Address } from "viem";
+import { ABI, DEPLOYMENT, NETWORK, PREDICT_STAKE, chainOf, chainTransport, isDeployed, txUrl } from "@/lib/chain";
 import type { OracleSnapshot } from "@/lib/oracle";
 import { SIDE, algoTxUrl, payoutMultiple, weightAt, type PredictRound, type PredictState } from "@/lib/predictions-shared";
 import { useWallet } from "@/lib/wallet";
@@ -35,14 +35,19 @@ function friendly(e: unknown): string {
     [/"amount"|: amount/, "That amount isn't allowed. Check the limits under the card."],
     [/paused/, "Predictions are paused for a moment."],
     [/nothing to claim/, "Nothing to claim yet."],
-    [/faucet cooldown/, `You can claim demo ${sym("USDG")} once an hour. Try again a little later.`],
-    [/allowance|balance/, `Not enough ${sym("USDG")}. Tap “Get demo ${sym("USDG")}” first.`],
+    [/faucet cooldown/, `You can claim demo ${STAKE} once an hour. Try again a little later.`],
+    [/allowance|balance/, REAL ? `Not enough ${STAKE} on ${NETWORK} in your wallet. Add some first.` : `Not enough ${STAKE}. Tap “Get demo ${STAKE}” first.`],
   ];
   for (const [re, text] of reasons) if (re.test(msg)) return text;
   return msg.slice(0, 180);
 }
 
 const ET = "America/New_York";
+const STAKE = PREDICT_STAKE.symbol;
+const REAL = PREDICT_STAKE.real;
+const units = (n: number) => parseUnits(n.toFixed(PREDICT_STAKE.decimals), PREDICT_STAKE.decimals);
+const ACK = "ns-predict-ack"; // "I understand it's an unaudited beta", once per browser
+const acked = () => { try { return localStorage.getItem(ACK) === "1"; } catch { return false; } };
 const fmt = (n: number, d = 2) => n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 const day = (unix: number) => new Date(unix * 1000).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: ET });
 const time = (unix: number) => new Date(unix * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: ET }) + " ET";
@@ -118,12 +123,12 @@ export function PredictTab() {
     setBusy(`bet-${r.id}`);
     try {
       if (me.allowance < amount) {
-        toast(`Step 1 of 2: allow the prediction contract to use your ${sym("USDG")} (up to ${fmt(state?.limits?.maxPerWallet ?? 5000, 0)}).`);
-        await write("Allow", DEPLOYMENT.contracts.usdg, ABI.token, "approve", [pm, parseEther(String(Math.max(amount, state?.limits?.maxPerWallet ?? 5000)))]);
+        toast(`Step 1 of 2: allow the prediction contract to use your ${STAKE} (up to ${fmt(state?.limits?.maxPerWallet ?? 5000, 0)}).`);
+        await write("Allow", PREDICT_STAKE.address, ABI.token, "approve", [pm, units(Math.max(amount, state?.limits?.maxPerWallet ?? 25))]);
       }
       toast(`${me.allowance < amount ? "Step 2 of 2: " : ""}confirm your ${side} prediction on ${r.token} in your wallet.`);
-      await write("Prediction", pm, ABI.predictions, "bet", [BigInt(r.id), SIDE[side], parseEther(String(amount))]);
-      toast(`Prediction placed: ${r.token} opens ${side.toLowerCase()} than our call, ${fmt(amount, 0)} ${sym("USDG")} staked.`, "ok");
+      await write("Prediction", pm, ABI.predictions, "bet", [BigInt(r.id), SIDE[side], units(amount)]);
+      toast(`Prediction placed: ${r.token} opens ${side.toLowerCase()} than our call, ${fmt(amount, 2)} ${STAKE} staked.`, "ok");
       await refreshMe();
     } catch (e) {
       toast(friendly(e), "error");
@@ -154,11 +159,11 @@ export function PredictTab() {
       try {
         toast("Sign the free message in your wallet. Nightshift sends the demo tokens and covers the gas.");
         const sent = await getDemoFunds(wallet.provider, account, null);
-        toast(sent.length ? `Sent ${sent.map((x) => x.what).join(", ")}` : `You already have demo ${sym("USDG")}.`, "ok");
+        toast(sent.length ? `Sent ${sent.map((x) => x.what).join(", ")}` : `You already have demo ${STAKE}.`, "ok");
       } catch (e) {
         if (!/already|today/i.test((e as Error).message ?? "")) throw e;
-        await write(`Get demo ${sym("USDG")}`, DEPLOYMENT.contracts.usdg, ABI.token, "faucet", []);
-        toast(`Added demo ${sym("USDG")} to your wallet.`, "ok");
+        await write(`Get demo ${STAKE}`, DEPLOYMENT.contracts.usdg, ABI.token, "faucet", []);
+        toast(`Added demo ${STAKE} to your wallet.`, "ok");
       }
       await new Promise((r) => setTimeout(r, 3000));
       await refreshMe();
@@ -184,7 +189,7 @@ export function PredictTab() {
     <div className="pd">
       <div className={`panel pd-status ${betting ? "open" : ""}`}>
         <div>
-          <p className="mono xs muted">CALL THE OPEN · DEMO TOKENS, NO VALUE</p>
+          <p className="mono xs muted">{REAL ? `CALL THE OPEN · REAL ${STAKE} · BETA, SMALL STAKES` : "CALL THE OPEN · DEMO TOKENS, NO VALUE"}</p>
           <h2>{betting ? "Predictions are open." : current.length ? "Predictions are closed for this session." : "The first rounds open soon."}</h2>
           <p>
             Every evening at 20:00 ET, Nightshift locks its call for each ETF&apos;s next opening price on Algorand. Predict whether the real open comes
@@ -292,20 +297,43 @@ function AccountBar(p: {
   return (
     <div className="panel pd-account">
       <span>
-        Balance <b className="mono">{p.me ? fmt(p.me.balance, 0) : "…"} {sym("USDG")}</b>
+        Balance <b className="mono">{p.me ? fmt(p.me.balance, 2) : "…"} {STAKE}</b>
         {p.me && !p.me.member && p.registered && <span className="pd-note"> · getting your wallet ready to predict (a few seconds)</span>}
       </span>
       <span className="pd-account-actions">
         {p.owedTotal > 0 && (
           <button className="btn primary small" disabled={p.busy === "claim"} onClick={p.onClaim}>
-            {p.busy === "claim" ? "Claiming…" : `Claim ${fmt(p.owedTotal, 2)} ${sym("USDG")}`}
+            {p.busy === "claim" ? "Claiming…" : `Claim ${fmt(p.owedTotal, 2)} ${STAKE}`}
           </button>
         )}
-        <button className="btn small" disabled={p.busy === "faucet"} onClick={p.onFunds}>
-          {p.busy === "faucet" ? "Sending…" : `Get demo ${sym("USDG")}`}
-        </button>
+        {REAL ? (
+          <AddFunds account={p.account} />
+        ) : (
+          <button className="btn small" disabled={p.busy === "faucet"} onClick={p.onFunds}>
+            {p.busy === "faucet" ? "Sending…" : `Get demo ${STAKE}`}
+          </button>
+        )}
       </span>
     </div>
+  );
+}
+
+/** Real-money mode: there's no faucet; people send USDC on Base to their own wallet. */
+function AddFunds({ account }: { account: Address }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="pd-add">
+      <button className="btn small" onClick={() => setOpen((x) => !x)}>Add {STAKE}</button>
+      {open && (
+        <span className="pd-add-box">
+          Send {STAKE} on <b>{NETWORK}</b> to your wallet:
+          <button className="mono pf-link" onClick={() => navigator.clipboard?.writeText(account).then(() => toast("Address copied.", "ok")).catch(() => {})}>
+            {account.slice(0, 8)}…{account.slice(-6)} ⧉
+          </button>
+          From Coinbase, Binance or any exchange, withdraw {STAKE} and pick the <b>Base</b> network. Gas is covered by Nightshift.
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -329,7 +357,7 @@ function RoundCard({
   onBet: (side: "Higher" | "Lower", amount: number) => void;
 }) {
   const [side, setSide] = useState<"Higher" | "Lower" | null>(null);
-  const [amount, setAmount] = useState("50");
+  const [amount, setAmount] = useState(REAL ? "5" : "50");
   const now = Date.now() / 1000;
   const open = r.status === "Open" && now < r.lockTime && now >= r.openTime;
   const limits = state.limits ?? { maxBet: 1000, maxPerWallet: 5000, challengeWindow: 7200, minWeightBps: 5000, feeBps: 0 };
@@ -426,14 +454,24 @@ function RoundCard({
           </div>
           <div className="pd-amount">
             <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))} aria-label="Amount" />
-            <span className="muted">{sym("USDG")}</span>
+            <span className="muted">{STAKE}</span>
           </div>
           <button
             className="btn primary"
             disabled={!canBet || !chosen || !(amt > 0) || amt > limits.maxBet || busy}
-            onClick={() => chosen && onBet(chosen, amt)}
+            onClick={() => {
+              if (!chosen) return;
+              if (REAL && !acked()) {
+                const ok = window.confirm(
+                  `Nightshift is an educational beta. Predictions use real ${STAKE} in an unaudited contract, and you can lose what you stake. Only stake small amounts you can afford to lose.\n\nPress OK if you understand.`,
+                );
+                if (!ok) return;
+                try { localStorage.setItem(ACK, "1"); } catch { /* storage blocked: ask again next time */ }
+              }
+              onBet(chosen, amt);
+            }}
           >
-            {busy ? "Confirming…" : pending ? "Getting your wallet ready…" : chosen ? `Predict ${chosen} · ${fmt(amt, 0)} ${sym("USDG")}` : "Pick Higher or Lower"}
+            {busy ? "Confirming…" : pending ? "Getting your wallet ready…" : chosen ? `Predict ${chosen} · ${fmt(amt, 2)} ${STAKE}` : "Pick Higher or Lower"}
           </button>
           <p className="xs muted">
             A prediction now counts {Math.round(w * 100)}% weight (early predictions count more).
@@ -496,7 +534,11 @@ function Rules({ state }: { state: PredictState }) {
         <li><b>Early predictions count more:</b> a prediction made when the round opens counts 100%, falling to {Math.round((l?.minWeightBps ?? 5000) / 100)}% at close.</li>
         <li><b>The result:</b> the official NYSE opening price is proposed on-chain after 09:30 ET. Any registered user can dispute it within {Math.round((l?.challengeWindow ?? 7200) / 3600)} hours; undisputed, it&apos;s final. Above the call: Higher wins. Below: Lower wins.</li>
         <li><b>Payouts:</b> correct predictions get their stake back plus the other side's pool{l?.feeBps ? ` minus a ${l.feeBps / 100}% fee` : ""}, split by weighted shares. Ties, one-sided rounds and rounds not settled within a day are refunded in full.</li>
-        <li><b>Demo tokens only:</b> {sym("USDG")} has no value, can&apos;t be bought or cashed out. This is a game and a public test of Nightshift&apos;s calls, not investment advice.</li>
+        {REAL ? (
+          <li><b>Real {STAKE}, educational beta:</b> stakes are real {STAKE} on {NETWORK}, held by an unaudited contract while a round is open. Stakes are capped small. Only stake what you can afford to lose. Not investment advice.</li>
+        ) : (
+          <li><b>Demo tokens only:</b> {STAKE} has no value, can&apos;t be bought or cashed out. This is a game and a public test of Nightshift&apos;s calls, not investment advice.</li>
+        )}
       </ul>
       {state.address && (
         <p className="xs muted">

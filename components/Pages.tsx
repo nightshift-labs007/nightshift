@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { OracleSnapshot } from "@/lib/oracle";
-import { DEPLOYMENT, NETWORK, addrUrl, isDeployed, isMainnet, sym } from "@/lib/chain";
+import { DEPLOYMENT, NETWORK, PREDICT_STAKE, addrUrl, isDeployed, isMainnet, sym } from "@/lib/chain";
 import { ApiPanel } from "./ApiPanel";
 import { Cloak, VerifyProof } from "./Cloak";
 import { GuardianConsole } from "./GuardianConsole";
@@ -36,7 +36,9 @@ const INTRO: Record<AppTab, string> = {
     ? `Borrow ${sym("USDG")} against ETF tokens. Practice without a wallet, or connect one and get free demo funds.`
     : "Borrow against ETF tokens with a practice account. No wallet needed.",
   stack: "Buy gold and silver on a schedule, only at a fair price.",
-  predict: "Predict whether each ETF opens higher or lower than Nightshift's call. Demo tokens, no value.",
+  predict: PREDICT_STAKE.real
+    ? `Predict whether each ETF opens higher or lower than Nightshift's call, with small ${PREDICT_STAKE.symbol} stakes. Beta.`
+    : "Predict whether each ETF opens higher or lower than Nightshift's call. Demo tokens, no value.",
 };
 
 const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;

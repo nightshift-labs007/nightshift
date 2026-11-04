@@ -1,5 +1,5 @@
 import "server-only";
-import { formatEther, type Address } from "viem";
+import { formatUnits, type Address } from "viem";
 import { EVENING_PREFIX, ledgerAddress, stampPrediction, type Prediction } from "@/lib/algorand";
 import { officialOpen } from "@/lib/data";
 import { kvEnabled, kvGet, kvHDel, kvHGetAll, kvHSet, kvSetEx } from "@/lib/kv";
@@ -20,7 +20,7 @@ import {
   type PredictState,
 } from "@/lib/predictions-shared";
 import { etParts, etToUtcMs, nextSessionDate } from "@/lib/time";
-import { ABI, DEPLOYMENT, sym } from "./index";
+import { ABI, DEPLOYMENT, PREDICT_STAKE } from "./index";
 import { publicClient, readMany, roleClients } from "./keeper";
 
 /**
@@ -70,10 +70,10 @@ export function toRound(id: number, r: RawRound): PredictRound {
     status: STATUS[r.status],
     outcome: OUTCOME[r.outcome],
     disputed: r.disputed,
-    stakeHigher: Number(formatEther(r.stakeHigher)),
-    stakeLower: Number(formatEther(r.stakeLower)),
-    sharesHigher: Number(formatEther(r.sharesHigher)),
-    sharesLower: Number(formatEther(r.sharesLower)),
+    stakeHigher: Number(formatUnits(r.stakeHigher, PREDICT_STAKE.decimals)),
+    stakeLower: Number(formatUnits(r.stakeLower, PREDICT_STAKE.decimals)),
+    sharesHigher: Number(formatUnits(r.sharesHigher, PREDICT_STAKE.decimals)),
+    sharesLower: Number(formatUnits(r.sharesLower, PREDICT_STAKE.decimals)),
     algorandTx: bytes32ToAlgoTx(r.algorandTx),
   };
 }
@@ -94,8 +94,9 @@ export async function readPredictions(lookback = LOOKBACK): Promise<PredictState
     enabled: true,
     address: pm,
     explorer: DEPLOYMENT.explorer,
-    stakeSymbol: sym("USDG"),
-    limits: { maxBet: Number(formatEther(maxBet)), maxPerWallet: Number(formatEther(maxPerWallet)), challengeWindow: Number(challengeWindow), minWeightBps: Number(minWeightBps), feeBps: Number(feeBps) },
+    stakeSymbol: PREDICT_STAKE.symbol,
+    stakeReal: PREDICT_STAKE.real,
+    limits: { maxBet: Number(formatUnits(maxBet, PREDICT_STAKE.decimals)), maxPerWallet: Number(formatUnits(maxPerWallet, PREDICT_STAKE.decimals)), challengeWindow: Number(challengeWindow), minWeightBps: Number(minWeightBps), feeBps: Number(feeBps) },
     rounds: raw.map((r, i) => toRound(ids[i], r)),
     updatedAt: new Date().toISOString(),
   };

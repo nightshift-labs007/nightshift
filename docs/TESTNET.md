@@ -6,7 +6,7 @@ Nightshift's EVM contracts run on **Base mainnet (chain 8453)** again, with **de
 
 | Contract | Address |
 |---|---|
-| NightshiftPredictions ("Call the Open") | [`0xf401c66015d55fe0ae69b1caa9fbeac170f69f12`](https://basescan.org/address/0xf401c66015d55fe0ae69b1caa9fbeac170f69f12) |
+| NightshiftPredictions ("Call the Open", real USDC, beta) | [`0xb8eb03befbc88fdcc5ca089ebb224c80057b64ea`](https://basescan.org/address/0xb8eb03befbc88fdcc5ca089ebb224c80057b64ea) |
 | NightshiftOracle | [`0x5507ad4cba6bfe88e0702f703fffc05fa7d3a66e`](https://basescan.org/address/0x5507ad4cba6bfe88e0702f703fffc05fa7d3a66e) |
 | NightshiftVault | [`0x2aae4bcf7eec8cc842bacfcf9e13a54cba649071`](https://basescan.org/address/0x2aae4bcf7eec8cc842bacfcf9e13a54cba649071) |
 | Groth16Verifier | [`0xbf565f01a9534175d21aeb12f0a94052b8eed1be`](https://basescan.org/address/0xbf565f01a9534175d21aeb12f0a94052b8eed1be) |
@@ -21,7 +21,7 @@ Nightshift's EVM contracts run on **Base mainnet (chain 8453)** again, with **de
 | dSLV | [`0xafc5b9d90655353224d6f2f6f81a3ea37153e3fa`](https://basescan.org/address/0xafc5b9d90655353224d6f2f6f81a3ea37153e3fa) |
 
 - **Gas:** Nightshift covers registered users' gas with small top-ups (`/api/gas`: 0.00003 ETH, once a day per wallet, at most 25 a day in total). Keep the faucet, keeper and updater wallets funded with a little ETH on Base; `/api/health` flags them when low.
-- **Prediction rounds** settle from the official open, read twice (the daily bar and the 09:30:00 five-minute bar must agree within 0.3%).
+- **Prediction rounds** use real **USDC** on Base (educational beta, unaudited): at most 10 USDC per prediction and 25 per wallet per round, no fee. The earlier demo-token contract (`0xf401c6…9f12`) is retired. Rounds settle from the official open, read twice (the daily bar and the 09:30:00 five-minute bar must agree within 0.3%).
 
 ## Previous deployment: Base Sepolia + Algorand TestNet (2026-11-01 to 2026-11-05)
 

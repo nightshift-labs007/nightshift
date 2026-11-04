@@ -14,7 +14,16 @@ export type Deployment = {
   /** Nightshift Stack (recurring buys): the plan contract and the demo pool it buys from */
   stack?: { plan: Address; pool: Address; deployedAt: string };
   /** "Call the Open" prediction rounds (scripts/deploy-predictions.mjs); the Pyth path is off until setPyth is called */
-  predictions?: { address: Address; deployedAt: string; startBlock: number; pyth: Address; pythFeeds: Record<string, `0x${string}`> };
+  predictions?: {
+    address: Address;
+    deployedAt: string;
+    startBlock: number;
+    pyth: Address;
+    pythFeeds: Record<string, `0x${string}`>;
+    /** what people stake: demo USDG (no value), or real USDC with small caps */
+    stake?: { address: Address; symbol: string; decimals: number; real: boolean };
+  };
+  predictionsPrevious?: { address: Address; retiredAt: string }[];
   keeper: Address;
   owner?: Address;
   roles?: { updater: Address; keeper: Address; faucet: Address };
@@ -80,6 +89,9 @@ export function rpcUrls(d: Deployment = DEPLOYMENT): string[] {
 export function chainTransport(d: Deployment = DEPLOYMENT): Transport {
   return fallback(rpcUrls(d).map((u) => http(u, { retryCount: 3, retryDelay: 800, timeout: 12_000 })));
 }
+
+/** The prediction market's stake token: real USDC on Base mainnet, or the deployment's demo USDG. */
+export const PREDICT_STAKE = DEPLOYMENT.predictions?.stake ?? { address: DEPLOYMENT.contracts.usdg, symbol: sym("USDG"), decimals: 18, real: false };
 
 export const txUrl = (hash: string) => (DEPLOYMENT.explorer ? `${DEPLOYMENT.explorer}/tx/${hash}` : "");
 export const addrUrl = (a: string) => (DEPLOYMENT.explorer ? `${DEPLOYMENT.explorer}/address/${a}` : "");

@@ -13,7 +13,7 @@ export const PAGE_GROUPS = [
 export const PAGES = [
   { group: "use", href: "/app", label: "Live prices", tech: "App", icon: "M3 17l6-6 4 4 8-8M14 7h7v7", what: "What every ETF is worth right now: real prices when Wall Street is open, Nightshift fair value when it's closed." },
   { group: "use", href: "/app#vault", label: "Borrow", tech: "App", icon: "M4 9h16v10H4zM8 9V6a4 4 0 0 1 8 0v3", what: "Borrow against ETF tokens, with or without a wallet, and switch on Guardian protection." },
-  { group: "use", href: "/app#predict", label: "Call the Open", tech: "Predict", icon: "M12 3v18M5 10l7-7 7 7M5 14l7 7 7-7", what: "Predict, with demo tokens, whether each ETF opens higher or lower than Nightshift's locked call." },
+  { group: "use", href: "/app#predict", label: "Call the Open", tech: "Predict", icon: "M12 3v18M5 10l7-7 7 7M5 14l7 7 7-7", what: "Predict whether each ETF opens higher or lower than Nightshift's locked call, with small stakes." },
   { group: "use", href: "/app#stack", label: "Buy gold and silver automatically", tech: "Stack", icon: "M5 18h14M7 14h10M9 10h6M11 6h2", what: "Pick an amount and how often. Stack buys only at a fair price, straight to your wallet." },
   { group: "use", href: "/earn", label: "Earn on idle dollars", tech: "Earn", icon: "M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 7v5c0 1.7 3.6 3 8 3s8-1.3 8-3V7", what: "A live view of a Sentora vault where idle stablecoins could earn a protected rate." },
   { group: "check", href: "/oracle", label: "Live prices", tech: "Oracle", icon: "M4 18 9 12l4 3 7-9M15 6h5v5", what: "What SPY, QQQ, gold, silver and bitcoin ETFs are worth right now, even while markets are closed." },

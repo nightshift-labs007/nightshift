@@ -1046,3 +1046,6 @@ section.block.app-start { padding-top: 8px; }
 .pd-rules a { color: var(--mint); word-break: break-all; }
 @media (max-width: 560px) { .pd-status-side { text-align: left; } }
 .pf-layout.single { grid-template-columns: minmax(0, 1fr); max-width: 860px; }
+.pd-add { position: relative; display: inline-flex; }
+.pd-add-box { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: min(320px, 80vw); display: grid; gap: 6px; padding: 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); font-size: 13px; color: var(--text-2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
+.pd-add-box .pf-link { justify-self: start; }
