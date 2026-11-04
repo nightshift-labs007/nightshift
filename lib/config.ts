@@ -1,4 +1,4 @@
-// Starter ETF set from the concept paper (Phase 1): S&P 500, Nasdaq-100, gold, Bitcoin.
+// The ETFs Nightshift prices: the concept paper's starter set (S&P 500, Nasdaq-100, gold, silver, Bitcoin) and a wider set.
 
 export type Pair = {
   token: string;
@@ -72,6 +72,85 @@ export const PAIRS: Pair[] = [
     lltv: 0.625,
     sim: { etf: 65, anchor: 115000, hourlyVol: 0.004 },
   },
+  // Wider set (Nov 2026): each priced from a market that trades overnight; its overnight beta to that anchor is measured
+  // from recent sessions (lib/beta.ts), so the starting beta below only matters until there's enough history.
+  {
+    token: "DIA",
+    name: "Dow 30 ETF",
+    anchor: "YM=F",
+    anchorName: "Dow futures",
+    beta: 1,
+    globalSens: 0.45,
+    sentimentTilt: 0.002,
+    lltv: 0.77,
+    sim: { etf: 533, anchor: 53600, hourlyVol: 0.0011 },
+  },
+  {
+    token: "IWM",
+    name: "Russell 2000 ETF",
+    anchor: "RTY=F",
+    anchorName: "Russell 2000 futures",
+    beta: 1,
+    globalSens: 0.45,
+    sentimentTilt: 0.003,
+    lltv: 0.77,
+    sim: { etf: 284, anchor: 2870, hourlyVol: 0.0016 },
+  },
+  {
+    token: "TLT",
+    name: "20+ Year Treasury ETF",
+    anchor: "ZB=F",
+    anchorName: "Treasury bond futures",
+    beta: 1,
+    globalSens: 0.05,
+    sentimentTilt: -0.001,
+    lltv: 0.77,
+    sim: { etf: 82, anchor: 108, hourlyVol: 0.0008 },
+  },
+  {
+    token: "USO",
+    name: "Oil ETF",
+    anchor: "CL=F",
+    anchorName: "Crude oil futures",
+    beta: 1,
+    globalSens: 0.15,
+    sentimentTilt: 0.002,
+    lltv: 0.625,
+    sim: { etf: 145, anchor: 88.5, hourlyVol: 0.002 },
+  },
+  {
+    token: "ETHA",
+    name: "Ethereum ETF",
+    anchor: "ETH-USD",
+    anchorName: "Ethereum spot",
+    beta: 1,
+    globalSens: 0.3,
+    sentimentTilt: 0.01,
+    lltv: 0.625,
+    sim: { etf: 54.7, anchor: 2420, hourlyVol: 0.005 },
+  },
+  {
+    token: "GDX",
+    name: "Gold Miners ETF",
+    anchor: "GC=F",
+    anchorName: "Gold futures",
+    beta: 1.5,
+    globalSens: 0.15,
+    sentimentTilt: 0,
+    lltv: 0.625,
+    sim: { etf: 84.6, anchor: 3650, hourlyVol: 0.0018 },
+  },
+  {
+    token: "SMH",
+    name: "Semiconductor ETF",
+    anchor: "NQ=F",
+    anchorName: "Nasdaq-100 futures",
+    beta: 1.4,
+    globalSens: 0.55,
+    sentimentTilt: 0.004,
+    lltv: 0.625,
+    sim: { etf: 504, anchor: 24500, hourlyVol: 0.002 },
+  },
 ];
 
 export const GLOBAL_MARKETS = [
@@ -90,6 +169,6 @@ export const AGENTS = {
 } as const;
 
 // Max fair-value move implied by a news score of ±1.
-export const NEWS_TILT: Record<string, number> = { SPY: 0.004, QQQ: 0.005, GLD: 0.003, SLV: 0.005, IBIT: 0.01 };
+export const NEWS_TILT: Record<string, number> = { SPY: 0.004, QQQ: 0.005, GLD: 0.003, SLV: 0.005, IBIT: 0.01, DIA: 0.004, IWM: 0.006, TLT: 0.003, USO: 0.008, ETHA: 0.012, GDX: 0.007, SMH: 0.008 };
 
 export type AgentId = keyof typeof AGENTS;

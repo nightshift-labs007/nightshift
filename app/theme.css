@@ -1052,3 +1052,38 @@ section.block.app-start { padding-top: 8px; }
 .wl-email { border-color: var(--mint); background: var(--mint-soft); }
 .wl-icon-email { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--mint); color: var(--mint-ink); font: 600 16px var(--sans); }
 .wl-or { margin: 6px 0 0; font-size: 12px; color: var(--text-3); text-align: center; }
+
+/* ETF page */
+section.block.etf-top { padding: 36px 0 0; }
+.etf-back { color: var(--text-3); text-decoration: none; font-size: 14px; }
+.etf-back:hover { color: var(--mint); }
+.etf-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-top: 14px; }
+.etf-head h1 { margin: 6px 0 8px; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+.etf-name { color: var(--text-2); font-size: 0.55em; letter-spacing: 0; }
+.etf-price { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.etf-price b { font: 600 clamp(2rem, 4.5vw, 2.8rem) var(--sans); letter-spacing: -0.02em; }
+.etf-price .up, .etf-price .down { font: 500 1.1rem var(--mono); }
+.etf-conf { display: grid; gap: 4px; min-width: 200px; }
+.etf-conf b { font: 500 1.3rem var(--mono); }
+section.block.etf-chart-block { padding-top: 22px; }
+.etf-chart { padding: 16px 18px; }
+.etf-chart-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.etf-svg { width: 100%; height: auto; display: block; cursor: crosshair; }
+.etf-svg-label { fill: var(--text-3); font: 13px var(--mono); }
+.etf-svg-label.call { fill: var(--amber); }
+.etf-chart-empty { height: 260px; display: grid; place-items: center; }
+.etf-legend { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 8px 0 0; }
+.etf-key { display: inline-block; width: 18px; height: 0; border-top: 2px dashed var(--text-3); margin-left: 8px; }
+.etf-key.call { border-top-color: var(--amber); }
+.etf-predict { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 12px; border-color: var(--amber); }
+.etf-predict p { margin: 2px 0; }
+.etf-agents { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); margin-top: 12px; }
+.etf-agent { display: grid; gap: 4px; padding: 14px; }
+.etf-agent b { font-size: 1.15rem; }
+.etf-score { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); margin: 10px 0 14px; }
+.etf-score > div { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; }
+.etf-score b { font-size: 1.3rem; }
+.mint { color: var(--mint); }
+.fp-more { margin-top: 6px; font-size: 13px; color: var(--mint); text-decoration: none; }
+.fp-more:hover { text-decoration: underline; }
+.fp-card-top .ticker a { color: inherit; text-decoration: none; }

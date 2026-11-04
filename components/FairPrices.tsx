@@ -137,7 +137,7 @@ function PriceCard({ q, call }: { q: Quote; call?: { last: Call | null; pending:
     <div className={`panel fp-card ${q.marketOpen ? "open" : "closed"}`}>
       <div className="fp-card-top">
         <div>
-          <span className="ticker">{q.token}</span>
+          <span className="ticker"><Link href={`/etf/${q.token}`}>{q.token}</Link></span>
           <div className="xs muted">{q.name}</div>
         </div>
         <span className={`badge ${q.marketOpen ? "open" : q.source === "live" ? "live" : "sim"}`}>
@@ -183,6 +183,7 @@ function PriceCard({ q, call }: { q: Quote; call?: { last: Call | null; pending:
         </>
       )}
       {call && <LastCall call={call.last} pending={call.pending} />}
+      <Link className="fp-more" href={`/etf/${q.token}`}>Chart and every past call →</Link>
     </div>
   );
 }

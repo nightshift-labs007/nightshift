@@ -25,7 +25,7 @@ export const MARKETS: Market[] = [
     id: "usa",
     name: "USA",
     tagline: "Tokenized US ETFs (SPY, QQQ), priced overnight, with loans protected by the Guardian.",
-    tokens: ["SPY", "QQQ"],
+    tokens: ["SPY", "QQQ", "DIA", "IWM", "SMH", "TLT"],
     features: { prices: "live", alerts: "soon", lending: "data" },
     legal:
       "Tokenized US ETFs, not the shares themselves. Stock Tokens are not available to US persons. Lending runs on unaudited demo contracts with tokens that have no value; real lending waits for an audit and legal opinions.",
@@ -35,7 +35,7 @@ export const MARKETS: Market[] = [
     id: "global",
     name: "Global ETFs",
     tagline: "Gold, silver and Bitcoin ETF tokens. Later, European and Asian index tokens.",
-    tokens: ["GLD", "SLV", "IBIT"],
+    tokens: ["GLD", "SLV", "IBIT", "ETHA", "GDX", "USO"],
     features: { prices: "live", alerts: "soon", lending: "data" },
     legal:
       "Each asset has its own price model and track record. Lending runs on unaudited demo contracts with tokens that have no value. Not investment advice.",
