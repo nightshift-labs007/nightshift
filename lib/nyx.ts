@@ -56,25 +56,25 @@ export const EXPLAIN: Record<Topic, string> = {
   confidence:
     "Confidence runs from 35 to 98. It falls the longer markets stay closed and when my signals disagree, and it's capped during big overnight moves. Lower confidence means you can borrow less, so the Vault stays careful when I'm less sure.",
   cloak:
-    "Cloak proves your loan is solvent without revealing it. A zero-knowledge proof shows your collateral covers your debt at my price, without exposing the loan's size or liquidation level. It's checked by the server today, and by an Algorand TestNet contract next.",
+    "Cloak proves your loan is solvent without revealing it. A zero-knowledge proof shows your collateral covers your debt at my price, without exposing the loan's size or liquidation level. It's checked by the server and by a verifier contract on Base.",
   ledger:
-    "Every weekday before the opening bell, my predictions are fingerprinted and written to Algorand, then graded against the real open. Nobody, including the Nightshift team, can edit them afterwards, losing days included.",
+    "Every weekday before the opening bell, my predictions are fingerprinted and recorded on Base, then graded against the real open. Nobody, including the Nightshift team, can edit them afterwards, losing days included.",
   liquidation:
     "Liquidation happens when health drops below 1. Someone repays part of your debt and takes collateral plus a bonus of up to 15 percent. Each token's LLTV, 77 percent for SPY, QQQ and gold and 62.5 percent for bitcoin, sets where that line is.",
   proofs:
     "Twenty-four of Nightshift's safety rules are proven mathematically in Lean 4 and checked by Harmonic's Aristotle. For example: a healthy loan can never be liquidated, and the Guardian never sells more than you own. The proofs are public on GitHub.",
   morpho:
-    "The Vault follows Morpho Blue's lending and liquidation rules. Morpho isn't on Algorand, so Nightshift rebuilds those rules as its own Algorand TestNet contract.",
+    "The Vault follows Morpho Blue's lending and liquidation rules. My prices are also published on Base in Morpho's oracle format, so a Morpho market can use them.",
   sentora:
     "The Earn section shows a live Sentora vault where idle stablecoins could earn a protected rate. Deposits happen on Sentora's own site. Nightshift never touches the funds.",
   points:
-    "There are no points. Signing up (invite code and email) makes you a member, and the leaderboard lists members in the order they signed up, recorded on Algorand so nobody can edit it.",
+    "There are no points. Signing up (invite code and email) makes you a member, and the leaderboard lists members in the order they signed up, recorded on Base so nobody can edit it.",
   vault:
-    "The Vault lets you deposit ETF tokens as collateral and borrow dUSDG against them. Your limit comes from my live overnight price, not a stale close. It runs in paper mode while it's rebuilt for Algorand TestNet, and it hasn't been audited.",
+    "The Vault lets you deposit ETF tokens as collateral and borrow dUSDG against them. Your limit comes from my live overnight price, not a stale close. It runs on Base with demo tokens, or in the paper account, and it hasn't been audited.",
   stack:
     "Stack buys gold or silver for you on a schedule, like a savings plan. You pick the metal, the amount and how often, and it only buys when the price is within a small margin of my fair value. The tokens go straight to your wallet, and you can pause or cancel any time. Say something like: start a 20 dollar weekly gold stack.",
   demo:
-    "Nothing here uses real money or any mainnet. Try the paper account in the App, no wallet needed. Algorand TestNet wallets come next.",
+    "Lending and Stack use demo tokens with no value; only predictions use small real USDC stakes. Try the paper account in the App, no wallet needed, or sign up with email for a Nightshift wallet.",
   beta:
     "Beta is how strongly an ETF moves with its futures overnight. I measure it from past nights, then pull it gently toward one so a short history can't fool me. If the fit is weak, I simply use one.",
 };
@@ -132,7 +132,7 @@ const TOPICS: [RegExp, Topic][] = [
   [/\b(guardian|auto ?protect)/, "guardian"],
   [/\b(confidence|conf)\b/, "confidence"],
   [/\b(cloak|zero knowledge|zk|solvency proof)/, "cloak"],
-  [/\b(ledger|algorand|track record)\b/, "ledger"],
+  [/\b(ledger|track record|on.?chain record)\b/, "ledger"],
   [/\b(liquidat\w*|lltv|liquidation)\b/, "liquidation"],
   [/\b(proofs?|lean|harmonic|aristotle|formal)\b/, "proofs"],
   [/\b(morpho)\b/, "morpho"],
@@ -207,7 +207,7 @@ export function parse(raw: string): Intent {
     if (p) return { kind: "go", page: p[1] };
   }
 
-  if (has(t, /\b(accura\w*|track record|how good|how right|hit rate|graded)\b/) && !has(t, /\b(ledger|algorand)\b/)) return { kind: "accuracy" };
+  if (has(t, /\b(accura\w*|track record|how good|how right|hit rate|graded)\b/) && !has(t, /\b(ledger)\b/)) return { kind: "accuracy" };
 
   // explanations
   if (has(t, /\b(what is|whats|what are|what does|explain|tell me about|how does|how do|why|define|meaning|mean|trust)\b/)) {

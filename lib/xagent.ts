@@ -26,7 +26,7 @@ export const SLOTS: Record<Slot, { days: string[]; hour: number; minute: number;
   preopen: { days: WEEKDAYS, hour: 9, minute: 0, what: "Pre-open call: fair values before the bell" },
   graded: { days: WEEKDAYS, hour: 10, minute: 15, what: "The call graded against the actual open" },
   weekend: { days: ["Sat"], hour: 12, minute: 0, what: "Weekend: Bitcoin trades, the ETF doesn't" },
-  fact: { days: ["Wed"], hour: 13, minute: 0, what: "Weekly: Algorand ledger, Cloak, Morpho" },
+  fact: { days: ["Wed"], hour: 13, minute: 0, what: "Weekly: the record on Base, Cloak, Morpho" },
 };
 const WINDOW_BEFORE_MIN = 10; // GitHub may start a little early…
 const WINDOW_AFTER_MIN = 55; // …or up to most of an hour late; the other DST variant lands an hour away
@@ -53,7 +53,7 @@ function fit(lines: string[]) {
 }
 
 type Draft = { slot: Slot; text: string } | { slot: Slot; skip: string };
-type Manifest = { properties: { id: string; plain: string; status: string }[]; algorand: { manifestSha256: string } };
+type Manifest = { properties: { id: string; plain: string; status: string }[]; anchor: { manifestSha256: string } };
 const M = manifest as Manifest;
 
 /** The n-th Q&A post: proven rules in order, each round on a different live token. */
@@ -162,7 +162,7 @@ async function weekend(now: number): Promise<Draft> {
 
 function fact(now: number): Draft {
   const facts = [
-    "Can Nightshift quietly edit its past predictions?\n\nNo. Every morning's prediction is recorded on the Algorand blockchain before the market opens, so the track record is public and permanent.",
+    "Can Nightshift quietly edit its past predictions?\n\nNo. Every morning's prediction is recorded on Base before the market opens, so the track record is public and permanent.",
     "Can you prove your loan is solvent without showing how big it is?\n\nOn Nightshift, yes. A zero-knowledge proof shows debt < collateral × price × LTV and reveals nothing else. Made in your browser; checked on Base against the on-chain Oracle price.",
     "Does Nightshift's price feed work with Morpho, the lending protocol?\n\nYes. We tested it against a real Morpho market on a copy of Base: borrowing up to the limit works, one dollar more is refused, and a price drop triggers liquidation.",
   ];

@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import type { OracleSnapshot } from "@/lib/oracle";
 import type { StockBoard } from "@/lib/stocks";
 import { isDeployed, isMainnet } from "@/lib/chain";
-const LIVE = isDeployed ? (isMainnet ? "Live on Base · demo" : "Live on testnet") : "Paper mode · moving to Algorand";
+const LIVE = isDeployed ? (isMainnet ? "Live on Base · demo" : "Live on testnet") : "Paper mode";
 import { Integrations } from "./Integrations";
 import { ProtocolShowcase } from "./ProtocolShowcase";
 import { SectionHead, SiteFooter, SiteNav } from "./Site";
@@ -23,7 +23,7 @@ function EngineHero() {
 
 const ROADMAP = [
   { phase: "Live", title: "Oracle and shift reports", body: "Off-hours fair values for SPY, QQQ, gold and Bitcoin ETF tokens, a public API, and a graded track record." },
-  { phase: LIVE, title: "Vault", body: "Lending with Morpho Blue's liquidation rules, in paper mode today. Next: the Vault rebuilt as an Algorand TestNet contract." },
+  { phase: LIVE, title: "Vault", body: "Lending with Morpho Blue's liquidation rules, live on Base with demo assets, plus a paper account. Next: an audit." },
   { phase: LIVE, title: "Guardian", body: "Borrowers opt in on-chain; a keeper protects loans around the clock. Next: alerts by email and Telegram." },
   { phase: "Live proofs", title: "Cloak", body: "Solvency proofs verified by the server and by a smart contract. Next: shielded positions and an auditor view key." },
 ];
@@ -78,7 +78,7 @@ export function Dashboard() {
             <SectionHead
               overline="See it working"
               title="Don't take our word for it. Check each piece live."
-              lead="Every claim on this page can be checked from your browser: generate a real zero-knowledge proof, read the live Sentora vault, open the Algorand stamps and the on-chain Oracle on Algorand TestNet, and read the machine-checked rules."
+              lead="Every claim on this page can be checked from your browser: generate a real zero-knowledge proof, read the live Sentora vault, open the predictions recorded on Base and the on-chain Oracle, and read the machine-checked rules."
             />
             <ProtocolShowcase snap={snap} />
           </div>

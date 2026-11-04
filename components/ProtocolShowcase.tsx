@@ -12,12 +12,12 @@ import { usd, useApi } from "./useApi";
 type Step = "idle" | "proving" | "verifying" | "done" | "cheating" | "error";
 type Verdict = { valid: boolean; accepted: boolean; verifyMs: number; checks: { priceMatchesOracle: boolean; lltvMatchesMarket: boolean } };
 type LedgerFeed = { configured: boolean; accountUrl?: string; entries?: { session: string; explorer: string; tokens: { errBps: number | null }[] }[] };
-type AlgoOracleFeed = { deployed: boolean; appId?: number; appUrl?: string; feeds?: { symbol: string; price: number; confidence: number; updatedAt: number }[] };
+type ChainFeed = { deployed: boolean; chainName?: string; explorer?: string; contracts?: { oracle: string }; prices?: { token: string; price: number; confidence: number; updatedAt: number }[] };
 
 
 /**
  * Homepage proof-of-work for each protocol: a one-click Groth16 proof generated in the visitor's browser and checked by
- * the server (then a forged one refused), next to live tiles for Sentora, the Algorand Ledger, the Algorand Oracle and the Lean proofs.
+ * the server (then a forged one refused), next to live tiles for Sentora, the public record on Base, the on-chain Oracle on Base and the Lean proofs.
  */
 export function ProtocolShowcase({ snap }: { snap: OracleSnapshot | null }) {
   const q = snap?.quotes.find((x) => x.token === "SPY") ?? snap?.quotes[0] ?? null;
@@ -158,7 +158,7 @@ export function ProtocolShowcase({ snap }: { snap: OracleSnapshot | null }) {
       <div className="showcase-tiles">
         <SentoraTile />
         <LedgerTile />
-        <AlgoOracleTile />
+        <BaseOracleTile />
         <article className="card showcase-tile">
           <header>
             <img src="/logos/harmonic.svg" alt="" width={22} height={22} />
@@ -200,8 +200,8 @@ function LedgerTile() {
   return (
     <article className="card showcase-tile">
       <header>
-        <img src="/logos/algorand.svg" alt="" width={22} height={22} />
-        <span className="unit">Algorand · prediction ledger</span>
+        <img src="/logos/base.svg" alt="" width={22} height={22} />
+        <span className="unit">Base · prediction record</span>
       </header>
       <strong>{last ? `Locked for ${last.session}` : "Locked before the open"}</strong>
       <p>
@@ -209,7 +209,7 @@ function LedgerTile() {
           ? errs.length
             ? `Graded against the real open: average miss ${Math.round(errs.reduce((a, b) => a + b, 0) / errs.length)} bps.`
             : "Waiting for the open to grade it."
-          : "Every weekday, predicted opens are stamped on Algorand before 09:30 ET, then graded in public, misses included."}
+          : "Every weekday, predicted opens are recorded on Base before 09:30 ET, then graded in public, misses included."}
       </p>
       {last ? (
         <a href={last.explorer} target="_blank" rel="noopener noreferrer">
@@ -222,25 +222,26 @@ function LedgerTile() {
   );
 }
 
-function AlgoOracleTile() {
-  const { data } = useApi<AlgoOracleFeed>("/api/algorand/oracle", 60_000);
-  const newest = data?.feeds?.length ? Math.max(...data.feeds.map((f) => f.updatedAt)) : null;
+function BaseOracleTile() {
+  const { data } = useApi<ChainFeed>("/api/chain", 60_000);
+  const feeds = data?.prices ?? [];
+  const newest = feeds.length ? Math.max(...feeds.map((f) => f.updatedAt)) : null;
   const mins = newest ? Math.max(0, Math.round((Date.now() / 1000 - newest) / 60)) : null;
   return (
     <article className="card showcase-tile">
       <header>
-        <img src="/logos/algorand.svg" alt="" width={22} height={22} />
-        <span className="unit">Algorand TestNet · on-chain Oracle</span>
+        <img src="/logos/base.svg" alt="" width={22} height={22} />
+        <span className="unit">Base · on-chain Oracle</span>
       </header>
-      <strong>{data?.feeds?.length ? `${data.feeds.length} prices on-chain` : data?.deployed ? "Oracle app live" : "Oracle app deploying"}</strong>
+      <strong>{feeds.length ? `${feeds.length} prices on-chain` : data?.deployed ? "Oracle live" : "Oracle not deployed here"}</strong>
       <p>
-        {data?.feeds?.length
-          ? `Fair values and confidence written to app ${data.appId}${mins !== null ? `, last update ${mins} min ago` : ""}. A push that moves a price more than 15% is refused.`
-          : "Fair values and confidence written to an Algorand TestNet app, with a 15% per-update move limit. Nothing on any mainnet."}
+        {feeds.length
+          ? `Fair values and confidence written to the Oracle contract on ${data?.chainName ?? "Base"}${mins !== null ? `, last update ${mins} min ago` : ""}. A push that moves a price more than 15% is refused.`
+          : "Fair values and confidence written to the Oracle contract on Base, with a 15% per-update move limit."}
       </p>
-      {data?.appUrl ? (
-        <a href={data.appUrl} target="_blank" rel="noopener noreferrer">
-          App on the explorer ↗
+      {data?.explorer && data.contracts?.oracle ? (
+        <a href={`${data.explorer}/address/${data.contracts.oracle}`} target="_blank" rel="noopener noreferrer">
+          Oracle on the explorer ↗
         </a>
       ) : (
         <Link href="/oracle">See live prices →</Link>

@@ -16,7 +16,6 @@ const senderFrom = (raw: string) => (raw && PERSONAL_MAIL.test(raw) ? DEFAULT_SE
 
 export const env = {
   cronSecret: v("CRON_SECRET"),
-  algorandMnemonic: v("ALGORAND_MNEMONIC"),
   updaterKey: v("ORACLE_UPDATER_PRIVATE_KEY"),
   keeperKey: v("KEEPER_PRIVATE_KEY"),
   faucetKey: v("FAUCET_PRIVATE_KEY"),
@@ -45,7 +44,7 @@ const looksLikeKey = (k: string) => /^0x[0-9a-fA-F]{64}$/.test(k);
 export function configStatus() {
   return {
     cron: env.cronSecret.length >= 16,
-    ledger: env.algorandMnemonic.split(/\s+/).length === 25,
+    ledger: looksLikeKey(env.updaterKey), // the public record on Base is written by the updater wallet
     oracleUpdater: looksLikeKey(env.updaterKey),
     guardianKeeper: looksLikeKey(env.keeperKey),
     faucet: looksLikeKey(env.faucetKey),
@@ -66,7 +65,6 @@ export function configProblems(): string[] {
   const p: string[] = [];
   for (const [name, val] of [["ORACLE_UPDATER_PRIVATE_KEY", env.updaterKey], ["KEEPER_PRIVATE_KEY", env.keeperKey], ["FAUCET_PRIVATE_KEY", env.faucetKey]] as const)
     if (val && !looksLikeKey(val)) p.push(`${name} is not a 0x-prefixed 32-byte hex key`);
-  if (env.algorandMnemonic && env.algorandMnemonic.split(/\s+/).length !== 25) p.push("ALGORAND_MNEMONIC should have 25 words");
   if (env.cronSecret && env.cronSecret.length < 16) p.push("CRON_SECRET should be at least 16 characters");
   if (!!env.upstashUrl !== !!env.upstashToken) p.push("set both UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN");
   if (!!env.turnstileSecret !== !!env.turnstileSite) p.push("set both TURNSTILE_SECRET_KEY and NEXT_PUBLIC_TURNSTILE_SITE_KEY");

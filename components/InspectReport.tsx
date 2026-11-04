@@ -148,8 +148,8 @@ export function InspectReport() {
                 <span className="mono ins-n">04</span>
                 <h3>Guarding loans, proving, recording</h3>
                 <p>
-                  Guardian checks every loan on each update ({isDeployed ? "on-chain on Base" : "paper mode; the Algorand TestNet contracts are being built"}). Cloak
-                  proofs are verified live. Ledger stamps predictions on Algorand before each open.
+                  Guardian checks every loan on each update ({isDeployed ? "on-chain on Base" : "paper mode"}). Cloak
+                  proofs are verified live. The ledger records predictions on Base before each open.
                 </p>
               </li>
             </ol>

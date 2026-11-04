@@ -21,14 +21,14 @@ import { ActivityProof } from "./Transactions";
 import { GettingStarted } from "./GettingStarted";
 import { FairPrices } from "./FairPrices";
 import { PredictTab } from "./PredictTab";
+import { TopStocks } from "./Stocks";
+import type { StockBoard } from "@/lib/stocks";
 import { MarketNotice } from "./Markets";
 import { appTab, type AppTab } from "@/lib/app-tabs";
 import { markStep } from "@/lib/onboarding";
 import { useAccount } from "@/lib/paper";
 import { useWallet } from "@/lib/wallet";
-import algoRecord from "@/lib/algorand-testnet.json";
 
-const ALGO = algoRecord as { oracle?: { appId: number } };
 
 const INTRO: Record<AppTab, string> = {
   prices: "Real prices while Wall Street is open. Nightshift fair value while it's closed.",
@@ -47,6 +47,7 @@ const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
 
 export function AppPage() {
   const snap = useSnapshot();
+  const { data: board } = useApi<StockBoard>("/api/stocks", 120_000);
   // practice first: visitors without a wallet start in the paper account; a connected wallet switches to the real
   // demo, unless the visitor picked a mode themselves
   const [mode, setModeState] = useState<"testnet" | "paper">("paper");
@@ -109,11 +110,23 @@ export function AppPage() {
         </div>
       </section>
       {tab === "prices" ? (
+        <>
         <section className="block" id="prices">
           <div className="wrap">
             <FairPrices snap={snap} />
           </div>
         </section>
+        <section className="block" id="stocks">
+          <div className="wrap">
+            <SectionHead
+              overline="Big stocks"
+              title="The world's biggest stocks, priced after the bell."
+              lead="The same engine estimates where each of these would trade right now, from index futures and each stock's measured sensitivity to them."
+            />
+            <TopStocks board={board} />
+          </div>
+        </section>
+        </>
       ) : tab === "predict" ? (
         <section className="block" id="predict">
           <div className="wrap">
@@ -237,29 +250,8 @@ function Contracts() {
   if (!isDeployed) {
     return (
       <div className="card panel contracts-pending">
-        <h3>Contracts · Algorand TestNet</h3>
-        <table className="contracts">
-          <tbody>
-            <tr>
-              <td>Oracle (prices + confidence)</td>
-              <td className="mono">
-                {ALGO.oracle ? (
-                  <a href={`https://lora.algokit.io/testnet/application/${ALGO.oracle.appId}`} target="_blank" rel="noopener noreferrer">
-                    app {ALGO.oracle.appId} ↗
-                  </a>
-                ) : (
-                  "deploying"
-                )}
-              </td>
-            </tr>
-            <tr><td>Vault + Guardian</td><td className="muted">being rebuilt</td></tr>
-            <tr><td>Stack</td><td className="muted">being rebuilt</td></tr>
-            <tr><td>Cloak verifier</td><td className="muted">being rebuilt</td></tr>
-          </tbody>
-        </table>
-        <p className="muted">
-          Nothing runs on any mainnet. The earlier Base contracts are retired. Algorand TestNet versions follow the same rules, checked against the same Lean proof vectors.
-        </p>
+        <h3>Contracts</h3>
+        <p className="muted">The contracts aren&apos;t deployed on this server. On nightshift.buzz they run on Base, with their addresses listed here.</p>
       </div>
     );
   }
@@ -268,6 +260,8 @@ function Contracts() {
     ["Oracle", DEPLOYMENT.contracts.oracle],
     ["ZK verifier", DEPLOYMENT.contracts.verifier],
     ...(DEPLOYMENT.contracts.cloakRegistry ? [["Cloak registry (proof + Oracle price)", DEPLOYMENT.contracts.cloakRegistry] as [string, string]] : []),
+    ...(DEPLOYMENT.predictions ? [[`Predictions (Call the Open, ${DEPLOYMENT.predictions.stake?.symbol ?? "demo"} stakes)`, DEPLOYMENT.predictions.address] as [string, string]] : []),
+    ...(DEPLOYMENT.stack ? [["Stack plans", DEPLOYMENT.stack.plan] as [string, string]] : []),
     [sym("USDG"), DEPLOYMENT.contracts.usdg],
     ...Object.entries(DEPLOYMENT.tokens ?? {}).flatMap(([s, t]) => [
       [sym(s), t.address] as [string, string],
@@ -302,7 +296,7 @@ export function TransparencyPage() {
       <PageHero
         overline="TRANSPARENCY"
         title="Everything you need to check us."
-        lead="Every pre-open prediction is stamped on Algorand, every safety rule is a machine-checked proof, and every contract is public. Nothing here depends on trusting Nightshift."
+        lead="Every pre-open prediction is recorded on Base, every safety rule is a machine-checked proof, and every contract is public. Nothing here depends on trusting Nightshift."
       />
       <section className="block" id="verified">
         <div className="wrap">
@@ -323,9 +317,9 @@ export function TransparencyPage() {
       <section className="block alt" id="ledger">
         <div className="wrap">
           <SectionHead
-            overline="Ledger · Algorand"
+            overline="Ledger · Base"
             title="Every prediction, on the record."
-            lead="Before each opening bell, the Oracle's predictions are written to Algorand, so the track record can't be edited afterwards."
+            lead="Before each opening bell, the Oracle's predictions are recorded on Base, so the track record can't be edited afterwards."
           />
           <Ledger />
         </div>

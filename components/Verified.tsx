@@ -18,7 +18,7 @@ type Manifest = {
   gitCommit: string | null;
   lean: { toolchain: string; mathlib: string | null };
   properties: Property[];
-  algorand: { network: string; manifestSha256: string; txId: string | null };
+  anchor: { chain: string; manifestSha256: string; txId: string | null };
 };
 
 const M = manifest as Manifest;
@@ -48,14 +48,14 @@ export function Verified() {
         </div>
         <div className="card stat">
           <span className="unit">Fingerprint</span>
-          <div className="v verified-small mono">{M.algorand.manifestSha256.slice(0, 12)}…</div>
+          <div className="v verified-small mono">{M.anchor.manifestSha256.slice(0, 12)}…</div>
           <p className="verified-meta mono">
-            {M.algorand.txId ? (
-              <a href={`https://lora.algokit.io/${M.algorand.network}/transaction/${M.algorand.txId}`} target="_blank" rel="noopener noreferrer">
-                Anchored on Algorand ↗
+            {M.anchor.txId ? (
+              <a href={`https://basescan.org/tx/${M.anchor.txId}`} target="_blank" rel="noopener noreferrer">
+                Anchored on Base ↗
               </a>
             ) : (
-              "Not yet anchored on Algorand"
+              "Not yet anchored on Base"
             )}
           </p>
         </div>

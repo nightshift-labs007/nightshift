@@ -4,9 +4,9 @@
 //   node scripts/formal.mjs audit               build, then #print axioms for every published theorem (fails on sorryAx)
 //   node scripts/formal.mjs vectors             emit Lean test vectors to test/vectors/vectors.json
 //   node scripts/formal.mjs manifest            write public/verified/manifest.json + formal/PROPERTIES.md from the audit
-//   node scripts/formal.mjs anchor              write the manifest hash to Algorand (needs ALGORAND_MNEMONIC)
+//   node scripts/formal.mjs anchor              write the manifest hash on Base (needs ORACLE_UPDATER_PRIVATE_KEY)
 //
-// Secrets (ARISTOTLE_API_KEY, ALGORAND_MNEMONIC) come from the environment only and are never printed.
+// Secrets (ARISTOTLE_API_KEY, ORACLE_UPDATER_PRIVATE_KEY) come from the environment only and are never printed.
 import { execFileSync, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -122,8 +122,8 @@ function gitCommit() {
   }
 }
 
-/** The hash anchored on Algorand covers everything except the `algorand` block itself. */
-const canonical = (m) => JSON.stringify({ ...m, algorand: undefined }, null, 2);
+/** The hash anchored on Base covers everything except the `anchor` block itself. */
+const canonical = (m) => JSON.stringify({ ...m, anchor: undefined }, null, 2);
 
 function manifest() {
   const axioms = fs.existsSync(AUDIT_OUT) ? parseAudit(fs.readFileSync(AUDIT_OUT, "utf8")) : new Map();
@@ -144,8 +144,8 @@ function manifest() {
     }),
   };
   const hash = sha256(canonical(m));
-  const keepTx = previous?.algorand?.manifestSha256 === hash ? previous.algorand.txId : null;
-  m.algorand = { network: "testnet", manifestSha256: hash, txId: keepTx };
+  const keepTx = previous?.anchor?.manifestSha256 === hash ? previous.anchor.txId : null;
+  m.anchor = { chain: "base", manifestSha256: hash, txId: keepTx };
   fs.mkdirSync(path.dirname(MANIFEST), { recursive: true });
   fs.writeFileSync(MANIFEST, JSON.stringify(m, null, 2) + "\n");
 
@@ -275,38 +275,34 @@ function findFile(dir, name, parent) {
   return null;
 }
 
-// ---------------------------------------------------------------- Algorand anchor
+// ---------------------------------------------------------------- Base anchor
 
+/** Writes the manifest hash on Base: a 0-ETH transaction from the ledger wallet to itself, with the note as input data. */
 async function anchor() {
-  const mnemonic = process.env.ALGORAND_MNEMONIC;
-  if (!mnemonic) {
-    console.error("ALGORAND_MNEMONIC is not set (run with --env-file=.env.local).");
-    process.exit(1);
+  const key = process.env.ORACLE_UPDATER_PRIVATE_KEY?.trim();
+  if (!key) {
+    console.log("ORACLE_UPDATER_PRIVATE_KEY is not set: skipping the Base anchor (run with --env-file=.env.local).");
+    return;
   }
   const m = JSON.parse(fs.readFileSync(MANIFEST, "utf8"));
   const hash = sha256(canonical(m));
-  if (hash !== m.algorand.manifestSha256) {
+  if (hash !== m.anchor.manifestSha256) {
     console.error("manifest changed since it was generated; run `node scripts/formal.mjs manifest` first");
     process.exit(1);
   }
-  const algosdk = (await import("algosdk")).default;
-  const account = algosdk.mnemonicToSecretKey(mnemonic.trim());
-  const algod = new algosdk.Algodv2("", "https://testnet-api.algonode.cloud", "");
+  const { createPublicClient, createWalletClient, http, toHex } = await import("viem");
+  const { privateKeyToAccount } = await import("viem/accounts");
+  const { base } = await import("viem/chains");
+  const account = privateKeyToAccount(key);
+  const transport = http(process.env.BASE_RPC_URL || "https://mainnet.base.org", { retryCount: 4, retryDelay: 1500 });
+  const pub = createPublicClient({ chain: base, transport });
+  const wallet = createWalletClient({ chain: base, transport, account });
   const note = `nightshift:verified:v1:${hash}:${m.gitCommit ?? `src-${m.sourceSha256}`}`;
-  const params = await algod.getTransactionParams().do();
-  const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-    sender: account.addr,
-    receiver: account.addr,
-    amount: 0,
-    note: new TextEncoder().encode(note),
-    suggestedParams: params,
-  });
-  const signed = txn.signTxn(account.sk);
-  const { txid } = await algod.sendRawTransaction(signed).do();
-  await algosdk.waitForConfirmation(algod, txid, 8);
-  m.algorand.txId = txid;
+  const tx = await wallet.sendTransaction({ to: account.address, value: 0n, data: toHex(note) });
+  await pub.waitForTransactionReceipt({ hash: tx });
+  m.anchor.txId = tx;
   fs.writeFileSync(MANIFEST, JSON.stringify(m, null, 2) + "\n");
-  console.log(`anchored: https://lora.algokit.io/testnet/transaction/${txid}`);
+  console.log(`anchored: https://basescan.org/tx/${tx}`);
 }
 
 // ---------------------------------------------------------------- main

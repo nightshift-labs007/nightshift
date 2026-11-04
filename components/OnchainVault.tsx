@@ -202,8 +202,7 @@ export function OnchainVault() {
       <div className="panel">
         <div className="unit">Testnet vault · deployment pending</div>
         <p className="small muted" style={{ marginBottom: 0 }}>
-          The smart contracts (vault, Guardian, ZK verifier) are being rebuilt for Algorand TestNet, and go live there
-          as soon as the deployer wallet is funded with free test ETH. Until then, use the paper vault above.
+          The smart contracts (vault, Guardian, ZK verifier) aren&apos;t deployed on this server. Use the paper vault above.
         </p>
       </div>
     );

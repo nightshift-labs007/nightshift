@@ -2,7 +2,7 @@ import "server-only";
 import { formatEther, type Address } from "viem";
 import { ABI, DEPLOYMENT, addrUrl, isDeployed } from "@/lib/chain";
 import { publicClient, readMany } from "@/lib/chain/keeper";
-import { explorerAccount, explorerTx, ledgerAddress, readJoins } from "@/lib/algorand";
+import { explorerAccount, explorerTx, ledgerAddress, readJoins } from "@/lib/ledger";
 import { getTransactions, type BotId } from "@/lib/transactions";
 import { isTeamWallet } from "@/lib/team-wallets";
 import { profilesEnabled, publicProfiles } from "@/lib/profile";
@@ -10,7 +10,7 @@ import { people } from "@/lib/members";
 
 /**
  * The leaderboard: every wallet that connected to Nightshift or registered (sign-up records in Redis; signing up also
- * records the join on Algorand) or used the Vault on Base (read straight from the contract's position list). No points:
+ * records the sign-up on Base) or used the Vault on Base (read straight from the contract's position list). No points:
  * registered members come first in the order they signed up, then wallets that only connected, then Nightshift's own
  * service wallets.
  */
@@ -19,7 +19,7 @@ export type LeaderRow = {
   address: string;
   joined: boolean;
   joinedAt: number | null; // unix seconds
-  joinTx: string | null; // Algorand explorer link
+  joinTx: string | null; // the sign-up's Base transaction
   markets: string[]; // tokens ever deposited
   borrowing: boolean; // open debt right now
   guardian: boolean; // an auto-protect rule on any loan
@@ -33,7 +33,7 @@ export type LeaderRow = {
   x?: string;
   avatarAt?: number; // a public profile photo, and its version
   team?: boolean; // a wallet the Nightshift team runs to exercise the live contracts
-  service?: { job: string; chain: "Base" | "Algorand"; lastActive: number | null; actions: number }; // Nightshift's own automated wallets
+  service?: { job: string; chain: "Base"; lastActive: number | null; actions: number }; // Nightshift's own automated wallets
 };
 export type Leaderboard = {
   updatedAt: string;
@@ -42,11 +42,11 @@ export type Leaderboard = {
   sources: { joins: "ok" | "unavailable"; vault: "ok" | "unavailable"; members: "ok" | "unavailable" };
 };
 
-const SERVICES: Record<BotId, { name: string; job: string; chain: "Base" | "Algorand" }> = {
+const SERVICES: Record<BotId, { name: string; job: string; chain: "Base" }> = {
   updater: { name: "Oracle Updater", job: "Oracle price updates", chain: "Base" },
   keeper: { name: "Guardian Keeper", job: "Guardian loan protection", chain: "Base" },
   faucet: { name: "Faucet", job: "Demo token faucet", chain: "Base" },
-  ledger: { name: "Ledger", job: "Algorand prediction ledger", chain: "Algorand" },
+  ledger: { name: "Ledger", job: "Public record on Base", chain: "Base" },
 };
 
 type Pos = { user: string; col: string; collateral: bigint; debt: bigint };

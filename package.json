@@ -29,7 +29,6 @@
     "@privy-io/server-auth": "^1.32.5",
     "@stripe/stripe-js": "^1.54.2",
     "@walletconnect/ethereum-provider": "^2.26.0",
-    "algosdk": "^3.8.0",
     "next": "^15.5.27",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

@@ -41,10 +41,10 @@ jobs:
           node --test test/guardian-rule.test.mjs
       - name: Build manifest
         run: node scripts/formal.mjs manifest
-      - name: Anchor manifest on Algorand
+      - name: Anchor manifest on Base
         if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
         env:
-          ALGORAND_MNEMONIC: ${{ secrets.ALGORAND_MNEMONIC }}
+          ORACLE_UPDATER_PRIVATE_KEY: ${{ secrets.ORACLE_UPDATER_PRIVATE_KEY }}
         run: node scripts/formal.mjs anchor
       - uses: actions/upload-artifact@v4
         with:

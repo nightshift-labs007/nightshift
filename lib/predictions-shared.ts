@@ -28,7 +28,7 @@ export type PredictRound = {
   stakeLower: number;
   sharesHigher: number;
   sharesLower: number;
-  algorandTx: string | null;
+  recordTx: string | null; // the Base transaction that locked the call
 };
 
 export type PredictState = {
@@ -46,43 +46,11 @@ export const tokenBytes = (t: string) => toHex(t, { size: 8 });
 export const tokenName = (b: `0x${string}`) => hexToString(b, { size: 8 }).replace(/\0+$/, "");
 export const sessionNum = (date: string) => Number(date.replace(/-/g, ""));
 export const sessionDate = (n: number) => `${String(n).slice(0, 4)}-${String(n).slice(4, 6)}-${String(n).slice(6, 8)}`;
-export const toPrice8 = (usd: number) => BigInt(Math.round(usd * 1e4)) * 10_000n; // 4 decimals, as the Algorand stamp
+export const toPrice8 = (usd: number) => BigInt(Math.round(usd * 1e4)) * 10_000n; // 4 decimals, as the recorded call
 export const fromPrice8 = (v: bigint) => Number(v) / 1e8;
 
-// Algorand transaction ids are 32 bytes in unpadded base32: stored on Base as bytes32, shown again as the id.
-const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-export function algoTxToBytes32(txId: string): `0x${string}` {
-  let bits = 0, value = 0;
-  const out: number[] = [];
-  for (const ch of txId.toUpperCase()) {
-    const i = B32.indexOf(ch);
-    if (i < 0) throw new Error("bad Algorand tx id");
-    value = (value << 5) | i;
-    bits += 5;
-    if (bits >= 8) {
-      out.push((value >>> (bits - 8)) & 255);
-      bits -= 8;
-    }
-  }
-  if (out.length !== 32) throw new Error("bad Algorand tx id length");
-  return `0x${out.map((b) => b.toString(16).padStart(2, "0")).join("")}`;
-}
-export function bytes32ToAlgoTx(hex: string): string | null {
-  if (!hex || /^0x0*$/.test(hex)) return null;
-  const bytes = hex.slice(2).match(/../g)!.map((h) => parseInt(h, 16));
-  let bits = 0, value = 0, out = "";
-  for (const b of bytes) {
-    value = (value << 8) | b;
-    bits += 8;
-    while (bits >= 5) {
-      out += B32[(value >>> (bits - 5)) & 31];
-      bits -= 5;
-    }
-  }
-  if (bits > 0) out += B32[(value << (5 - bits)) & 31];
-  return out;
-}
-export const algoTxUrl = (id: string) => `https://lora.algokit.io/testnet/transaction/${id}`;
+/** The round's record: the Base transaction that locked the call (0x0… when there is none). */
+export const recordTx = (hex: string): string | null => (!hex || /^0x0*$/.test(hex) ? null : hex);
 
 /** Share weight (0–1) of a bet placed at `t`, as weightAt() in the contract. */
 export function weightAt(r: Pick<PredictRound, "openTime" | "lockTime">, minWeightBps: number, t: number) {

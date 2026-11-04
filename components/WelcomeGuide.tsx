@@ -78,7 +78,7 @@ const HOME: Step[] = [
     body: (
       <ul className="guide-list">
         <li><b>Proof</b>: 24 rules machine-proven in Lean 4 with Harmonic&apos;s Aristotle, and zero-knowledge solvency proofs.</li>
-        <li><b>Transparency</b>: every pre-open prediction locked on Algorand before the bell, graded after.</li>
+        <li><b>Transparency</b>: every pre-open prediction recorded on Base before the bell, graded after.</li>
         <li><b>Docs</b>: straight answers on how everything works, including what&apos;s still a demo.</li>
       </ul>
     ),
@@ -123,7 +123,7 @@ const PRICES: Step[] = [
       <ul className="guide-list">
         <li><b>Market closed</b>: each card shows Nightshift&apos;s <b>fair value</b>, what the ETF is worth right now, with a <b>confidence</b> score.</li>
         <li><b>Market open</b>: you see the real market price.</li>
-        <li><b>Our call</b>: under each card, the opening price we locked on Algorand before the last open, and how far off it was next to a frozen price.</li>
+        <li><b>Our call</b>: under each card, the opening price we recorded on Base before the last open, and how far off it was next to a frozen price.</li>
       </ul>
     ),
   },
@@ -147,7 +147,7 @@ const PREDICT: Step[] = [
     title: "Higher or lower than our call?",
     body: (
       <ol className="guide-list numbered">
-        <li><b>The call:</b> every evening at 20:00 ET, Nightshift locks its predicted opening price for each ETF on Algorand.</li>
+        <li><b>The call:</b> every evening at 20:00 ET, Nightshift records its predicted opening price for each ETF on Base.</li>
         <li><b>Your prediction:</b> pick Higher or Lower and stake until 09:00 ET. Early predictions count more.</li>
         <li><b>The open:</b> after 09:30 ET the real opening price settles it. Correct predictions split the pool; ties are refunded.</li>
       </ol>

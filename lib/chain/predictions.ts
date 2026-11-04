@@ -1,6 +1,6 @@
 import "server-only";
 import { formatUnits, type Address } from "viem";
-import { EVENING_PREFIX, ledgerAddress, stampPrediction, type Prediction } from "@/lib/algorand";
+import { EVENING_PREFIX, ledgerAddress, stampPrediction, type Prediction } from "@/lib/ledger";
 import { officialOpen } from "@/lib/data";
 import { kvEnabled, kvGet, kvHDel, kvHGetAll, kvHSet, kvSetEx } from "@/lib/kv";
 import { people } from "@/lib/members";
@@ -8,9 +8,8 @@ import { getOracleSnapshot } from "@/lib/oracle";
 import {
   OUTCOME,
   STATUS,
-  algoTxToBytes32,
-  bytes32ToAlgoTx,
   fromPrice8,
+  recordTx,
   sessionDate,
   sessionNum,
   toPrice8,
@@ -26,13 +25,13 @@ import { publicClient, readMany, roleClients } from "./keeper";
 /**
  * "Call the Open" keeper jobs, run from /api/keeper every ~5 minutes with the keeper wallet (the contract's operator):
  * - members: mirror registered Nightshift users (Redis `members`) into the contract's allow-list
- * - open:    after 20:00 ET, lock Nightshift's call for the next open on Algorand and open one round per ETF on Base
+ * - open:    after 20:00 ET, record Nightshift's call for the next open on Base and open one round per ETF
  * - settle:  after the open, propose each round's official opening price; finalize undisputed proposals once the
  *            challenge window has passed; cancel anything left unsettled a day after the open
  */
 const PM = () => DEPLOYMENT.predictions?.address as Address | undefined;
 const PUSHED = (pm: Address) => `predict:members:${pm.toLowerCase()}`; // address → time we added it on that contract
-const EVENING_KEY = (session: string) => `predict:eve:${session}`; // the Algorand stamp for a session, so a retry reuses it
+const EVENING_KEY = (session: string) => `predict:eve:base:${session}`; // the recorded call for a session, so a retry reuses it
 const MAX_BATCH = 150;
 const LOOKBACK = 40; // recent rounds the settle job looks at (5 per session)
 
@@ -74,7 +73,7 @@ export function toRound(id: number, r: RawRound): PredictRound {
     stakeLower: Number(formatUnits(r.stakeLower, PREDICT_STAKE.decimals)),
     sharesHigher: Number(formatUnits(r.sharesHigher, PREDICT_STAKE.decimals)),
     sharesLower: Number(formatUnits(r.sharesLower, PREDICT_STAKE.decimals)),
-    algorandTx: bytes32ToAlgoTx(r.algorandTx),
+    recordTx: recordTx(r.algorandTx),
   };
 }
 
@@ -141,7 +140,7 @@ async function openRounds(c: NonNullable<ReturnType<typeof roleClients>>, pm: Ad
   const missing = live.filter((_, i) => existing[i] === 2n ** 256n - 1n);
   if (!missing.length) return { skipped: "rounds exist", session };
 
-  // lock the call on Algorand once per session; a retry after a failed Base transaction reuses the same stamp
+  // record the call on Base once per session; a retry after a failed round transaction reuses the same record
   let stamp = kvEnabled() ? (JSON.parse((await kvGet(EVENING_KEY(session))) ?? "null") as { txId: string | null; p: Record<string, number> } | null) : null;
   if (!stamp) {
     const pred: Prediction = {
@@ -167,12 +166,12 @@ async function openRounds(c: NonNullable<ReturnType<typeof roleClients>>, pm: Ad
       Math.floor(now / 1000),
       lockTime,
       marketOpen,
-      stamp.txId ? algoTxToBytes32(stamp.txId) : `0x${"0".repeat(64)}`,
+      (stamp.txId ?? `0x${"0".repeat(64)}`) as `0x${string}`,
     ],
   });
   const r = await c.pub.waitForTransactionReceipt({ hash });
   if (r.status !== "success") throw new Error(`createRounds failed: ${hash}`);
-  return { opened: tokens.map((q) => q.token), session, algorandTx: stamp.txId, tx: hash };
+  return { opened: tokens.map((q) => q.token), session, recordTx: stamp.txId, tx: hash };
 }
 
 /** After the open: propose official opening prices, finalize undisputed ones, cancel stragglers. */

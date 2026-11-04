@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPublicClient, createWalletClient, custom, isAddress, parseUnits, type Address } from "viem";
 import { ABI, DEPLOYMENT, NETWORK, PREDICT_STAKE, chainOf, chainTransport, isDeployed, txUrl } from "@/lib/chain";
 import type { OracleSnapshot } from "@/lib/oracle";
-import { SIDE, algoTxUrl, payoutMultiple, weightAt, type PredictRound, type PredictState } from "@/lib/predictions-shared";
+import { SIDE, payoutMultiple, weightAt, type PredictRound, type PredictState } from "@/lib/predictions-shared";
 import { useWallet } from "@/lib/wallet";
 import { useRegistered } from "./Member";
 import { toast } from "./Toast";
@@ -212,7 +212,7 @@ export function PredictTab() {
           <p className="mono xs muted">{REAL ? `CALL THE OPEN · REAL ${STAKE} · BETA, SMALL STAKES` : "CALL THE OPEN · DEMO TOKENS, NO VALUE"}</p>
           <h2>{betting ? "Predictions are open." : current.length ? "Predictions are closed for this session." : "The first rounds open soon."}</h2>
           <p>
-            Every evening at 20:00 ET, Nightshift locks its call for each ETF&apos;s next opening price on Algorand. Predict whether the real open comes
+            Every evening at 20:00 ET, Nightshift records its call for each ETF&apos;s next opening price on Base. Predict whether the real open comes
             in <b>higher</b> or <b>lower</b>. Correct predictions split the pool; early predictions count more.
           </p>
         </div>
@@ -435,8 +435,8 @@ function RoundCard({
           <span className="ticker">{r.token}</span>
           <div className="xs muted">for the {day(r.marketOpen)} open</div>
         </div>
-        {r.algorandTx ? (
-          <a className="xs" href={algoTxUrl(r.algorandTx)} target="_blank" rel="noreferrer" title="The call, locked on Algorand before predictions opened">Algorand ↗</a>
+        {r.recordTx ? (
+          <a className="xs" href={txUrl(r.recordTx)} target="_blank" rel="noreferrer" title="The call, recorded on Base before predictions opened">Recorded on Base ↗</a>
         ) : (
           <span className="xs muted">Locked on Base</span>
         )}
@@ -586,7 +586,7 @@ function Rules({ state }: { state: PredictState }) {
     <details className="panel pd-rules">
       <summary>Rules and how a round settles</summary>
       <ul>
-        <li><b>The call:</b> each evening at 20:00 ET, Nightshift&apos;s fair value for each ETF is locked on Algorand and becomes that round&apos;s strike on {NETWORK}.</li>
+        <li><b>The call:</b> each evening at 20:00 ET, Nightshift&apos;s fair value for each ETF is recorded on Base and becomes that round&apos;s strike on {NETWORK}.</li>
         <li><b>Predictions:</b> open to registered users until 09:00 ET. One side per round; you can add to it. Up to {fmt(l?.maxBet ?? 1000, 0)} per prediction and {fmt(l?.maxPerWallet ?? 5000, 0)} per round.</li>
         <li><b>Early predictions count more:</b> a prediction made when the round opens counts 100%, falling to {Math.round((l?.minWeightBps ?? 5000) / 100)}% at close.</li>
         <li><b>The result:</b> the official NYSE opening price is proposed on-chain after 09:30 ET. Any registered user can dispute it within {Math.round((l?.challengeWindow ?? 7200) / 3600)} hours; undisputed, it&apos;s final. Above the call: Higher wins. Below: Lower wins.</li>

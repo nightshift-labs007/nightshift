@@ -134,7 +134,7 @@ export async function feature({ n, stamp }: MixCtx): Promise<string[] | null> {
     async () => [
       "Can we quietly edit our past predictions?",
       "",
-      "No. Every morning's call is recorded on the Algorand blockchain before the market opens. The track record is public and permanent.",
+      "No. Every morning's call is recorded on Base before the market opens. The track record is public and permanent.",
     ],
     async () => [
       "Built to plug into Morpho.",
@@ -159,7 +159,7 @@ export async function feature({ n, stamp }: MixCtx): Promise<string[] | null> {
       "",
       "Every Nightshift safety rule (lending, the Guardian, the Oracle, private proofs) is a theorem proven by Harmonic's Aristotle and checked by Lean 4.",
       "",
-      "The proof list's fingerprint is recorded on Algorand.",
+      "The proof list's fingerprint is recorded on Base.",
     ],
   ];
   for (let k = 0; k < items.length; k++) {

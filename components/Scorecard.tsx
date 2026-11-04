@@ -143,7 +143,7 @@ export function Scorecard() {
   const locked = latestWeek(lockedRows);
   const replayed = latestWeek(replayRows);
   const lead = locked ?? replayed;
-  const leadKind = locked ? "locked on Algorand before each open" : "replay";
+  const leadKind = locked ? "recorded on Base before each open" : "replay";
 
   async function copy() {
     if (!lead) return;
@@ -162,7 +162,7 @@ export function Scorecard() {
         <div className="wrap">
           <div className="sc-head">
             <div>
-              <span className="unit">Locked in advance · Algorand ledger</span>
+              <span className="unit">Locked in advance · recorded on Base</span>
               <h2>{locked ? `Week of ${fmtDay(locked.week)}` : "The live record"}</h2>
             </div>
             {lead && (
@@ -176,7 +176,7 @@ export function Scorecard() {
               <Headline lines={summarise(locked.rows)} label="Locked predictions" />
               <WeekTable lines={summarise(locked.rows)} />
               <p className="xs muted sc-note">
-                Each prediction was hashed onto Algorand before 09:30 ET, so it can&apos;t be changed after the open.{" "}
+                Each prediction was recorded on Base before 09:30 ET, so it can&apos;t be changed after the open.{" "}
                 {ledger?.accountUrl && (
                   <a href={ledger.accountUrl} target="_blank" rel="noopener noreferrer">
                     Every stamp on the explorer ↗
@@ -190,7 +190,7 @@ export function Scorecard() {
                 ? "Loading the ledger…"
                 : ledger.configured
                   ? "No graded stamps yet: the first one is graded after the next open."
-                  : "This server isn't connected to the Algorand ledger. On nightshift.buzz, predictions are stamped every weekday before the open and graded here."}
+                  : "This server isn't connected to the record on Base. On nightshift.buzz, predictions are stamped every weekday before the open and graded here."}
             </div>
           )}
         </div>

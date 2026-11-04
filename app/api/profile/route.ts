@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { recordJoin } from "@/lib/algorand";
+import { recordJoin } from "@/lib/ledger";
 import { claimUsername, emailEnabled, getMember, isRegistered, markRegistered, membership, releaseMember } from "@/lib/members";
 import { SESSION_COOKIE, deleteProfile, getAvatarAt, getProfile, profilesEnabled, readSession, saveProfile } from "@/lib/profile";
 import { EMPTY_PROFILE, validateProfile, type Profile } from "@/lib/profile-shared";
@@ -44,7 +44,7 @@ export async function PUT(req: NextRequest) {
     const saved = await saveProfile(me, { ...v.profile, email: m.email });
     const first = !(await isRegistered(me));
     await markRegistered(me);
-    // signing up is joining the leaderboard: the join is recorded on Algorand for them, with no extra signature
+    // signing up is joining the leaderboard: the sign-up is recorded on Base for them, with no extra signature
     if (first) await recordJoin(me).catch((e) => console.error("leaderboard join failed", e));
     invalidateLeaderboard();
     return NextResponse.json({ ok: true, profile: saved, member: await membership(me, saved) }, { headers: noStore });

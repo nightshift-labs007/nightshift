@@ -21,14 +21,14 @@ type LedgerResponse = {
 export function Ledger() {
   const { data } = useApi<LedgerResponse>("/api/ledger");
 
-  if (!data) return <div className="skeleton">Reading Algorand<span className="blink">_</span></div>;
+  if (!data) return <div className="skeleton">Reading Base<span className="blink">_</span></div>;
 
   if (!data.configured) {
     return (
       <div className="panel">
         <div className="unit">Ledger not yet enabled</div>
         <p className="small" style={{ marginBottom: 0 }}>
-          No Algorand TestNet account configured yet. Set <span className="mono accent">ALGORAND_MNEMONIC</span> and{" "}
+          The record wallet isn&apos;t configured yet. Set <span className="mono accent">ORACLE_UPDATER_PRIVATE_KEY</span> and{" "}
           <span className="mono accent">CRON_SECRET</span> in Vercel. A daily cron then locks the Oracle&apos;s predicted opens on-chain
           before the bell, and they appear here with their real outcome.
         </p>
@@ -43,9 +43,9 @@ export function Ledger() {
         <a href={data.accountUrl} target="_blank" rel="noreferrer">
           {data.address?.slice(0, 10)}…{data.address?.slice(-6)}
         </a>{" "}
-        · Algorand TestNet
+        · Base
       </p>
-      {data.error && <div className="panel red small">Indexer error: {data.error}</div>}
+      {data.error && <div className="panel red small">Couldn&apos;t read the record: {data.error}</div>}
       {data.entries?.length === 0 && (
         <div className="panel small">No predictions stamped yet. The first one lands at the next cron run (weekdays, 12:00 UTC).</div>
       )}
@@ -54,7 +54,7 @@ export function Ledger() {
           <div key={e.txId} className="panel">
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
               <span className="mono">
-                <b>Open of {e.session}</b> <span className="muted">· locked {new Date(e.lockedAt).toLocaleString()} · round {e.round}</span>
+                <b>Open of {e.session}</b> <span className="muted">· locked {new Date(e.lockedAt).toLocaleString()} · block {e.round}</span>
               </span>
               <a className="mono small" href={e.explorer} target="_blank" rel="noreferrer">
                 {e.txId.slice(0, 12)}… ↗

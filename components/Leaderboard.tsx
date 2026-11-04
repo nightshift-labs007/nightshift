@@ -80,7 +80,7 @@ export function LeaderboardPage() {
       <PageHero
         overline="LEADERBOARD"
         title="Everyone who's on Nightshift."
-        lead="Members in the order they signed up, then everyone who has connected a wallet. Sign-ups are recorded on Algorand and activity is read from Base, so the list can't be edited, including by us."
+        lead="Members in the order they signed up, then everyone who has connected a wallet. Sign-ups are recorded on Base and activity is read from Base, so the list can't be edited, including by us."
       />
       <section className="block">
         <div className="wrap">
@@ -112,7 +112,7 @@ export function LeaderboardPage() {
             ) : me?.registered ? (
               <p>
                 <b>You&apos;re member #{me.rank}.</b> <Link href="/profile">Edit your profile</Link>
-                {me.joinTx && <> · <a href={me.joinTx} target="_blank" rel="noopener noreferrer">Your sign-up on Algorand ↗</a></>}
+                {me.joinTx && <> · <a href={me.joinTx} target="_blank" rel="noopener noreferrer">Your sign-up on Base ↗</a></>}
               </p>
             ) : (
               <p>Loading your place…</p>
@@ -137,7 +137,7 @@ export function LeaderboardPage() {
                         {r.avatarAt && <ProfileAvatar address={r.address} name={r.name} size={26} version={r.avatarAt} className="lb-photo" />}
                         {r.name && <span className="lb-name">{r.name}</span>}
                         {r.username && <span className="lb-user">@{r.username}</span>}
-                        <a href={r.service?.chain === "Algorand" ? `https://lora.algokit.io/testnet/account/${r.address}` : addrUrl(r.address)} target="_blank" rel="noopener noreferrer">{short(r.address)}</a>
+                        <a href={addrUrl(r.address)} target="_blank" rel="noopener noreferrer">{short(r.address)}</a>
                         {r.x && <a className="lb-x" href={`https://x.com/${r.x}`} target="_blank" rel="noopener noreferrer">@{r.x}</a>}
                         {me?.address === r.address && <span className="lb-you">you</span>}
                       </td>
@@ -170,7 +170,7 @@ export function LeaderboardPage() {
           )}
           {data && (data.sources.joins !== "ok" || data.sources.vault !== "ok" || data.sources.members !== "ok") && (
             <p className="small muted">
-              Some data is temporarily unavailable ({data.sources.joins !== "ok" ? "Algorand joins" : data.sources.vault !== "ok" ? "Vault positions" : "sign-ups"}); it will fill in on the next refresh.
+              Some data is temporarily unavailable ({data.sources.joins !== "ok" ? "sign-ups on Base" : data.sources.vault !== "ok" ? "Vault positions" : "sign-ups"}); it will fill in on the next refresh.
             </p>
           )}
         </div>

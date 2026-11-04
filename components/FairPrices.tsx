@@ -13,7 +13,7 @@ type LedgerToken = { token: string; predicted: number; confidence: number | null
 type LedgerEntry = { txId: string; explorer: string; lockedAt: string; session: string; tokens: LedgerToken[] };
 type Ledger = { configured: boolean; accountUrl?: string; entries?: LedgerEntry[] };
 
-/** Our call for one token: the prediction locked on Algorand before an open (or, without a stamp, the replay). */
+/** Our call for one token: the prediction recorded on Base before an open (or, without a stamp, the replay). */
 type Call = {
   session: string;
   predicted: number;
@@ -38,7 +38,7 @@ function until(ms: number) {
   return d ? `${d}d ${h}h` : h ? `${h}h ${m % 60}m` : `${m}m`;
 }
 
-/** Latest call per token: the newest Algorand stamp first (graded or still pending), else the newest replayed open. */
+/** Latest call per token: the newest recorded call first (graded or still pending), else the newest replayed open. */
 function latestCalls(ledger: Ledger | null, shift: { reports: ShiftReport[] } | null): Record<string, { last: Call | null; pending: Call | null }> {
   const out: Record<string, { last: Call | null; pending: Call | null }> = {};
   const prevClose = new Map<string, number>(); // "SPY|2026-11-02" → the close before that open
@@ -88,13 +88,13 @@ function LastCall({ call, pending }: { call: Call | null; pending: Call | null }
       <div className="fp-call">
         <div className="fp-call-head">
           <span>Our call · {dayLabel(pending.session)}</span>
-          {pending.explorer && <a href={pending.explorer} target="_blank" rel="noreferrer">Algorand ↗</a>}
+          {pending.explorer && <a href={pending.explorer} target="_blank" rel="noreferrer">Base ↗</a>}
         </div>
         <div className="fp-call-row">
           <span>Our call</span>
           <b className="mono">{usd(pending.predicted)}</b>
         </div>
-        <p className="fp-call-sub">Locked {pending.lockedAt ? etTime(pending.lockedAt) : ""} on Algorand. Graded at the 09:30 ET open.</p>
+        <p className="fp-call-sub">Recorded {pending.lockedAt ? etTime(pending.lockedAt) : ""} on Base. Graded at the 09:30 ET open.</p>
       </div>
     );
   if (!call) return null;
@@ -103,7 +103,7 @@ function LastCall({ call, pending }: { call: Call | null; pending: Call | null }
     <div className="fp-call">
       <div className="fp-call-head">
         <span>Our call · {dayLabel(call.session)}</span>
-        {call.explorer && <a href={call.explorer} target="_blank" rel="noreferrer">Algorand ↗</a>}
+        {call.explorer && <a href={call.explorer} target="_blank" rel="noreferrer">Base ↗</a>}
       </div>
       <div className="fp-call-sub">{call.lockedAt ? `Locked ${etTime(call.lockedAt)}` : "Replayed from market data"}</div>
       <div className="fp-call-row">
@@ -266,7 +266,7 @@ export function FairPrices({ snap }: { snap: OracleSnapshot | null }) {
         <span>
           <b>How to read this:</b> fair value is our estimate of where each ETF would trade if Wall Street were open, built from markets that
           never close (futures, gold, bitcoin, Asia and Europe, news). Confidence drops the longer the market is closed or when something
-          unusual happens. Every weekday before the open, our predicted open is locked on Algorand so nobody can change it later.
+          unusual happens. Every weekday before the open, our predicted open is recorded on Base so nobody can change it later.
         </span>
         <span className="fp-links">
           <Link href="/oracle">See how each price is built →</Link>

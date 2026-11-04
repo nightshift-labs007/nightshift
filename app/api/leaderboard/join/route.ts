@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAddress, recoverMessageAddress } from "viem";
-import { readJoins, recordJoin, explorerTx } from "@/lib/algorand";
+import { readJoins, recordJoin, explorerTx } from "@/lib/ledger";
 import { joinMessage } from "@/lib/join";
 import { invalidateLeaderboard } from "@/lib/leaderboard";
 import { allow, take } from "@/lib/ratelimit";
@@ -11,7 +11,7 @@ export const maxDuration = 30;
 const SIG_MAX_AGE_MS = 5 * 60 * 1000;
 
 // Adds a wallet to the public leaderboard. The visitor signs a free message (no transaction) proving the address is
-// theirs and that they agree to be listed; the join is then recorded as a note on Algorand, which is the list.
+// theirs and that they agree to be listed; the join is then recorded on Base, which is the list.
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as { address?: string; signature?: `0x${string}`; issuedAt?: string };
   const { address, signature, issuedAt } = body;

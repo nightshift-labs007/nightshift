@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import { DEPLOYMENT, addrUrl, isDeployed, sym, txUrl } from "@/lib/chain";
-import algoRecord from "@/lib/algorand-testnet.json";
 
-const ALGO = algoRecord as { oracle?: { appId: number } };
 import type { OracleSnapshot } from "@/lib/oracle";
 import { PageHero, PageShell } from "./Site";
 import { useApi } from "./useApi";
@@ -312,7 +310,7 @@ export function DocsPage() {
       <PageHero
         overline="DOCS · HOW NIGHTSHIFT WORKS"
         title="What's live, how it works, and what isn't done yet."
-        lead="Straight answers to the questions partners and reviewers ask most. Where something is a demo or not built yet, it says so. Nightshift is an unaudited demonstration that runs on Algorand TestNet and in paper mode: nothing on any mainnet, no real funds."
+        lead="Straight answers to the questions partners and reviewers ask most. Where something is a demo or not built yet, it says so. Nightshift is an unaudited beta on Base: demo assets with no value for lending and Stack, small real-USDC stakes for predictions, and a paper account."
       />
       <section className="block">
         <div className="wrap docs">
@@ -390,25 +388,6 @@ export function DocsPage() {
                 <li><code>GET /api/v1/history?token=SPY&amp;range=12H</code>: fair-value history (1H, 4H, 12H, 24H)</li>
                 <li><code>GET /api/v1/track-record</code>: predicted versus actual opens, last 10 sessions</li>
               </ul>
-              {!isDeployed && (
-                <p>
-                  <b>On-chain (Algorand TestNet):</b>{" "}
-                  {ALGO.oracle ? (
-                    <>
-                      the Oracle is app{" "}
-                      <a href={`https://lora.algokit.io/testnet/application/${ALGO.oracle.appId}`} target="_blank" rel="noopener noreferrer">
-                        {ALGO.oracle.appId}
-                      </a>
-                      .{" "}
-                    </>
-                  ) : (
-                    "the Oracle app is being deployed. "
-                  )}
-                  Each symbol is a global-state key <code>p:SPY</code> holding price (uint64, USD with 6 decimals), confidence (uint8, 0–100) and update time
-                  (uint64, unix seconds), 17 bytes in all; other apps read it for free with <code>app_global_get_ex</code>, or call the read-only ABI method{" "}
-                  <code>get_price(string)</code>. A push that moves a price more than 15% is skipped unless the owner confirms it.
-                </p>
-              )}
               {isDeployed && <p>
                 <b>On-chain (Base):</b> <code>NightshiftOracle.getPrice(token)</code> returns price, confidence and update time. Each token
                 also has a <b>Chainlink-style feed</b> (<code>AggregatorV3Interface</code>: <code>latestRoundData()</code>, 8 decimals, plus{" "}
@@ -461,7 +440,7 @@ export function DocsPage() {
                 24 properties: 8 for the Vault, 6 for the Guardian, 6 for the Oracle and 4 for Cloak. They are written in Lean 4, proven with
                 Harmonic&apos;s Aristotle and re-checked by Lean&apos;s kernel. Each one, with a plain-English summary and its Lean source, is
                 on <Link href="/transparency">Transparency</Link>; the sources are public at <code>/verified/src/</code>. A manifest of all 24
-                is fingerprinted (SHA-256) and the fingerprint is recorded on Algorand, and 43 test cases check that the Lean models and the
+                is fingerprinted (SHA-256) and the fingerprint is recorded on Base, and 43 test cases check that the Lean models and the
                 Solidity contracts give the same answers.
               </p>
               <p>
@@ -475,7 +454,7 @@ export function DocsPage() {
               <b>Re-check it yourself:</b> the proofs are public at{" "}
               <a href="https://github.com/nightshift-labs007/nightshift-formal" target="_blank" rel="noopener noreferrer">github.com/nightshift-labs007/nightshift-formal ↗</a>{" "}
               with four commands to rebuild them with Lean, confirm every theorem uses only Lean&apos;s standard axioms, and match the
-              fingerprint on Algorand. The same checks run in that repository&apos;s public CI on every change.
+              fingerprint on Base. The same checks run in that repository&apos;s public CI on every change.
             </p>
             <Next>
               <p>Formal models of the new on-chain pieces (confidence decay, the Cloak registry&apos;s checks).</p>
@@ -535,14 +514,13 @@ export function DocsPage() {
               </p>
               ) : (
                 <p>
-                  No. The Vault follows Morpho Blue&apos;s rules (health factor, LLTV, liquidation incentive), and those rules are proven in Lean, but Morpho itself
-                  isn&apos;t on Algorand. Nightshift ran a demo Morpho market on Base until November 2026; that deployment is retired, and the Vault is being
-                  rebuilt as Nightshift&apos;s own Algorand TestNet contract with the same rules.
+                  Not on this server. On nightshift.buzz the Vault follows Morpho Blue&apos;s rules (health factor, LLTV, liquidation incentive), proven in
+                  Lean, and Nightshift&apos;s prices are published in Morpho&apos;s oracle format on Base.
                 </p>
               )}
             </Now>
             <Next>
-              <p>The Vault and Guardian as Algorand TestNet contracts, tested against the same Lean proof vectors; then an independent audit before any real asset.</p>
+              <p>An independent audit of the Vault, Guardian and prediction contracts before any larger real asset.</p>
             </Next>
           </Q>
 
@@ -607,7 +585,7 @@ export function DocsPage() {
                     commitment. &ldquo;Verify on-chain&rdquo; in the app uses it.
                   </>
                 ) : (
-                  <>On-chain verification moves to an Algorand TestNet contract next (Algorand supports the BN254 pairing check Groth16 needs); today the server verifies.</>
+                  <>On this server the contracts aren&apos;t deployed, so the server verifies; on nightshift.buzz the verifier contract on Base checks proofs too.</>
                 )}
               </p>
               <p><b>Not yet:</b> proofs of a specific health level, binding a proof to a specific Vault position, and a multi-party trusted setup (today&apos;s setup was run by one party).</p>

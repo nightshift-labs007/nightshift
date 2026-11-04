@@ -223,7 +223,7 @@ export function Nyx() {
           const spy = r?.reports?.find((x) => x.token === "SPY") ?? r?.reports?.[0];
           if (!spy) return "I can't load my track record right now. It's on the Oracle page.";
           const wins = r!.reports.reduce((s, x) => s + x.wins, 0), total = r!.reports.reduce((s, x) => s + x.rows.length, 0);
-          return `Over the last ${spy.rows.length} market opens, my predicted open for SPY missed by ${(spy.avgNightshiftBps / 100).toFixed(2)} percent on average, against ${(spy.avgStaleBps / 100).toFixed(2)} percent for a frozen closing price. Across all four ETFs I was closer on ${wins} of ${total} opens. Every morning's call is also locked on Algorand before the bell.`;
+          return `Over the last ${spy.rows.length} market opens, my predicted open for SPY missed by ${(spy.avgNightshiftBps / 100).toFixed(2)} percent on average, against ${(spy.avgStaleBps / 100).toFixed(2)} percent for a frozen closing price. Across all the ETFs I was closer on ${wins} of ${total} opens. Every morning's call is also recorded on Base before the bell.`;
         }
         case "loan": {
           const loans = await getLoans(await getSnap());

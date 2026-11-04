@@ -78,7 +78,7 @@ export function SiteFooter() {
             <BrandMark /> Nightshift
           </Link>
           <p>
-            {isMainnet ? "Unaudited demonstration: the Vault on Base uses demo assets with no value; never send real tokens to it." : isDeployed ? `Concept demonstration on ${NETWORK} and Algorand TestNet (test networks) and in paper mode: test tokens only, no real funds.` : "Concept demonstration on Algorand TestNet and in paper mode: test tokens only, no real funds."} Oracle values are data, not investment advice. Nightshift doesn&apos;t sell
+            {isMainnet ? "Unaudited beta on Base. Lending and Stack use demo assets with no value; never send real tokens to the Vault. Predictions use small real-USDC stakes that you can lose." : isDeployed ? `Concept demonstration on ${NETWORK} (a test network) and in paper mode: test tokens only, no real funds.` : "Concept demonstration in paper mode: test tokens only, no real funds."} Oracle values are data, not investment advice. Nightshift doesn&apos;t sell
             tokens; Stock Tokens are not available to US persons. Market data comes from public feeds and may be delayed or simulated where
             marked. The Earn panel shows a third-party vault run by Sentora; deposits happen on Sentora&apos;s site, and Nightshift does not hold
             funds or control that vault.

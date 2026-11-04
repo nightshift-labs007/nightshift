@@ -3,18 +3,18 @@ import { decodeEventLog, formatEther, zeroAddress, type Address, type Log } from
 import { ABI, DEPLOYMENT, addrUrl, isDeployed, txUrl } from "@/lib/chain";
 import { publicClient } from "@/lib/chain/keeper";
 import { EARN_TXS, EARN_WALLET } from "@/lib/team-wallets";
-import { explorerTx, ledgerAddress, readJoins, readStamps } from "@/lib/algorand";
+import { explorerTx, ledgerAddress, readJoins, readStamps } from "@/lib/ledger";
 
 /**
  * Every transaction Nightshift is behind, in one list: Vault activity, Oracle price pushes, Cloak attestations
- * and faucet mints on Base, plus prediction stamps and leaderboard joins on Algorand. Nothing is stored by the
+ * and faucet mints on Base, plus the public record on Base: prediction stamps and leaderboard sign-ups. Nothing is stored by the
  * site: each row is read back from a public chain and links to its explorer, so the list can't be edited.
  */
 export type BotId = "updater" | "keeper" | "faucet" | "ledger";
 export type TxKind = "deposit" | "borrow" | "repay" | "withdraw" | "protect" | "liquidation" | "rule" | "price" | "attest" | "faucet" | "prediction" | "join" | "earn" | "stack";
 export type TxRow = {
-  id: string; // tx hash (Base) or tx id (Algorand)
-  chain: "Base" | "Algorand" | "Ethereum";
+  id: string; // tx hash
+  chain: "Base" | "Ethereum";
   kind: TxKind;
   title: string;
   detail: string;
@@ -36,7 +36,7 @@ export type Transactions = {
   flows: Partial<Record<TxKind, Flow>>;
   /** unix seconds the Base counts start from, or null when they cover everything since launch */
   baseSince: number | null;
-  sources: { base: "ok" | "unavailable"; algorand: "ok" | "unavailable" };
+  sources: { base: "ok" | "unavailable"; ledger: "ok" | "unavailable" };
 };
 
 const FEED_LIMIT = 200;
@@ -202,18 +202,18 @@ async function baseRows(): Promise<{ rows: TxRow[]; bots: Pick<Record<BotId, Bot
   return { rows, bots, since: scan.since };
 }
 
-// ---------------------------------------------------------------- Algorand: prediction stamps and leaderboard joins
-async function algorandRows(): Promise<{ rows: TxRow[]; stat: BotStat }> {
+// ---------------------------------------------------------------- the public record on Base: prediction stamps and sign-ups
+async function ledgerRows(): Promise<{ rows: TxRow[]; stat: BotStat }> {
   const addr = ledgerAddress();
   if (!addr) return { rows: [], stat: { actions: 0, last: null } };
   const [preds, joins] = await Promise.all([readStamps(addr, 1000), readJoins()]);
   const rows: TxRow[] = [
     ...preds.map((s): TxRow => ({
-      id: s.txId, chain: "Algorand", kind: "prediction", title: "Prediction locked", detail: `Open of ${s.session}: ${Object.entries(s.p).map(([t, v]) => `${t} ${v.toFixed(2)}`).join(", ")}`,
-      actor: addr, actorUrl: `https://lora.algokit.io/testnet/account/${addr}`, bot: "ledger", at: s.roundTime, href: explorerTx(s.txId),
+      id: s.txId, chain: "Base", kind: "prediction", title: "Prediction locked", detail: `Open of ${s.session}: ${Object.entries(s.p).map(([t, v]) => `${t} ${v.toFixed(2)}`).join(", ")}`,
+      actor: addr, actorUrl: addrUrl(addr), bot: "ledger", at: s.roundTime, href: explorerTx(s.txId),
     })),
     ...joins.map((j): TxRow => ({
-      id: j.txId, chain: "Algorand", kind: "join", title: "Joined the leaderboard", detail: `${short(j.address)} signed up`,
+      id: j.txId, chain: "Base", kind: "join", title: "Signed up", detail: `${short(j.address)} signed up`,
       actor: j.address, actorUrl: addrUrl(j.address), bot: null, at: j.at, href: explorerTx(j.txId),
     })),
   ];
@@ -227,7 +227,7 @@ const TTL_MS = 60_000;
 
 export async function getTransactions(): Promise<Transactions> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.data;
-  const [baseRes, algoRes] = await Promise.allSettled([isDeployed ? baseRows() : Promise.reject(new Error("Base retired")), algorandRows()]);
+  const [baseRes, algoRes] = await Promise.allSettled([isDeployed ? baseRows() : Promise.reject(new Error("not deployed")), ledgerRows()]);
   const base = baseRes.status === "fulfilled" ? baseRes.value : null;
   const algo = algoRes.status === "fulfilled" ? algoRes.value : null;
   // the team's Sentora deposit on Ethereum: two fixed transactions, verifiable on Etherscan
@@ -249,7 +249,7 @@ export async function getTransactions(): Promise<Transactions> {
     bots: { updater: base?.bots.updater ?? none, keeper: base?.bots.keeper ?? none, faucet: base?.bots.faucet ?? none, ledger: algo?.stat ?? none },
     flows,
     baseSince: base?.since ?? null,
-    sources: { base: base ? "ok" : "unavailable", algorand: algo ? "ok" : "unavailable" },
+    sources: { base: base ? "ok" : "unavailable", ledger: algo ? "ok" : "unavailable" },
   };
   if (base && algo) cache = { at: Date.now(), data };
   return data;

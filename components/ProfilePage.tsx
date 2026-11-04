@@ -341,7 +341,7 @@ function Identity({ account, name }: { account: string; name?: string }) {
             <a className="pf-chip" href={addrUrl(account)} target="_blank" rel="noopener noreferrer">Explorer ↗</a>
             {row?.username && <span className="pf-chip">@{row.username}</span>}
             {row?.x && <a className="pf-chip" href={`https://x.com/${row.x}`} target="_blank" rel="noopener noreferrer">@{row.x}</a>}
-            {row?.joinTx && <a className="pf-chip" href={row.joinTx} target="_blank" rel="noopener noreferrer">Sign-up on Algorand ↗</a>}
+            {row?.joinTx && <a className="pf-chip" href={row.joinTx} target="_blank" rel="noopener noreferrer">Sign-up on Base ↗</a>}
           </div>
         </div>
         <Link className="btn secondary small pf-id-cta" href="/leaderboard">View leaderboard</Link>

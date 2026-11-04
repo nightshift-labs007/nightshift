@@ -14,7 +14,7 @@ const FILTERS: [string, string, TxKind[] | null][] = [
   ["guardian", "Guardian", ["protect"]],
   ["oracle", "Oracle", ["price"]],
   ["cloak", "Cloak", ["attest"]],
-  ["algorand", "Algorand", ["prediction", "join"]],
+  ["ledger", "Public record", ["prediction", "join"]],
   ["faucet", "Faucet", ["faucet"]],
   ["earn", "Earn", ["earn"]],
   ["stack", "Stack", ["stack"]],
@@ -58,7 +58,7 @@ export function TransactionsPage() {
       <PageHero
         overline="TRANSACTIONS"
         title="Every transaction, in one place."
-        lead="Prediction stamps, Oracle price updates and sign-ups on Algorand TestNet, plus the team's read-only Sentora deposit on Ethereum. Each row is read from a public chain and links to its explorer, so nothing on this page can be edited or hidden by us."
+        lead="Loans, Guardian saves, Oracle price updates, prediction stamps and sign-ups on Base, plus the team's read-only Sentora deposit on Ethereum. Each row is read from a public chain and links to its explorer, so nothing on this page can be edited or hidden by us."
       />
       <section className="block">
         <div className="wrap">
@@ -68,7 +68,7 @@ export function TransactionsPage() {
             ))}
           </div>
           {!data ? (
-            <div className="skeleton">Reading Algorand TestNet…</div>
+            <div className="skeleton">Reading Base…</div>
           ) : data.error ? (
             <p className="muted">Couldn&apos;t load transactions right now. Try again in a minute.</p>
           ) : rows.length === 0 ? (
@@ -86,11 +86,11 @@ export function TransactionsPage() {
               </table>
             </div>
           )}
-          {data && (data.sources.base !== "ok" || data.sources.algorand !== "ok") && (
-            <p className="small muted">{data.sources.base !== "ok" ? "Base" : "Algorand"} data is temporarily unavailable; it will fill in on the next refresh.</p>
+          {data && (data.sources.base !== "ok" || data.sources.ledger !== "ok") && (
+            <p className="small muted">{data.sources.base !== "ok" ? "Base" : "Public record"} data is temporarily unavailable; it will fill in on the next refresh.</p>
           )}
           <p className="small muted" style={{ marginTop: 14 }}>
-            Showing the latest {data?.rows.length ?? "…"} transactions, newest first.{data?.baseSince && <> Base history starts {new Date(data.baseSince * 1000).toLocaleString()}, as far back as the public node can see; Algorand goes back to the start.</>} Demo assets only.
+            Showing the latest {data?.rows.length ?? "…"} transactions, newest first.{data?.baseSince && <> Base history starts {new Date(data.baseSince * 1000).toLocaleString()}, as far back as the public node can see.</>} Demo assets only.
           </p>
         </div>
       </section>
@@ -108,8 +108,8 @@ const FLOWS: [TxKind, string, string][] = [
   ["price", "Oracle updates", "Fair values pushed on-chain"],
   ["attest", "Cloak proofs", "Solvency proofs attested on-chain"],
   ["faucet", "Faucet drips", "Demo tokens minted"],
-  ["prediction", "Predictions locked", "Pre-open values stamped on Algorand"],
-  ["join", "Leaderboard joins", "Sign-ups recorded on Algorand"],
+  ["prediction", "Predictions locked", "Pre-open values recorded on Base"],
+  ["join", "Sign-ups", "Sign-ups recorded on Base"],
   ["earn", "Earn deposit", "The team's Sentora vault deposit on Ethereum"],
   ["stack", "Stack transactions", "Recurring buys: plans created, buys made, windows skipped"],
 ];
@@ -117,7 +117,7 @@ const FLOWS: [TxKind, string, string][] = [
 /** Counts and the latest explorer link for each kind of transaction: the on-chain footprint of every flow. */
 export function ActivityProof() {
   const { data } = useApi<Transactions & { error?: string }>("/api/transactions", 60_000);
-  if (!data) return <div className="skeleton">Reading Algorand TestNet…</div>;
+  if (!data) return <div className="skeleton">Reading Base…</div>;
   if (data.error) return <p className="muted">Couldn&apos;t load the activity right now.</p>;
   return (
     <>
@@ -138,7 +138,7 @@ export function ActivityProof() {
         })}
       </div>
       <p className="small muted">
-        Counted straight from Base and Algorand{data.baseSince ? <>, from {new Date(data.baseSince * 1000).toLocaleString()} on Base (as far back as the public node can see) and since the start on Algorand</> : null}.
+        Counted straight from Base{data.baseSince ? <>, from {new Date(data.baseSince * 1000).toLocaleString()} (as far back as the public node can see)</> : null}.
         Some of this is the team exercising the live contracts from labelled demo wallets. <a href="/transactions">See every transaction →</a>
       </p>
     </>

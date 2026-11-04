@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { explorerAccount, explorerTx, ledgerAddress, readStamps } from "@/lib/algorand";
+import { explorerAccount, explorerTx, ledgerAddress, readStamps } from "@/lib/ledger";
 import { loadAllPairs, toSessions } from "@/lib/data";
 
 export const dynamic = "force-dynamic";

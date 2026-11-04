@@ -250,9 +250,9 @@
       "source": "/verified/src/Nightshift/Cloak.lean"
     }
   ],
-  "algorand": {
-    "network": "testnet",
+  "anchor": {
+    "chain": "base",
     "manifestSha256": "a97614aa79d544859a53a3449bb7c39c078c61a38cbcbb36ef6bfb86ddb96da2",
-    "txId": "PQ5B52626T5SSYDPOGAJBUYLE5BXMDGFXYEYQO4FBQGVTB4EGTEQ"
+    "txId": "0xf04da4d2400d9d43afc2187e8ae48bd1dfe2a9c2cc054dcb644ef7b42e90b768"
   }
 }
