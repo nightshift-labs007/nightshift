@@ -1,0 +1,74 @@
+{
+  "deployed": true,
+  "chainId": 84532,
+  "chainName": "Base Sepolia",
+  "rpcUrl": "https://sepolia.base.org",
+  "explorer": "https://sepolia.basescan.org",
+  "symbolPrefix": "t",
+  "deployedAt": "2026-11-01T20:43:46.023Z",
+  "startBlock": 53218700,
+  "owner": "0x155CF8D8A187d9fa17C5f5F619662b920c130239",
+  "keeper": "0x5b9C8c979a0ba1097fFE50d6C27eF727731E5457",
+  "roles": {
+    "updater": "0x594F0e1D57f88f7FAd91d09002c25f3a1253C6b7",
+    "keeper": "0x5b9C8c979a0ba1097fFE50d6C27eF727731E5457",
+    "faucet": "0x460cE0bEac00D9e73986B266c290F674879044fb"
+  },
+  "contracts": {
+    "usdg": "0xc86322b80a84ebf428daea6976ac65e500776930",
+    "oracle": "0xb4ccde5d8497c568d8b41249bfa3b560d9ac1acc",
+    "vault": "0xbf565f01a9534175d21aeb12f0a94052b8eed1be",
+    "verifier": "0x34741d5cd97dcf4b040d7a344168cd73771dd7ad",
+    "cloakRegistry": "0x15834d9c8cdcb5773235db6840e0ced62b4a0374"
+  },
+  "tokens": {
+    "SPY": {
+      "address": "0x671df7bd033d8a8da2b0a63f1bdb4b13e4affd85",
+      "lltv": 0.77,
+      "adapter": "0x0bf1bca14ef5c815a89d59f0a813caa939ba9f36",
+      "feed": "0xda8cf5e8d8f31c85efc9227d4c29be53cc539139"
+    },
+    "QQQ": {
+      "address": "0x13d2033b8c21e49f40ab90e9c04c0f8163f43437",
+      "lltv": 0.77,
+      "adapter": "0x8fb76e242a9885374b02db42095b2b85589f4d6e",
+      "feed": "0xa256c278baa6f0e6ef5b55cbd62fec66ef6a41e9"
+    },
+    "GLD": {
+      "address": "0x2a81fc5d4885d1a5f16494c0e4b369a0c72d2cb9",
+      "lltv": 0.77,
+      "adapter": "0x899a7c3331a6009f0e15a204ba7511d1512af467",
+      "feed": "0xe163d8649787b157f8471bb6024016ef2a4f6ad8"
+    },
+    "SLV": {
+      "address": "0x36c4b6e156304df0ea337e763bf4f22e876d9edf",
+      "lltv": 0.625,
+      "adapter": "0x3405c3bbb42a2c6a6f82ff58332674b7c1bfbe89",
+      "feed": "0x79245b6ca57ec8327462848d8b7b60d7f74f215c"
+    },
+    "IBIT": {
+      "address": "0x5507ad4cba6bfe88e0702f703fffc05fa7d3a66e",
+      "lltv": 0.625,
+      "adapter": "0x8b3c77dc3840f549c2294d446a5dd43597ff7df6",
+      "feed": "0xdf18caf612ecad75a9c1ed806d4a22d7f0672ec2"
+    }
+  },
+  "stack": {
+    "plan": "0x40e8edf7bbb1a7074821fd02e851b79b74dd023b",
+    "pool": "0x25b0c9f15bec09c096ed61865f930ef6ee58163e",
+    "deployedAt": "2026-11-01T20:43:46.043Z"
+  },
+  "predictions": {
+    "address": "0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4",
+    "deployedAt": "2026-11-03T19:41:52.108Z",
+    "startBlock": 54065076,
+    "pyth": "0xA2aa501b19aff244D90cc15a4Cf739D2725B5729",
+    "pythFeeds": {
+      "SPY": "0x19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5",
+      "QQQ": "0x9695e2b96ea7b3859da9ed25b7a46a920a776e2fdae19a7bcfdf2b219230452d",
+      "GLD": "0xe190f467043db04548200354889dfe0d9d314c08b8d4e62fabf4d5a3140fecca",
+      "SLV": "0x6fc08c9963d266069cbd9780d98383dabf2668322a5bef0b9491e11d67e5d7e7",
+      "IBIT": "0x9db6bc1e6e9e5e60f6884e1cd8e4399cca9d0454c6e7234ad79680cf139748f5"
+    }
+  }
+}

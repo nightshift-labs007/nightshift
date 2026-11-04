@@ -135,7 +135,7 @@ export function OnchainVault() {
 
   async function write(label: string, address: Address, abi: readonly unknown[], functionName: string, args: unknown[]) {
     if (!wallet.provider || !chain || !account || !pub) throw new Error("wallet");
-    await ensureGas(wallet.provider, account, await pub.getBalance({ address: account })); // Nightshift pays the test gas
+    await ensureGas(wallet.provider, account, await pub.getBalance({ address: account })); // Nightshift pays the gas
     // dry-run first: a revert is caught here with the contract's reason, before the wallet asks to sign
     await pub.simulateContract({ address, abi: abi as never, functionName: functionName as never, args: args as never, account } as never);
     const client = createWalletClient({ chain, transport: custom(wallet.provider), account });
@@ -216,7 +216,7 @@ export function OnchainVault() {
       <div className="onchain-head panel">
         <div>
           <div className="unit">
-            Testnet vault · {DEPLOYMENT.chainName} · real transactions with test assets
+            {isMainnet ? `On-chain vault · ${DEPLOYMENT.chainName} · real transactions with demo assets (no value)` : `Testnet vault · ${DEPLOYMENT.chainName} · real transactions with test assets`}
           </div>
           <p className="small muted" style={{ margin: "6px 0 0" }}>
             Contracts:{" "}
@@ -305,7 +305,7 @@ export function OnchainVault() {
             </ul>
             <p className="xs muted">
               {isMainnet
-                ? "New here? Click “Get demo funds” for demo ETF tokens and dUSDG (no value). You need a few cents of ETH on Base for gas."
+                ? "New here? Click “Get demo funds” for demo ETF tokens and dUSDG (no value). Nightshift covers the gas for registered users."
                 : "New here? Click “Get test funds”: you receive a little test ETH for gas and test ETF tokens."}
             </p>
           </div>

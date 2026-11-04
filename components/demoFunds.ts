@@ -1,6 +1,7 @@
 "use client";
 
 import type { EIP1193Provider } from "viem";
+import { isMainnet } from "@/lib/chain";
 import { dripMessage, gasMessage } from "@/lib/drip";
 
 export type Sent = { what: string; tx: string };
@@ -24,11 +25,12 @@ export async function getDemoFunds(provider: EIP1193Provider, account: string, c
 }
 
 /**
- * Nightshift pays registered users' test gas: before a transaction, a wallet that's almost out of test ETH asks the
+ * Nightshift pays registered users' gas: before a transaction, a wallet that's almost out of ETH asks the
  * server for a top-up. Uses the profile session when there is one; otherwise the wallet signs a free message.
  */
 export async function ensureGas(provider: EIP1193Provider, account: string, balanceWei: bigint): Promise<void> {
-  if (balanceWei >= 50_000_000_000_000n) return; // 0.00005 ETH: plenty for a few transactions
+  // enough for a few transactions: 0.00001 ETH on Base mainnet (gas is about 0.000002 ETH a transaction), 0.00005 on the testnet
+  if (balanceWei >= (isMainnet ? 10_000_000_000_000n : 50_000_000_000_000n)) return;
   const post = (body: object) => fetch("/api/gas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   let res = await post({});
   if (res.status === 401) {

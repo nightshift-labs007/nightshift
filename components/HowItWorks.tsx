@@ -61,7 +61,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
     n: "05",
     name: "Ledger",
     href: "/transparency#ledger",
-    status: "Testnet ready",
+    status: "Live on Algorand TestNet",
     tone: "ready",
     what: "Stamps each pre-open prediction on Algorand so the track record can't be edited after the bell.",
     icon: "M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h4",

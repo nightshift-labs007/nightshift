@@ -10,17 +10,16 @@ import { allow, take } from "@/lib/ratelimit";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-// Nightshift pays registered users' test gas on Base Sepolia: a wallet below GAS_FLOOR gets GAS_TOPUP from the faucet
-// wallet, at most once per COOLDOWN_SEC. Each transaction costs a few millionths of an ETH, so one top-up lasts long.
-const GAS_TOPUP = parseEther("0.0004");
-const GAS_FLOOR = parseEther("0.00005");
-const FAUCET_RESERVE = parseEther("0.002");
-const COOLDOWN_SEC = 6 * 3600;
+// Nightshift pays registered users' gas: a wallet below GAS_FLOOR gets GAS_TOPUP from the faucet wallet, at most once
+// per COOLDOWN_SEC, and never more than DAILY_CAP top-ups a day in total. On Base mainnet the ETH is real, so the amounts
+// are small: a transaction there costs about 0.000002 ETH, so 0.00003 covers a dozen or more.
+const MAINNET = { topup: parseEther("0.00003"), floor: parseEther("0.00001"), reserve: parseEther("0.0002"), cooldown: 24 * 3600, dailyCap: 25 };
+const TESTNET = { topup: parseEther("0.0004"), floor: parseEther("0.00005"), reserve: parseEther("0.002"), cooldown: 6 * 3600, dailyCap: 500 };
+const { topup: GAS_TOPUP, floor: GAS_FLOOR, reserve: FAUCET_RESERVE, cooldown: COOLDOWN_SEC, dailyCap: DAILY_CAP } = isMainnet ? MAINNET : TESTNET;
 const SIG_MAX_AGE_MS = 5 * 60 * 1000;
 
-/** Tops up a registered wallet's test ETH. Proof of the wallet: the profile session cookie, or a signed message. */
+/** Tops up a registered wallet's ETH for gas. Proof of the wallet: the profile session cookie, or a signed message. */
 export async function POST(req: NextRequest) {
-  if (isMainnet) return NextResponse.json({ error: "Gas is only covered on the testnet." }, { status: 400 });
   const c = roleClients("faucet");
   if (!c) return NextResponse.json({ error: "Gas top-ups aren't configured." }, { status: 503 });
   const body = (await req.json().catch(() => ({}))) as { address?: string; signature?: `0x${string}`; issuedAt?: string };
@@ -41,7 +40,8 @@ export async function POST(req: NextRequest) {
   if (bal >= GAS_FLOOR) return NextResponse.json({ sent: false, balance: formatEther(bal) });
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
   if (!(await allow(`gas:ip:${ip}`, 20, 86400)).ok) return NextResponse.json({ error: "Too many gas top-ups from this network today." }, { status: 429 });
-  if (!(await take(`gas:addr:${address}`, COOLDOWN_SEC))) return NextResponse.json({ error: "This wallet got gas recently. Try again in a few hours." }, { status: 429 });
+  if (!(await take(`gas:addr:${address}`, COOLDOWN_SEC))) return NextResponse.json({ error: "This wallet got gas recently. Try again later." }, { status: 429 });
+  if (!(await allow("gas:all", DAILY_CAP, 86400)).ok) return NextResponse.json({ error: "Today's free gas is used up. Please try again tomorrow." }, { status: 429 });
   if ((await c.pub.getBalance({ address: c.account.address })) < FAUCET_RESERVE + GAS_TOPUP)
     return NextResponse.json({ error: "The gas fund is empty right now. Please try again later." }, { status: 503 });
   try {

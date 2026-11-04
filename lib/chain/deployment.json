@@ -1,12 +1,12 @@
 {
   "deployed": true,
-  "chainId": 84532,
-  "chainName": "Base Sepolia",
-  "rpcUrl": "https://sepolia.base.org",
-  "explorer": "https://sepolia.basescan.org",
-  "symbolPrefix": "t",
-  "deployedAt": "2026-11-01T20:43:46.023Z",
-  "startBlock": 53218700,
+  "chainId": 8453,
+  "chainName": "Base",
+  "rpcUrl": "https://mainnet.base.org",
+  "explorer": "https://basescan.org",
+  "symbolPrefix": "d",
+  "deployedAt": "2026-10-12T12:55:53.049Z",
+  "startBlock": 52612393,
   "owner": "0x155CF8D8A187d9fa17C5f5F619662b920c130239",
   "keeper": "0x5b9C8c979a0ba1097fFE50d6C27eF727731E5457",
   "roles": {
@@ -16,53 +16,103 @@
   },
   "contracts": {
     "usdg": "0xc86322b80a84ebf428daea6976ac65e500776930",
-    "oracle": "0xb4ccde5d8497c568d8b41249bfa3b560d9ac1acc",
-    "vault": "0xbf565f01a9534175d21aeb12f0a94052b8eed1be",
-    "verifier": "0x34741d5cd97dcf4b040d7a344168cd73771dd7ad",
-    "cloakRegistry": "0x15834d9c8cdcb5773235db6840e0ced62b4a0374"
+    "oracle": "0x5507ad4cba6bfe88e0702f703fffc05fa7d3a66e",
+    "vault": "0x2aae4bcf7eec8cc842bacfcf9e13a54cba649071",
+    "verifier": "0xbf565f01a9534175d21aeb12f0a94052b8eed1be",
+    "cloakRegistry": "0xe3a3cd6ce59a3c5e9d5449189d58a90d1ca04341"
   },
   "tokens": {
     "SPY": {
       "address": "0x671df7bd033d8a8da2b0a63f1bdb4b13e4affd85",
       "lltv": 0.77,
-      "adapter": "0x0bf1bca14ef5c815a89d59f0a813caa939ba9f36",
-      "feed": "0xda8cf5e8d8f31c85efc9227d4c29be53cc539139"
+      "adapter": "0x0c0b7d5d8bc355449b405a95b0c9340ddab0aea7",
+      "feed": "0xe48aecf355d5cd22665ec6f7aa6767ca9a9f2e6b"
     },
     "QQQ": {
       "address": "0x13d2033b8c21e49f40ab90e9c04c0f8163f43437",
       "lltv": 0.77,
-      "adapter": "0x8fb76e242a9885374b02db42095b2b85589f4d6e",
-      "feed": "0xa256c278baa6f0e6ef5b55cbd62fec66ef6a41e9"
+      "adapter": "0x58b906b7ed814ca0908324e5aae666b09b827d5b",
+      "feed": "0xd59903410ad53fdeedd678775ff0a1a76e9f0aaa"
     },
     "GLD": {
       "address": "0x2a81fc5d4885d1a5f16494c0e4b369a0c72d2cb9",
       "lltv": 0.77,
-      "adapter": "0x899a7c3331a6009f0e15a204ba7511d1512af467",
-      "feed": "0xe163d8649787b157f8471bb6024016ef2a4f6ad8"
-    },
-    "SLV": {
-      "address": "0x36c4b6e156304df0ea337e763bf4f22e876d9edf",
-      "lltv": 0.625,
-      "adapter": "0x3405c3bbb42a2c6a6f82ff58332674b7c1bfbe89",
-      "feed": "0x79245b6ca57ec8327462848d8b7b60d7f74f215c"
+      "adapter": "0x7f1c89ab95facabb360695480beeafbb30706645",
+      "feed": "0x3f18b88a652b4148af88dc9f739080ac91245bcb"
     },
     "IBIT": {
-      "address": "0x5507ad4cba6bfe88e0702f703fffc05fa7d3a66e",
+      "address": "0x36c4b6e156304df0ea337e763bf4f22e876d9edf",
       "lltv": 0.625,
-      "adapter": "0x8b3c77dc3840f549c2294d446a5dd43597ff7df6",
-      "feed": "0xdf18caf612ecad75a9c1ed806d4a22d7f0672ec2"
+      "adapter": "0x5118e7e20ac6ab2429695a45d584025e8054c0b7",
+      "feed": "0x146c622c99d5a1bbd89df2af3939861eef13946e"
+    },
+    "SLV": {
+      "address": "0xafc5b9d90655353224d6f2f6f81a3ea37153e3fa",
+      "lltv": 0.625,
+      "adapter": "0x8c09069f08ac5a57aa308ccd6c65d60dc0b2627d",
+      "feed": "0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4"
     }
   },
+  "upgradedAt": "2026-10-14T21:42:39.318Z",
+  "upgradeStartBlock": 52612393,
+  "previous": {
+    "vault": "0xb4ccde5d8497c568d8b41249bfa3b560d9ac1acc",
+    "adapters": {
+      "SPY": "0x34741d5cd97dcf4b040d7a344168cd73771dd7ad",
+      "QQQ": "0x15834d9c8cdcb5773235db6840e0ced62b4a0374",
+      "GLD": "0x0bf1bca14ef5c815a89d59f0a813caa939ba9f36",
+      "IBIT": "0xda8cf5e8d8f31c85efc9227d4c29be53cc539139"
+    },
+    "startBlock": 52510176
+  },
+  "slvAddedAt": "2026-10-26T20:38:35.151Z",
+  "morpho": {
+    "address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+    "irm": "0x46415998764C29aB2a25CbeA6254146D50D22687",
+    "createdAt": "2026-10-26T20:40:23.748Z",
+    "markets": {
+      "SLV": {
+        "id": "0x84378b5b2384c12cdfaf27dc474b8928fc24cef22485f0b3070694bfc46f8f5a",
+        "lltv": 0.625
+      }
+    },
+    "e2e": [
+      {
+        "label": "approve Morpho for dSLV",
+        "hash": "0x0f5698e976e8a40219b59d6cfe46625dcac2be73c8e238e53239881d09cd64c8"
+      },
+      {
+        "label": "supply 1 dSLV as collateral",
+        "hash": "0x9ce91e5f83bcd96aac5f31b31a00be44dc37e116fa4c11548b0daf38144a50ad"
+      },
+      {
+        "label": "borrow 24.324636 dUSDG",
+        "hash": "0xc11b9d396b7fac9f00ade93c6528a9d0545d54c079f66597e627f4f091695232"
+      },
+      {
+        "label": "mint a little dUSDG for interest",
+        "hash": "0xcc14c001e9efd42fee994acfceb6e7db78b0ca129431079cbcc46de025a4abdd"
+      },
+      {
+        "label": "repay the whole loan (by shares)",
+        "hash": "0xe14873d8ea0e765bf525310583da6bcba76f77b8e044731df050f53aae6f4135"
+      },
+      {
+        "label": "withdraw 1 dSLV",
+        "hash": "0x06f76b4fa9d494f473363201c450be038c3be462934d5ed526fac0ef12a04129"
+      }
+    ]
+  },
   "stack": {
-    "plan": "0x40e8edf7bbb1a7074821fd02e851b79b74dd023b",
-    "pool": "0x25b0c9f15bec09c096ed61865f930ef6ee58163e",
-    "deployedAt": "2026-11-01T20:43:46.043Z"
+    "plan": "0xfba9ef8a0e3b8dcc5b2b966b0616dd8f1e4e364e",
+    "pool": "0x6a29df50b4fbd9a67b85cf1e378a46bb4ad55a0b",
+    "deployedAt": "2026-10-26T21:02:17.101Z"
   },
   "predictions": {
-    "address": "0xb2aa75305d74d9d1d59077d39688dbd9d7d75bd4",
-    "deployedAt": "2026-11-03T19:41:52.108Z",
-    "startBlock": 54065076,
-    "pyth": "0xA2aa501b19aff244D90cc15a4Cf739D2725B5729",
+    "address": "0xf401c66015d55fe0ae69b1caa9fbeac170f69f12",
+    "deployedAt": "2026-11-04T19:02:22.484Z",
+    "startBlock": 53514785,
+    "pyth": "0x8250f4aF4B972684F7b336503E2D6dFeDeB1487a",
     "pythFeeds": {
       "SPY": "0x19e09bb805456ada3979a7d1cbb4b6d63babc3a0f8e8a9509f68afa5c4c11cd5",
       "QQQ": "0x9695e2b96ea7b3859da9ed25b7a46a920a776e2fdae19a7bcfdf2b219230452d",

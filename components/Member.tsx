@@ -64,7 +64,7 @@ export function MemberGate({ children, what = "the wallet tools", practice }: { 
     <div className="card member-gate">
       <p className="pf-label">Invite only</p>
       <h3>Finish your profile to use {what}</h3>
-      <p className="muted">Nightshift is invite-only while it&apos;s on testnet. It takes about a minute:</p>
+      <p className="muted">Nightshift is invite-only for now. It takes about a minute:</p>
       <ol className="member-steps">
         {SIGNUP_STEPS.map((s) => (
           <li key={s}>{s}</li>

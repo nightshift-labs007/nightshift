@@ -33,10 +33,10 @@ const ALGO = algoRecord as { oracle?: { appId: number } };
 const INTRO: Record<AppTab, string> = {
   prices: "Real prices while Wall Street is open. Nightshift fair value while it's closed.",
   borrow: isDeployed
-    ? `Borrow ${sym("USDG")} against ETF tokens. Practice without a wallet, or connect one and get free test funds.`
+    ? `Borrow ${sym("USDG")} against ETF tokens. Practice without a wallet, or connect one and get free demo funds.`
     : "Borrow against ETF tokens with a practice account. No wallet needed.",
   stack: "Buy gold and silver on a schedule, only at a fair price.",
-  predict: "Predict whether each ETF opens higher or lower than Nightshift's call. Test tokens only.",
+  predict: "Predict whether each ETF opens higher or lower than Nightshift's call. Demo tokens, no value.",
 };
 
 const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;

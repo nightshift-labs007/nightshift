@@ -35,8 +35,8 @@ function friendly(e: unknown): string {
     [/"amount"|: amount/, "That amount isn't allowed. Check the limits under the card."],
     [/paused/, "Predictions are paused for a moment."],
     [/nothing to claim/, "Nothing to claim yet."],
-    [/faucet cooldown/, `You can claim test ${sym("USDG")} once an hour. Try again a little later.`],
-    [/allowance|balance/, `Not enough ${sym("USDG")}. Tap “Get test ${sym("USDG")}” first.`],
+    [/faucet cooldown/, `You can claim demo ${sym("USDG")} once an hour. Try again a little later.`],
+    [/allowance|balance/, `Not enough ${sym("USDG")}. Tap “Get demo ${sym("USDG")}” first.`],
   ];
   for (const [re, text] of reasons) if (re.test(msg)) return text;
   return msg.slice(0, 180);
@@ -103,7 +103,7 @@ export function PredictTab() {
 
   async function write(label: string, address: Address, abi: readonly unknown[], functionName: string, args: unknown[]) {
     if (!wallet.provider || !chain || !account || !pub) throw new Error("wallet");
-    await ensureGas(wallet.provider, account, await pub.getBalance({ address: account })); // Nightshift pays the test gas
+    await ensureGas(wallet.provider, account, await pub.getBalance({ address: account })); // Nightshift pays the gas
     await pub.simulateContract({ address, abi: abi as never, functionName: functionName as never, args: args as never, account } as never);
     const client = createWalletClient({ chain, transport: custom(wallet.provider), account });
     const hash = await client.writeContract({ address, abi: abi as never, functionName: functionName as never, args: args as never, chain } as never);
@@ -150,15 +150,15 @@ export function PredictTab() {
     if (!wallet.provider || !account) return;
     setBusy("faucet");
     try {
-      // the daily faucet sends test tokens and gas; after that, the token's own hourly faucet (gas paid by Nightshift)
+      // the daily faucet sends demo tokens (and gas on the testnet); after that, the token's own hourly faucet (gas paid by Nightshift)
       try {
-        toast("Sign the free message in your wallet. Nightshift sends the test tokens and covers the gas.");
+        toast("Sign the free message in your wallet. Nightshift sends the demo tokens and covers the gas.");
         const sent = await getDemoFunds(wallet.provider, account, null);
-        toast(sent.length ? `Sent ${sent.map((x) => x.what).join(", ")}` : `You already have test ${sym("USDG")}.`, "ok");
+        toast(sent.length ? `Sent ${sent.map((x) => x.what).join(", ")}` : `You already have demo ${sym("USDG")}.`, "ok");
       } catch (e) {
         if (!/already|today/i.test((e as Error).message ?? "")) throw e;
-        await write(`Get test ${sym("USDG")}`, DEPLOYMENT.contracts.usdg, ABI.token, "faucet", []);
-        toast(`Added test ${sym("USDG")} to your wallet.`, "ok");
+        await write(`Get demo ${sym("USDG")}`, DEPLOYMENT.contracts.usdg, ABI.token, "faucet", []);
+        toast(`Added demo ${sym("USDG")} to your wallet.`, "ok");
       }
       await new Promise((r) => setTimeout(r, 3000));
       await refreshMe();
@@ -184,7 +184,7 @@ export function PredictTab() {
     <div className="pd">
       <div className={`panel pd-status ${betting ? "open" : ""}`}>
         <div>
-          <p className="mono xs muted">CALL THE OPEN · TEST TOKENS, NO VALUE</p>
+          <p className="mono xs muted">CALL THE OPEN · DEMO TOKENS, NO VALUE</p>
           <h2>{betting ? "Predictions are open." : current.length ? "Predictions are closed for this session." : "The first rounds open soon."}</h2>
           <p>
             Every evening at 20:00 ET, Nightshift locks its call for each ETF&apos;s next opening price on Algorand. Predict whether the real open comes
@@ -302,7 +302,7 @@ function AccountBar(p: {
           </button>
         )}
         <button className="btn small" disabled={p.busy === "faucet"} onClick={p.onFunds}>
-          {p.busy === "faucet" ? "Sending…" : `Get test ${sym("USDG")}`}
+          {p.busy === "faucet" ? "Sending…" : `Get demo ${sym("USDG")}`}
         </button>
       </span>
     </div>
@@ -496,7 +496,7 @@ function Rules({ state }: { state: PredictState }) {
         <li><b>Early predictions count more:</b> a prediction made when the round opens counts 100%, falling to {Math.round((l?.minWeightBps ?? 5000) / 100)}% at close.</li>
         <li><b>The result:</b> the official NYSE opening price is proposed on-chain after 09:30 ET. Any registered user can dispute it within {Math.round((l?.challengeWindow ?? 7200) / 3600)} hours; undisputed, it&apos;s final. Above the call: Higher wins. Below: Lower wins.</li>
         <li><b>Payouts:</b> correct predictions get their stake back plus the other side's pool{l?.feeBps ? ` minus a ${l.feeBps / 100}% fee` : ""}, split by weighted shares. Ties, one-sided rounds and rounds not settled within a day are refunded in full.</li>
-        <li><b>Test tokens only:</b> {sym("USDG")} has no value, can&apos;t be bought or cashed out. This is a game and a public test of Nightshift&apos;s calls, not investment advice.</li>
+        <li><b>Demo tokens only:</b> {sym("USDG")} has no value, can&apos;t be bought or cashed out. This is a game and a public test of Nightshift&apos;s calls, not investment advice.</li>
       </ul>
       {state.address && (
         <p className="xs muted">

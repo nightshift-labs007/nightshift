@@ -148,18 +148,18 @@ const PREDICT: Step[] = [
     body: (
       <ol className="guide-list numbered">
         <li><b>The call:</b> every evening at 20:00 ET, Nightshift locks its predicted opening price for each ETF on Algorand.</li>
-        <li><b>Your prediction:</b> pick Higher or Lower and stake test tokens until 09:00 ET. Early predictions count more.</li>
+        <li><b>Your prediction:</b> pick Higher or Lower and stake demo tokens until 09:00 ET. Early predictions count more.</li>
         <li><b>The open:</b> after 09:30 ET the real opening price settles it. Correct predictions split the pool; ties are refunded.</li>
       </ol>
     ),
   },
   {
     kicker: "Before you play",
-    title: "Registered users, test tokens",
+    title: "Registered users, demo tokens",
     body: (
       <p>
-        Only registered users can make predictions (invite code, verified email, username). Stakes are test {sym("USDG")}: no value, nothing to buy or
-        cash out. Tap <b>Get test {sym("USDG")}</b> on the page if you need some.
+        Only registered users can make predictions (invite code, verified email, username). Stakes are demo {sym("USDG")}: no value, nothing to buy or
+        cash out. Tap <b>Get demo {sym("USDG")}</b> on the page if you need some.
       </p>
     ),
   },

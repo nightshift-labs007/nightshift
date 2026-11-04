@@ -35,7 +35,7 @@ async function turnstileOk(token: string | undefined, ip: string) {
 
 export async function POST(req: NextRequest) {
   const c = roleClients("faucet");
-  if (!c) return NextResponse.json({ error: "Testnet faucet is not configured yet." }, { status: 503 });
+  if (!c) return NextResponse.json({ error: "The demo faucet is not configured yet." }, { status: 503 });
   const body = (await req.json().catch(() => ({}))) as { address?: string; signature?: `0x${string}`; issuedAt?: string; turnstileToken?: string };
   const { address, signature, issuedAt } = body;
   if (!address || !isAddress(address)) return NextResponse.json({ error: "Invalid address." }, { status: 400 });
@@ -48,15 +48,15 @@ export async function POST(req: NextRequest) {
 
   // 2. only wallets that finished sign-up (invite code, verified email, username)
   if (signupRequired() && !(await isRegistered(address).catch(() => false)))
-    return NextResponse.json({ error: "Finish your profile first (invite code and email) to get test funds." }, { status: 403 });
+    return NextResponse.json({ error: "Finish your profile first (invite code and email) to get demo funds." }, { status: 403 });
 
   // 3. captcha (when configured)
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
   if (!(await turnstileOk(body.turnstileToken, ip))) return NextResponse.json({ error: "Captcha check failed. Please try again." }, { status: 403 });
 
   // 4. one drip per address and per IP per 24 hours
-  if (!(await take(`drip:addr:${address.toLowerCase()}`, WINDOW_SEC))) return NextResponse.json({ error: "This address already received test funds today." }, { status: 429 });
-  if (!(await take(`drip:ip:${ip}`, WINDOW_SEC))) return NextResponse.json({ error: "Test funds were already sent to this network today." }, { status: 429 });
+  if (!(await take(`drip:addr:${address.toLowerCase()}`, WINDOW_SEC))) return NextResponse.json({ error: "This address already received demo funds today." }, { status: 429 });
+  if (!(await take(`drip:ip:${ip}`, WINDOW_SEC))) return NextResponse.json({ error: "Demo funds were already sent to this network today." }, { status: 429 });
 
   const sent: { what: string; tx: string }[] = [];
   // number our own transactions: public RPCs are load-balanced, and a node that hasn't seen the previous

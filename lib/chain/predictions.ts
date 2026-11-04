@@ -1,7 +1,7 @@
 import "server-only";
 import { formatEther, type Address } from "viem";
 import { EVENING_PREFIX, ledgerAddress, stampPrediction, type Prediction } from "@/lib/algorand";
-import { loadAllPairs, toSessions } from "@/lib/data";
+import { officialOpen } from "@/lib/data";
 import { kvEnabled, kvGet, kvHDel, kvHGetAll, kvHSet, kvSetEx } from "@/lib/kv";
 import { people } from "@/lib/members";
 import { getOracleSnapshot } from "@/lib/oracle";
@@ -31,7 +31,7 @@ import { publicClient, readMany, roleClients } from "./keeper";
  *            challenge window has passed; cancel anything left unsettled a day after the open
  */
 const PM = () => DEPLOYMENT.predictions?.address as Address | undefined;
-const PUSHED = "predict:members"; // address → time we added it on-chain
+const PUSHED = (pm: Address) => `predict:members:${pm.toLowerCase()}`; // address → time we added it on that contract
 const EVENING_KEY = (session: string) => `predict:eve:${session}`; // the Algorand stamp for a session, so a retry reuses it
 const MAX_BATCH = 150;
 const LOOKBACK = 40; // recent rounds the settle job looks at (5 per session)
@@ -104,7 +104,7 @@ export async function readPredictions(lookback = LOOKBACK): Promise<PredictState
 /** Registered users → the contract's allow-list (adds and removals, in batches). */
 async function syncMembers(c: NonNullable<ReturnType<typeof roleClients>>, pm: Address) {
   if (!kvEnabled()) return { skipped: "no member store" };
-  const [{ members }, pushed] = await Promise.all([people(), kvHGetAll(PUSHED)]);
+  const [{ members }, pushed] = await Promise.all([people(), kvHGetAll(PUSHED(pm))]);
   const add = Object.keys(members).filter((a) => !pushed[a]).slice(0, MAX_BATCH) as Address[];
   const remove = Object.keys(pushed).filter((a) => !members[a]).slice(0, MAX_BATCH) as Address[];
   const sent: string[] = [];
@@ -113,7 +113,7 @@ async function syncMembers(c: NonNullable<ReturnType<typeof roleClients>>, pm: A
     const hash = await c.wallet.writeContract({ address: pm, abi: ABI.predictions, functionName: "setMembers", args: [list, allowed] });
     const r = await c.pub.waitForTransactionReceipt({ hash });
     if (r.status !== "success") throw new Error(`setMembers failed: ${hash}`);
-    await Promise.all(list.map((a) => (allowed ? kvHSet(PUSHED, a, String(Date.now())) : kvHDel(PUSHED, a))));
+    await Promise.all(list.map((a) => (allowed ? kvHSet(PUSHED(pm), a, String(Date.now())) : kvHDel(PUSHED(pm), a))));
     sent.push(hash);
   }
   return { added: add.length, removed: remove.length, txs: sent };
@@ -179,27 +179,27 @@ async function settleRounds(c: NonNullable<ReturnType<typeof roleClients>>, pm: 
   const state = await readPredictions();
   const now = Math.floor(Date.now() / 1000);
   const challenge = state.limits?.challengeWindow ?? 7200;
-  const toPropose = state.rounds.filter((r) => r.status === "Open" && now >= r.marketOpen + 180);
+  const toPropose = state.rounds.filter((r) => r.status === "Open" && now >= r.marketOpen + 600); // 10 minutes after the bell, so the feeds have settled
   const toFinalize = state.rounds.filter((r) => r.status === "Proposed" && !r.disputed && r.proposedAt !== null && now >= r.proposedAt + challenge);
   const toCancel = state.rounds.filter((r) => (r.status === "Open" || r.status === "Proposed") && now >= r.marketOpen + 86400 + 600);
   const out: Record<string, unknown> = {};
 
   if (toPropose.length) {
-    const pairs = await loadAllPairs();
-    const opens = new Map<string, number>();
-    for (const p of pairs) {
-      if (p.source !== "live") continue;
-      for (const s of toSessions(p.etf.bars)) if (s.openT <= now) opens.set(`${p.pair.token}|${s.date}`, s.open);
-    }
     const proposed: string[] = [];
+    const waiting: string[] = [];
     for (const r of toPropose) {
-      const open = opens.get(`${r.token}|${r.session}`);
-      if (!open) continue; // the official open isn't in the feed yet: try again next run
-      const hash = await c.wallet.writeContract({ address: pm, abi: ABI.predictions, functionName: "propose", args: [BigInt(r.id), toPrice8(open)] });
+      // two fresh readings of the official open must agree (lib/data.ts officialOpen); otherwise wait for the next run
+      const o = await officialOpen(r.token, r.session);
+      if (!o) {
+        waiting.push(`${r.token} ${r.session}`);
+        continue;
+      }
+      const hash = await c.wallet.writeContract({ address: pm, abi: ABI.predictions, functionName: "propose", args: [BigInt(r.id), toPrice8(o.open)] });
       const rc = await c.pub.waitForTransactionReceipt({ hash });
       if (rc.status !== "success") throw new Error(`propose failed: ${hash}`);
-      proposed.push(`${r.token} ${r.session}: ${open}`);
+      proposed.push(`${r.token} ${r.session}: ${o.open} (5-min bar ${o.check})`);
     }
+    if (waiting.length) out.waitingForOpen = waiting;
     out.proposed = proposed;
   }
   if (toFinalize.length) {
@@ -226,7 +226,7 @@ export async function addMemberNow(address: string) {
   const hash = await c.wallet.writeContract({ address: pm, abi: ABI.predictions, functionName: "setMembers", args: [[a], true] });
   const r = await c.pub.waitForTransactionReceipt({ hash });
   if (r.status !== "success") throw new Error(`setMembers failed: ${hash}`);
-  if (kvEnabled()) await kvHSet(PUSHED, a, String(Date.now()));
+  if (kvEnabled()) await kvHSet(PUSHED(pm), a, String(Date.now()));
   return { added: true, tx: hash };
 }
 

@@ -1,6 +1,29 @@
 # Going live on testnet (all free)
 
-## Current deployment: Base Sepolia + Algorand TestNet (since 2026-11-01)
+## Current deployment: Base mainnet + Algorand TestNet (since 2026-11-05)
+
+Nightshift's EVM contracts run on **Base mainnet (chain 8453)** again, with **demo assets that have no value** (prefix `d`) and unaudited contracts. The October mainnet contracts were reused; only `NightshiftPredictions` is new. `lib/chain/deployment.json` is the mainnet record; the Base Sepolia record is kept in `lib/chain/deployment-base-sepolia.json` (to switch back: copy it over `deployment.json`).
+
+| Contract | Address |
+|---|---|
+| NightshiftPredictions ("Call the Open") | [`0xf401c66015d55fe0ae69b1caa9fbeac170f69f12`](https://basescan.org/address/0xf401c66015d55fe0ae69b1caa9fbeac170f69f12) |
+| NightshiftOracle | [`0x5507ad4cba6bfe88e0702f703fffc05fa7d3a66e`](https://basescan.org/address/0x5507ad4cba6bfe88e0702f703fffc05fa7d3a66e) |
+| NightshiftVault | [`0x2aae4bcf7eec8cc842bacfcf9e13a54cba649071`](https://basescan.org/address/0x2aae4bcf7eec8cc842bacfcf9e13a54cba649071) |
+| Groth16Verifier | [`0xbf565f01a9534175d21aeb12f0a94052b8eed1be`](https://basescan.org/address/0xbf565f01a9534175d21aeb12f0a94052b8eed1be) |
+| CloakRegistry | [`0xe3a3cd6ce59a3c5e9d5449189d58a90d1ca04341`](https://basescan.org/address/0xe3a3cd6ce59a3c5e9d5449189d58a90d1ca04341) |
+| StackPlan | [`0xfba9ef8a0e3b8dcc5b2b966b0616dd8f1e4e364e`](https://basescan.org/address/0xfba9ef8a0e3b8dcc5b2b966b0616dd8f1e4e364e) |
+| StackDemoPool | [`0x6a29df50b4fbd9a67b85cf1e378a46bb4ad55a0b`](https://basescan.org/address/0x6a29df50b4fbd9a67b85cf1e378a46bb4ad55a0b) |
+| dUSDG | [`0xc86322b80a84ebf428daea6976ac65e500776930`](https://basescan.org/address/0xc86322b80a84ebf428daea6976ac65e500776930) |
+| dSPY | [`0x671df7bd033d8a8da2b0a63f1bdb4b13e4affd85`](https://basescan.org/address/0x671df7bd033d8a8da2b0a63f1bdb4b13e4affd85) |
+| dQQQ | [`0x13d2033b8c21e49f40ab90e9c04c0f8163f43437`](https://basescan.org/address/0x13d2033b8c21e49f40ab90e9c04c0f8163f43437) |
+| dGLD | [`0x2a81fc5d4885d1a5f16494c0e4b369a0c72d2cb9`](https://basescan.org/address/0x2a81fc5d4885d1a5f16494c0e4b369a0c72d2cb9) |
+| dIBIT | [`0x36c4b6e156304df0ea337e763bf4f22e876d9edf`](https://basescan.org/address/0x36c4b6e156304df0ea337e763bf4f22e876d9edf) |
+| dSLV | [`0xafc5b9d90655353224d6f2f6f81a3ea37153e3fa`](https://basescan.org/address/0xafc5b9d90655353224d6f2f6f81a3ea37153e3fa) |
+
+- **Gas:** Nightshift covers registered users' gas with small top-ups (`/api/gas`: 0.00003 ETH, once a day per wallet, at most 25 a day in total). Keep the faucet, keeper and updater wallets funded with a little ETH on Base; `/api/health` flags them when low.
+- **Prediction rounds** settle from the official open, read twice (the daily bar and the 09:30:00 five-minute bar must agree within 0.3%).
+
+## Previous deployment: Base Sepolia + Algorand TestNet (2026-11-01 to 2026-11-05)
 
 Base mainnet is retired (its record is kept in `lib/chain/deployment-base-mainnet.json`). The two chains have separate jobs:
 

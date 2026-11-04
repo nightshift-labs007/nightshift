@@ -69,7 +69,7 @@ function InviteStep({ onDone }: { onDone: () => void }) {
   return (
     <form className="su-step" onSubmit={submit}>
       <h3>Enter your invite code</h3>
-      <p className="muted">Nightshift is invite-only while it&apos;s on testnet. Your code looks like <span className="mono">NS-XXXX-XXXX</span>.</p>
+      <p className="muted">Nightshift is invite-only for now. Your code looks like <span className="mono">NS-XXXX-XXXX</span>.</p>
       <div className="su-row">
         <input className="mono su-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="NS-XXXX-XXXX" maxLength={14} autoComplete="off" spellCheck={false} autoFocus />
         <button className="btn primary" disabled={busy || code.replace(/[^A-Za-z0-9]/g, "").length < 8}>{busy ? "Checking…" : "Continue"}</button>
