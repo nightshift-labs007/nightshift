@@ -61,8 +61,9 @@ async function writeNote(note: string): Promise<{ hash: Hex; block: number; time
       const hash = await wallet.sendTransaction({ to: acct.address as Address, value: 0n, data: toHex(note), nonce });
       const r = await pub.waitForTransactionReceipt({ hash });
       if (r.status !== "success") throw new Error(`ledger transaction failed: ${hash}`);
-      const block = await pub.getBlock({ blockNumber: r.blockNumber });
-      return { hash, block: Number(r.blockNumber), time: Number(block.timestamp) };
+      // the note is on-chain now; a load-balanced node may not serve the block yet, so its time is "now" if it can't
+      const block = await pub.getBlock({ blockNumber: r.blockNumber }).catch(() => null);
+      return { hash, block: Number(r.blockNumber), time: block ? Number(block.timestamp) : Math.floor(Date.now() / 1000) };
     } catch (e) {
       lastErr = e;
       if (!/nonce|replacement|underpriced/i.test(String(e))) break;
