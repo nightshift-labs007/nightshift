@@ -68,7 +68,7 @@ export const EXPLAIN: Record<Topic, string> = {
   sentora:
     "The Earn section shows a live Sentora vault where idle stablecoins could earn a protected rate. Deposits happen on Sentora's own site. Nightshift never touches the funds.",
   points:
-    "You earn 10 points for joining the leaderboard, 20 for each token you deposit, 30 for an open loan, and 25 for switching on the Guardian. They live on public chains, so nobody can tamper with the rankings. They're demo points with no money value.",
+    "There are no points. Signing up (invite code and email) makes you a member, and the leaderboard lists members in the order they signed up, recorded on Algorand so nobody can edit it.",
   vault:
     "The Vault lets you deposit ETF tokens as collateral and borrow dUSDG against them. Your limit comes from my live overnight price, not a stale close. It runs in paper mode while it's rebuilt for Algorand TestNet, and it hasn't been audited.",
   stack:
@@ -238,4 +238,4 @@ export function parse(raw: string): Intent {
 export const SUGGESTIONS = ["What's SPY worth?", "Start a $20 weekly gold Stack", "Show me my loan", "What is the Guardian?", "Take me to the leaderboard", "Is the market open?"];
 
 export const HELP =
-  "I can tell you what SPY, QQQ, gold or bitcoin ETFs are worth right now, check your loan and your points, explain how anything here works, take you to any page, and set up a Stack for you to confirm. Try: what's gold worth, show me my loan, or start a 20 dollar weekly gold stack. I never move money myself: you always confirm in your wallet.";
+  "I can tell you what SPY, QQQ, gold or bitcoin ETFs are worth right now, check your loan and your place on the leaderboard, explain how anything here works, take you to any page, and set up a Stack for you to confirm. Try: what's gold worth, show me my loan, or start a 20 dollar weekly gold stack. I never move money myself: you always confirm in your wallet.";

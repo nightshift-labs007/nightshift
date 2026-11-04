@@ -9,14 +9,14 @@ import { profilesEnabled, publicProfiles } from "@/lib/profile";
 import { people } from "@/lib/members";
 
 /**
- * The leaderboard: every wallet that connected to Nightshift or registered (sign-up records in Redis), joined (a
- * signed message, recorded on Algorand) or used the Vault on Base (read straight from the contract's position
- * list), scored by what it has done. Activity comes from public chains, so it can't be edited.
+ * The leaderboard: every wallet that connected to Nightshift or registered (sign-up records in Redis; signing up also
+ * records the join on Algorand) or used the Vault on Base (read straight from the contract's position list). No points:
+ * registered members come first in the order they signed up, then wallets that only connected, then Nightshift's own
+ * service wallets.
  */
 export type LeaderRow = {
   rank: number;
   address: string;
-  points: number;
   joined: boolean;
   joinedAt: number | null; // unix seconds
   joinTx: string | null; // Algorand explorer link
@@ -26,19 +26,19 @@ export type LeaderRow = {
   collateralUsd: number;
   debtUsd: number;
   registered: boolean; // finished sign-up: invite code, verified email, username
+  registeredAt: number | null; // unix seconds
   connectedAt: number | null; // unix seconds, first time the wallet connected to the site
   username?: string; // from the owner's profile, only if they chose to show it
   name?: string;
   x?: string;
   avatarAt?: number; // a public profile photo, and its version
   team?: boolean; // a wallet the Nightshift team runs to exercise the live contracts
-  service?: { job: string; chain: "Base" | "Algorand"; lastActive: number | null }; // Nightshift's own automated wallets, scored by transactions sent
+  service?: { job: string; chain: "Base" | "Algorand"; lastActive: number | null; actions: number }; // Nightshift's own automated wallets
 };
 export type Leaderboard = {
   updatedAt: string;
   rows: LeaderRow[];
   totals: { wallets: number; registered: number; joined: number; depositors: number; borrowers: number; guardians: number; collateralUsd: number };
-  scoring: Record<string, number>;
   sources: { joins: "ok" | "unavailable"; vault: "ok" | "unavailable"; members: "ok" | "unavailable" };
 };
 
@@ -48,8 +48,6 @@ const SERVICES: Record<BotId, { name: string; job: string; chain: "Base" | "Algo
   faucet: { name: "Faucet", job: "Demo token faucet", chain: "Base" },
   ledger: { name: "Ledger", job: "Algorand prediction ledger", chain: "Algorand" },
 };
-
-export const POINTS = { registered: 15, joined: 10, perMarket: 20, borrowing: 30, guardian: 25 };
 
 type Pos = { user: string; col: string; collateral: bigint; debt: bigint };
 
@@ -97,11 +95,11 @@ export async function getLeaderboard(): Promise<Leaderboard> {
     profilesEnabled() ? people() : Promise.resolve({ seen: {}, members: {} }),
   ]);
 
-  const rows = new Map<string, Omit<LeaderRow, "rank" | "points">>();
+  const rows = new Map<string, Omit<LeaderRow, "rank">>();
   const row = (a: string) => {
     let r = rows.get(a);
     if (!r) {
-      r = { address: a, registered: false, connectedAt: null, joined: false, joinedAt: null, joinTx: null, markets: [], borrowing: false, guardian: false, collateralUsd: 0, debtUsd: 0 };
+      r = { address: a, registered: false, registeredAt: null, connectedAt: null, joined: false, joinedAt: null, joinTx: null, markets: [], borrowing: false, guardian: false, collateralUsd: 0, debtUsd: 0 };
       rows.set(a, r);
     }
     return r;
@@ -110,7 +108,7 @@ export async function getLeaderboard(): Promise<Leaderboard> {
   if (peopleRes.status === "fulfilled") {
     const { seen, members } = peopleRes.value;
     for (const [a, ms] of Object.entries(seen)) row(a).connectedAt = Math.floor(Number(ms) / 1000);
-    for (const a of Object.keys(members)) row(a).registered = true;
+    for (const [a, ms] of Object.entries(members)) Object.assign(row(a), { registered: true, registeredAt: Math.floor(Number(ms) / 1000) });
   }
 
   if (joinsRes.status === "fulfilled")
@@ -131,10 +129,7 @@ export async function getLeaderboard(): Promise<Leaderboard> {
     }
   }
 
-  const scored = [...rows.values()].map((r) => ({
-    ...r,
-    points: (r.registered ? POINTS.registered : 0) + (r.joined ? POINTS.joined : 0) + r.markets.length * POINTS.perMarket + (r.borrowing ? POINTS.borrowing : 0) + (r.guardian ? POINTS.guardian : 0),
-  }));
+  const scored = [...rows.values()];
   const roles = DEPLOYMENT.roles;
   const wallet: Record<BotId, string | null> = { updater: roles?.updater ?? null, keeper: roles?.keeper ?? null, faucet: roles?.faucet ?? null, ledger: ledgerAddress() };
   const services = (Object.keys(SERVICES) as BotId[]).flatMap((id) => {
@@ -143,13 +138,15 @@ export async function getLeaderboard(): Promise<Leaderboard> {
     const stat = txRes.status === "fulfilled" ? txRes.value.bots[id] : { actions: 0, last: null };
     const { name, job, chain } = SERVICES[id];
     return [{
-      address: address.toLowerCase(), registered: false, connectedAt: null, joined: false, joinedAt: null, joinTx: null, markets: [], borrowing: false, guardian: false, collateralUsd: 0, debtUsd: 0,
-      points: stat.actions, name, service: { job, chain, lastActive: stat.last },
+      address: address.toLowerCase(), registered: false, registeredAt: null, connectedAt: null, joined: false, joinedAt: null, joinTx: null, markets: [], borrowing: false, guardian: false, collateralUsd: 0, debtUsd: 0,
+      name, service: { job, chain, lastActive: stat.last, actions: stat.actions },
     }];
   });
   const all = [...scored, ...services];
-  const since = (r: { joinedAt: number | null; connectedAt: number | null }) => Math.min(r.joinedAt ?? Infinity, r.connectedAt ?? Infinity);
-  all.sort((a, b) => b.points - a.points || b.collateralUsd - a.collateralUsd || since(a) - since(b));
+  // registered members first, in sign-up order; then connected wallets, earliest first; Nightshift's service wallets last
+  const group = (r: (typeof all)[number]) => (r.service ? 2 : r.registered ? 0 : 1);
+  const since = (r: (typeof all)[number]) => (r.registered ? r.registeredAt ?? Infinity : Math.min(r.joinedAt ?? Infinity, r.connectedAt ?? Infinity));
+  all.sort((a, b) => group(a) - group(b) || since(a) - since(b));
   const shown = await publicProfiles(scored.map((r) => r.address)).catch(() => new Map());
   const ranked: LeaderRow[] = all.map((r, i) => {
     const p = shown.get(r.address);
@@ -169,7 +166,6 @@ export async function getLeaderboard(): Promise<Leaderboard> {
       guardians: members.filter((r) => r.guardian).length,
       collateralUsd: members.reduce((s, r) => s + r.collateralUsd, 0),
     },
-    scoring: POINTS,
     sources: {
       joins: joinsRes.status === "fulfilled" ? "ok" : "unavailable",
       vault: posRes.status === "fulfilled" ? "ok" : "unavailable",

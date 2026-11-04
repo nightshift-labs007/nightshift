@@ -3,19 +3,17 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { addrUrl } from "@/lib/chain";
-import { AVATAR, EMPTY_PROFILE, LIMITS, USERNAME, signInMessage, validateProfile, type Membership, type Profile } from "@/lib/profile-shared";
+import { AVATAR, EMPTY_PROFILE, LIMITS, USERNAME, validateProfile, type Membership, type Profile } from "@/lib/profile-shared";
 import { useWallet } from "@/lib/wallet";
-import { join, useBoard } from "./Leaderboard";
+import { useBoard } from "./Leaderboard";
 import { PageShell } from "./Site";
 import { toast } from "./Toast";
 import { usd } from "./useApi";
 import { ProfileAvatar, avatarChanged } from "./ProfileAvatar";
 import { ProfileMarket } from "./Markets";
-import { SIGNUP_STEPS, memberChanged } from "./Member";
+import { SIGNUP_STEPS, memberChanged, useRegistered } from "./Member";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-const hex = (s: string) => `0x${Array.from(new TextEncoder().encode(s), (b) => b.toString(16).padStart(2, "0")).join("")}` as `0x${string}`;
-const cancelled = (e: unknown) => /reject|denied|cancel/i.test(String((e as Error)?.message ?? e));
 
 type Me = {
   enabled: boolean;
@@ -50,31 +48,85 @@ function Steps({ at }: { at: number }) {
   );
 }
 
-function InviteStep({ onDone }: { onDone: () => void }) {
+/**
+ * Sign-up and sign-in in one card, with no wallet signature: a new wallet enters its invite code and email, a member
+ * enters their email; both get a 6-digit code, and the right code signs the wallet in (7 days on this browser).
+ */
+function SignUp({ account, member, onDone }: { account: string; member: boolean; onDone: () => void }) {
+  const [invite, setInvite] = useState("");
+  const [email, setEmail] = useState("");
+  const [sentTo, setSentTo] = useState("");
   const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
+  const [busy, setBusy] = useState<"" | "send" | "verify">("");
+  const send = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setBusy("send");
     try {
-      await post("/api/profile/invite", { code });
-      toast("Invite code accepted.", "ok");
+      await post("/api/profile/email", { address: account, email, ...(member ? {} : { invite }) });
+      setSentTo(email.trim().toLowerCase());
+      setCode("");
+      toast("Code sent. Check your inbox (and spam).", "ok");
+    } catch (err) {
+      toast((err as Error).message, "warn");
+    } finally {
+      setBusy("");
+    }
+  };
+  const verify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy("verify");
+    try {
+      await post("/api/profile/email/verify", { address: account, code });
+      toast(member ? "Signed in." : "Email verified. Last step: pick a username.", "ok");
       onDone();
     } catch (err) {
       toast((err as Error).message, "warn");
     } finally {
-      setBusy(false);
+      setBusy("");
     }
   };
+  if (sentTo)
+    return (
+      <form className="su-step" onSubmit={verify}>
+        <h3>Enter the 6-digit code</h3>
+        <p className="muted">We sent it to <b>{sentTo}</b>. It expires in 10 minutes.</p>
+        <div className="su-row">
+          <input
+            className="mono su-otp"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="000000"
+            autoFocus
+          />
+          <button className="btn primary" disabled={busy !== "" || code.length !== 6}>{busy === "verify" ? "Checking…" : member ? "Sign in" : "Verify"}</button>
+        </div>
+        <p className="small muted">
+          Didn&apos;t get it?{" "}
+          <button type="button" className="pf-link" onClick={() => send()} disabled={busy !== ""}>Send again</button> ·{" "}
+          <button type="button" className="pf-link" onClick={() => setSentTo("")}>Change {member ? "email" : "details"}</button>
+        </p>
+      </form>
+    );
   return (
-    <form className="su-step" onSubmit={submit}>
-      <h3>Enter your invite code</h3>
-      <p className="muted">Nightshift is invite-only for now. Your code looks like <span className="mono">NS-XXXX-XXXX</span>.</p>
+    <form className="su-step" onSubmit={send}>
+      <h3>{member ? "Welcome back. Sign in with your email" : "Sign up"}</h3>
+      <p className="muted">
+        {member
+          ? <>{short(account)} is a member. We&apos;ll email a 6-digit code to the address you signed up with.</>
+          : <>Nightshift is invite-only for now. Enter your invite code (it looks like <span className="mono">NS-XXXX-XXXX</span>) and your email; we&apos;ll send a 6-digit code. No wallet signature needed.</>}
+      </p>
+      {!member && (
+        <input className="mono su-code" value={invite} onChange={(e) => setInvite(e.target.value.toUpperCase())} placeholder="NS-XXXX-XXXX" maxLength={14} autoComplete="off" spellCheck={false} autoFocus aria-label="Invite code" />
+      )}
       <div className="su-row">
-        <input className="mono su-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="NS-XXXX-XXXX" maxLength={14} autoComplete="off" spellCheck={false} autoFocus />
-        <button className="btn primary" disabled={busy || code.replace(/[^A-Za-z0-9]/g, "").length < 8}>{busy ? "Checking…" : "Continue"}</button>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@gmail.com" maxLength={LIMITS.email} autoComplete="email" aria-label="Email" autoFocus={member} />
+        <button className="btn primary" disabled={busy !== "" || !email.includes("@") || (!member && invite.replace(/[^A-Za-z0-9]/g, "").length < 8)}>
+          {busy === "send" ? "Sending…" : "Send code"}
+        </button>
       </div>
-      <p className="small muted">No code yet? Ask the Nightshift team or a friend who&apos;s already in.</p>
+      {!member && <p className="small muted">No code yet? Ask the Nightshift team or a friend who&apos;s already in. Your email stays private.</p>}
     </form>
   );
 }
@@ -193,68 +245,6 @@ async function toSquareJpeg(file: File): Promise<string> {
   throw new Error("That picture is too detailed to shrink. Try another one.");
 }
 
-function Points({ account }: { account: string }) {
-  const { data, load } = useBoard();
-  const w = useWallet();
-  const [busy, setBusy] = useState(false);
-  const row = data?.rows.find((r) => r.address === account.toLowerCase());
-  const s = data?.scoring ?? { registered: 15, joined: 10, perMarket: 20, borrowing: 30, guardian: 25 };
-  const items = [
-    { done: !!row?.registered, label: "Finish sign-up", how: "Invite code, verified email and a username.", pts: s.registered, action: null },
-    { done: !!row?.joined, label: "Record your join on Algorand", how: "One free signature, stamped on Algorand TestNet.", pts: s.joined, action: row?.joined ? null : "join" },
-    { done: !!row?.markets.length, label: row?.markets.length ? `Deposited ${row.markets.join(", ")}` : "Deposit an ETF token", how: "Each token you deposit in the Vault counts.", pts: s.perMarket * Math.max(1, row?.markets.length ?? 0), each: true, href: "/app#vault" },
-    { done: !!row?.borrowing, label: "Open a loan", how: "Borrow dUSDG against your deposit.", pts: s.borrowing, href: "/app#vault" },
-    { done: !!row?.guardian, label: "Switch on the Guardian", how: "Auto-protection for your loan.", pts: s.guardian, href: "/app#guardian" },
-  ];
-  const doneCount = items.filter((i) => i.done).length;
-  return (
-    <div className="pf-card pf-earn">
-      <div className="pf-earn-head">
-        <div>
-          <p className="pf-label">Earn points</p>
-          <h3>{doneCount === items.length ? "Every badge earned" : `${doneCount} of ${items.length} done`}</h3>
-        </div>
-        <span className="pf-earn-pts mono">{data ? row?.points ?? 0 : "…"} pts</span>
-      </div>
-      <div className="pf-progress" aria-label={`${doneCount} of ${items.length} steps done`}>
-        <i style={{ width: `${(doneCount / items.length) * 100}%` }} />
-      </div>
-      <ul className="pf-checklist">
-        {items.map((it) => (
-          <li key={it.label} className={it.done ? "done" : ""}>
-            <span className="pf-tick" aria-hidden="true">{it.done ? "✓" : ""}</span>
-            <span className="pf-item">
-              <b>{it.label}</b>
-              <small>{it.how}</small>
-            </span>
-            <span className="pf-side">
-              <span className="pf-pts">+{it.pts}{it.each && !it.done ? " each" : ""}</span>
-              {!it.done && it.action === "join" && (
-                <button
-                  className="btn primary small"
-                  disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    try { await join(w.provider!, account); await load(); }
-                    catch (e) { toast(cancelled(e) ? "Signature cancelled." : (e as Error).message, "warn"); }
-                    finally { setBusy(false); }
-                  }}
-                >
-                  {busy ? "Joining…" : "Join"}
-                </button>
-              )}
-              {!it.done && it.href && <Link className="pf-go" href={it.href}>Go →</Link>}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <p className="small muted pf-earn-foot">
-        Points come from your sign-up and public records on Algorand and Base. <Link href="/leaderboard">See the leaderboard →</Link>
-      </p>
-    </div>
-  );
-}
-
 /** The profile's header: a cover in the wallet's own colours, the photo, name, links and the headline numbers. */
 function Identity({ account, name }: { account: string; name?: string }) {
   const { data } = useBoard();
@@ -272,10 +262,10 @@ function Identity({ account, name }: { account: string; name?: string }) {
     }
   };
   const stats: [string, React.ReactNode][] = [
-    ["Points", data ? row?.points ?? 0 : "…"],
-    ["Rank", data ? (row ? <>#{row.rank}<small> of {data.rows.length}</small></> : "–") : "…"],
+    ["Status", data ? (row?.registered ? <>Member #{row.rank}</> : "Not signed up") : "…"],
+    ["Member since", row?.registeredAt ? new Date(row.registeredAt * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "–"],
     ["Collateral", row?.collateralUsd ? usd(row.collateralUsd, 0) : "–"],
-    ["Badges", data ? [row?.registered, row?.joined, row?.markets.length, row?.borrowing, row?.guardian].filter(Boolean).length + " / 5" : "…"],
+    ["Loan", row ? (row.borrowing ? "Open" : "None") : "…"],
   ];
   return (
     <section className="pf-hero">
@@ -292,7 +282,7 @@ function Identity({ account, name }: { account: string; name?: string }) {
             <a className="pf-chip" href={addrUrl(account)} target="_blank" rel="noopener noreferrer">Explorer ↗</a>
             {row?.username && <span className="pf-chip">@{row.username}</span>}
             {row?.x && <a className="pf-chip" href={`https://x.com/${row.x}`} target="_blank" rel="noopener noreferrer">@{row.x}</a>}
-            {row?.joinedAt && <span className="pf-chip">Joined {new Date(row.joinedAt * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
+            {row?.joinTx && <a className="pf-chip" href={row.joinTx} target="_blank" rel="noopener noreferrer">Sign-up on Algorand ↗</a>}
           </div>
         </div>
         <Link className="btn secondary small pf-id-cta" href="/leaderboard">View leaderboard</Link>
@@ -323,7 +313,8 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
   const w = useWallet();
   const [me, setMe] = useState<Me | null>(null);
   const [form, setForm] = useState<Profile>(EMPTY_PROFILE);
-  const [busy, setBusy] = useState<"" | "signin" | "save" | "delete" | "photo">("");
+  const [busy, setBusy] = useState<"" | "save" | "delete" | "photo">("");
+  const registered = useRegistered(account);
   const [saved, setSaved] = useState<Profile | null>(null);
   const [changingEmail, setChangingEmail] = useState(false);
 
@@ -339,24 +330,6 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
   const set = <K extends keyof Profile>(k: K, v: Profile[K]) => setForm((f) => ({ ...f, [k]: v }));
   const nameState = useUsernameFree(form.username, account, saved?.username);
   const dirty = JSON.stringify({ ...form, updatedAt: 0 }) !== JSON.stringify({ ...(saved ?? EMPTY_PROFILE), updatedAt: 0 });
-
-  const signIn = async () => {
-    setBusy("signin");
-    try {
-      const issuedAt = new Date().toISOString();
-      toast("Sign the message in your wallet. It's free and sends no transaction.");
-      const signature = await w.provider!.request({ method: "personal_sign", params: [hex(signInMessage(account, issuedAt)), account as `0x${string}`] });
-      const res = await fetch("/api/profile/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: account, signature, issuedAt }) });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error ?? "Sign-in failed.");
-      toast("Signed in.", "ok");
-      await load();
-    } catch (e) {
-      toast(cancelled(e) ? "Signature cancelled." : (e as Error).message, "warn");
-    } finally {
-      setBusy("");
-    }
-  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -444,16 +417,17 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
     return (
       <div className="pf-card pf-off">
         <p className="pf-label">Profile</p>
-        <p>Profiles are being switched on. Your points above already work; editing your name, email and links will open here shortly.</p>
+        <p>Profiles are being switched on. Sign-up will open here shortly.</p>
       </div>
     );
   if (!signedInHere)
     return (
-      <div className="pf-card pf-signin">
-        <p className="pf-label">Profile</p>
-        <h3>Sign in to build your profile</h3>
-        <p className="muted">Sign a free message with {short(account)} to prove it&apos;s yours. No transaction, no gas. You stay signed in for 7 days on this browser.</p>
-        <button className="btn primary" onClick={signIn} disabled={busy === "signin"}>{busy === "signin" ? "Waiting for signature…" : "Sign in with wallet"}</button>
+      <div className="pf-card pf-signup">
+        <div className="pf-form-head">
+          <p className="pf-label">{registered ? "Sign in" : "Sign up"}</p>
+        </div>
+        {!registered && <Steps at={0} />}
+        {registered === null ? <p className="muted">Checking your wallet…</p> : <SignUp account={account} member={!!registered} onDone={load} />}
       </div>
     );
 
@@ -468,7 +442,7 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
         </div>
         {!changingEmail && <Steps at={step} />}
         {step === 0 ? (
-          <InviteStep onDone={load} />
+          <SignUp account={account} member={false} onDone={load} />
         ) : (
           <EmailStep
             enabled={!!me.emailEnabled}
@@ -579,7 +553,7 @@ export function ProfilePage() {
               </span>
               <p className="pf-label">Profile</p>
               <h1>Your Nightshift profile</h1>
-              <p className="muted">Nightshift is invite-only for now. Connect a wallet, sign in with one free signature, then enter your invite code, verify your email and pick a username.</p>
+              <p className="muted">Nightshift is invite-only for now. Connect a wallet, enter your invite code and email, type the 6-digit code we send you and pick a username. No signatures.</p>
               <p className="small muted">Connect a wallet with the <b>Connect wallet</b> button at the top to start.</p>
             </div>
           </div>
@@ -592,9 +566,8 @@ export function ProfilePage() {
       <section className="block pf-page">
         <div className="wrap">
           <Identity account={w.account} name={name} />
-          <div className="pf-layout">
+          <div className="pf-layout single">
             <Editor account={w.account} onName={setMyName} />
-            <Points account={w.account} />
           </div>
         </div>
       </section>

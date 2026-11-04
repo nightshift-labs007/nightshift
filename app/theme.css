@@ -1045,3 +1045,4 @@ section.block.app-start { padding-top: 8px; }
 .pd-rules ul { margin: 12px 0 8px; padding-left: 18px; display: grid; gap: 6px; color: var(--text-2); font-size: 14px; }
 .pd-rules a { color: var(--mint); word-break: break-all; }
 @media (max-width: 560px) { .pd-status-side { text-align: left; } }
+.pf-layout.single { grid-template-columns: minmax(0, 1fr); max-width: 860px; }

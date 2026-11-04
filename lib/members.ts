@@ -88,6 +88,16 @@ export async function listInvites(): Promise<Invite[]> {
   return out.sort((a, b) => b.createdAt - a.createdAt);
 }
 
+/** Whether an invite code exists and still has a free seat, without using one. Returns the normalised code. */
+export async function checkInvite(input: string): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
+  const code = normalizeInvite(input);
+  if (!/^[A-Z0-9]{8}$/.test(code)) return { ok: false, error: "Invite codes look like NS-XXXX-XXXX." };
+  const h = await kvHGetAll(inviteKey(code));
+  if (!h.max) return { ok: false, error: "That invite code doesn't exist. Check it and try again." };
+  if (Number(h.used ?? 0) >= Number(h.max)) return { ok: false, error: "That invite code has already been used up." };
+  return { ok: true, code };
+}
+
 /** Uses one seat of an invite code for this wallet. Safe to repeat: a wallet only ever uses one code. */
 export async function redeemInvite(address: string, input: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const m = await getMember(address);
@@ -120,19 +130,32 @@ export async function emailStatus() {
 /** Invite-only sign-up is enforced (App wallet tools, faucet) once both the store and email are configured. */
 export const signupRequired = () => !!(env.upstashUrl && env.upstashToken && env.cronSecret.length >= 16) && emailEnabled();
 
-/** Whether this wallet may get a code for this email (checked before any rate limit is spent). */
-export async function canSendEmailCode(address: string, email: string): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+/**
+ * Whether this wallet may get a code for this email (checked before any rate limit is spent). The email code is the
+ * sign-in: no wallet signature. So without a session, a wallet that already has a verified email can only get a code at
+ * that same email (signing back in); changing the email needs a session. A new wallet brings an invite code, which is
+ * checked here and used only once the email code is verified.
+ */
+export async function canSendEmailCode(
+  address: string,
+  email: string,
+  opts: { signedIn: boolean; invite?: string },
+): Promise<{ ok: true; invite?: string } | { ok: false; error: string; status: number }> {
   const m = await getMember(address);
-  if (!m.invite) return { ok: false, error: "Enter your invite code first.", status: 403 };
+  if (!opts.signedIn && m.email && m.email !== email)
+    return { ok: false, error: "This wallet is registered with a different email. Use that email to sign in.", status: 403 };
   const owner = await kvGet(emailKey(email));
   if (owner && owner !== address.toLowerCase()) return { ok: false, error: "That email is already linked to another wallet.", status: 409 };
-  return { ok: true };
+  if (m.invite) return { ok: true };
+  if (!opts.invite) return { ok: false, error: "Enter your invite code.", status: 403 };
+  const inv = await checkInvite(opts.invite);
+  return inv.ok ? { ok: true, invite: inv.code } : { ok: false, error: inv.error, status: 400 };
 }
 
-/** Sends a 6-digit code to the email. Call canSendEmailCode first. */
-export async function sendEmailCode(address: string, email: string): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
+/** Sends a 6-digit code to the email. Call canSendEmailCode first; `invite` is used when the code is verified. */
+export async function sendEmailCode(address: string, email: string, invite?: string): Promise<{ ok: true } | { ok: false; error: string; status: number }> {
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
-  await kvSetEx(otpKey(address), JSON.stringify({ email, hash: hmac(`${address.toLowerCase()}:${email}:${code}`), attempts: 0 }), OTP_TTL_SEC);
+  await kvSetEx(otpKey(address), JSON.stringify({ email, invite, hash: hmac(`${address.toLowerCase()}:${email}:${code}`), attempts: 0 }), OTP_TTL_SEC);
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${env.resendKey}`, "Content-Type": "application/json" },
@@ -165,7 +188,7 @@ export async function sendEmailCode(address: string, email: string): Promise<{ o
 export async function verifyEmailCode(address: string, code: string): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
   const raw = await kvGet(otpKey(address));
   if (!raw) return { ok: false, error: "That code has expired. Send a new one." };
-  const otp = JSON.parse(raw) as { email: string; hash: string; attempts: number };
+  const otp = JSON.parse(raw) as { email: string; invite?: string; hash: string; attempts: number };
   if (otp.attempts >= OTP_MAX_ATTEMPTS) return { ok: false, error: "Too many wrong tries. Send a new code." };
   const want = Buffer.from(otp.hash);
   const got = Buffer.from(hmac(`${address.toLowerCase()}:${otp.email}:${String(code).replace(/\D/g, "")}`));
@@ -177,6 +200,14 @@ export async function verifyEmailCode(address: string, code: string): Promise<{ 
   // one email per wallet: claim it, then release the wallet's previous email
   if (!(await kvSetNX(emailKey(otp.email), address.toLowerCase())) && (await kvGet(emailKey(otp.email))) !== address.toLowerCase())
     return { ok: false, error: "That email is already linked to another wallet." };
+  // a new wallet's invite code takes its seat only now, once the email is proven
+  if (otp.invite) {
+    const r = await redeemInvite(address, otp.invite);
+    if (!r.ok) {
+      if ((await kvGet(emailKey(otp.email))) === address.toLowerCase() && !(await getMember(address)).email) await kvDel(emailKey(otp.email));
+      return { ok: false, error: r.error };
+    }
+  }
   const m = await getMember(address);
   if (m.email && m.email !== otp.email) await kvDel(emailKey(m.email));
   await putMember(address, { ...m, email: otp.email, emailAt: Date.now() });

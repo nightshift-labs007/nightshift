@@ -95,7 +95,7 @@ export function WalletButton() {
               </button>
             )}
             <a className="btn primary small" href="/profile" onClick={() => setMenu(false)}>
-              Your profile &amp; points
+              Your profile
             </a>
             <button
               className="tab"

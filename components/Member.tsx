@@ -49,7 +49,7 @@ export function useCountConnect() {
   }, [w.account]);
 }
 
-export const SIGNUP_STEPS = ["Enter your invite code", "Verify your email", "Pick a username"];
+export const SIGNUP_STEPS = ["Invite code and email", "Enter the code", "Pick a username"];
 
 /**
  * The wallet tools (Borrow with wallet, Stack) open once the connected wallet has finished sign-up. Without a wallet

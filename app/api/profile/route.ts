@@ -1,11 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { claimUsername, emailEnabled, getMember, markRegistered, membership, releaseMember } from "@/lib/members";
+import { recordJoin } from "@/lib/algorand";
+import { claimUsername, emailEnabled, getMember, isRegistered, markRegistered, membership, releaseMember } from "@/lib/members";
 import { SESSION_COOKIE, deleteProfile, getAvatarAt, getProfile, profilesEnabled, readSession, saveProfile } from "@/lib/profile";
 import { EMPTY_PROFILE, validateProfile, type Profile } from "@/lib/profile-shared";
 import { allow } from "@/lib/ratelimit";
 import { invalidateLeaderboard } from "@/lib/leaderboard";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const noStore = { "Cache-Control": "private, no-store" };
 
@@ -29,7 +31,7 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   if (!profilesEnabled()) return NextResponse.json({ error: "Profiles aren't switched on yet." }, { status: 503 });
   const me = readSession(req.cookies.get(SESSION_COOKIE)?.value);
-  if (!me) return NextResponse.json({ error: "Sign in with your wallet first." }, { status: 401 });
+  if (!me) return NextResponse.json({ error: "Verify your email first." }, { status: 401 });
   if (!(await allow(`profile:save:${me}`, 30, 3600)).ok) return NextResponse.json({ error: "Too many saves. Try again in a while." }, { status: 429 });
   const v = validateProfile((await req.json().catch(() => ({}))) as Partial<Profile>);
   if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 });
@@ -40,7 +42,10 @@ export async function PUT(req: NextRequest) {
     if (!(await claimUsername(me, v.profile.username, prev?.username || undefined)))
       return NextResponse.json({ error: `@${v.profile.username} is taken. Try another username.` }, { status: 409 });
     const saved = await saveProfile(me, { ...v.profile, email: m.email });
+    const first = !(await isRegistered(me));
     await markRegistered(me);
+    // signing up is joining the leaderboard: the join is recorded on Algorand for them, with no extra signature
+    if (first) await recordJoin(me).catch((e) => console.error("leaderboard join failed", e));
     invalidateLeaderboard();
     return NextResponse.json({ ok: true, profile: saved, member: await membership(me, saved) }, { headers: noStore });
   } catch {

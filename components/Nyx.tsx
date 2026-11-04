@@ -258,16 +258,16 @@ export function Nyx() {
           return `I've filled in Stack: ${amount} dollars of ${what} ${every}, bought only at a fair price. Check it, then press Start Stack and confirm in your wallet.`;
         }
         case "points": {
-          if (!w.account) return "Connect a wallet and I'll tell you your points and rank.";
+          if (!w.account) return "Connect a wallet and I'll tell you where you are on the leaderboard.";
           const b = await getJson<Leaderboard>("/api/leaderboard");
           const me = b?.rows?.find((r) => r.address === w.account!.toLowerCase());
-          if (!me) return "You're not on the leaderboard yet. Join from your profile with a free signature for your first 10 points, then deposit and borrow in the App to earn more.";
-          return `You have ${me.points} points and you're number ${me.rank} of ${b!.totals.wallets}.${me.guardian ? "" : " Switching on the Guardian is worth 25 more."}`;
+          if (!me?.registered) return "You're not a member yet. Sign up on your profile with your invite code and email: no signatures, about a minute.";
+          return `You're member number ${me.rank} of ${b!.totals.registered}. There are no points: the leaderboard lists members in the order they signed up.`;
         }
         case "leaders": {
           const b = await getJson<Leaderboard>("/api/leaderboard");
           if (!b?.rows?.length) return "The leaderboard is empty so far. You could be first.";
-          return `Top of the board: ${b.rows.slice(0, 3).map((r) => `number ${r.rank}, ${r.name ?? `wallet ${short(r.address)}`}, with ${r.points} points`).join("; ")}.`;
+          return `The first members: ${b.rows.filter((r) => r.registered).slice(0, 3).map((r) => `number ${r.rank}, ${r.name ?? `wallet ${short(r.address)}`}`).join("; ") || "none yet"}. ${b.totals.registered} members so far.`;
         }
         case "go":
           router.push(PAGE_HREF[intent.page]);
@@ -331,7 +331,7 @@ export function Nyx() {
         me = [
           w.account ? `Wallet connected.` : "No wallet connected (paper account only).",
           loans.length ? loans.map((l) => `${l.source} ${l.token} loan: health factor ${l.hf.toFixed(2)}, debt ${l.debt.toFixed(2)} dUSDG, Guardian ${l.guardian ? `on at ${l.guardian.toFixed(2)}` : "off"}.`).join(" ") : "No open loans.",
-          row ? `Leaderboard: ${row.points} points, rank ${row.rank} of ${board!.totals.wallets}.` : w.account ? "Not on the leaderboard yet." : "",
+          row?.registered ? `Member number ${row.rank}.` : w.account ? "Not signed up yet." : "",
         ].join(" ");
       }
       const history = msgsRef.current.slice(-7, -1); // the turns before this question
