@@ -11,6 +11,7 @@ const nextConfig = {
       { source: "/hi", destination: "/", permanent: true },
       { source: "/india", destination: "/", permanent: true },
       { source: "/transparency", destination: "/app", permanent: false },
+      { source: "/inspect", destination: "/#stocks", permanent: false },
     ];
   },
 };

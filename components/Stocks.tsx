@@ -157,9 +157,6 @@ export function TopStocks({ board }: { board: StockBoard | null }) {
         <button className="btn secondary" onClick={() => setAll(!all)} aria-expanded={all}>
           {all ? "Hide the other stocks" : `View all ${board.stocks.length} stocks`}
         </button>
-        <a className="link-btn" href="/inspect">
-          Full analysis →
-        </a>
         <span className="unit">
           {board.market.open ? "NYSE open" : "NYSE closed"} · {board.market.etTime}
         </span>

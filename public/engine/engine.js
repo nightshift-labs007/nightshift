@@ -1117,7 +1117,7 @@
     const hit = hitTest(m.x, m.y);
     if (hit && hit.startsWith("logo:")) {
       const o = STOCK_ORBIT.find((x) => "logo:" + x.key === hit);
-      if (o) goPage("/inspect#" + o.ticker);
+      if (o) goPage("/stock/" + o.ticker);
       const c = CHAINS.find((x) => "logo:" + x.key === hit);
       if (c) window.open(c.url, "_blank", "noopener,noreferrer");
       return;
@@ -1216,7 +1216,7 @@
       e.stopImmediatePropagation();
       if (b.id === "try-free") goPage("/app?try=paper"); // open the App in the no-wallet paper account
       else if (b.id === "stocks-btn") go("#stocks");
-      else diveInto("/inspect");
+      else diveInto("/app");
     },
     true,
   );
