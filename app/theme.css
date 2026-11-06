@@ -1117,3 +1117,5 @@ a.fp-row:hover .fp-row-go { color: var(--mint); }
 .signin-gate h2 { margin: 6px 0 10px; }
 .signin-gate-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 .signin-wait { margin: 60px auto; max-width: 640px; }
+.su-col { display: grid; gap: 10px; max-width: 460px; margin: 12px 0; }
+.pf-password { margin-bottom: 16px; border-color: var(--mint); }

@@ -131,10 +131,38 @@ const sig = await C.signMessage({ message: `Nightshift demo-token faucet\nAddres
 r = await req(null, "POST", "/api/drip", { address: C.address, signature: sig, issuedAt });
 check("faucet refuses a wallet that hasn't signed up", r.status === 403, r.j.error);
 
+// 9b. passwords: set one after the email code, then sign in with it instead of a code
+r = await req(A.address, "POST", "/api/profile/password", { password: "short1" });
+check("a too-short password is refused", r.status === 400, r.j.error);
+r = await req(A.address, "POST", "/api/profile/password", { password: "allletters" });
+check("a password without a number is refused", r.status === 400, r.j.error);
+check("password requires a session", (await req("nobody", "POST", "/api/profile/password", { password: "night1shift" })).status === 401);
+r = await req(A.address, "POST", "/api/profile/password", { password: "night1shift" });
+check("the member sets a password", r.status === 200, r.j.error);
+check("profile now says a password is set", (await req(A.address, "GET", "/api/profile")).j.member?.hasPassword === true);
+jar.delete(A.address);
+r = await req(A.address, "POST", "/api/profile/login", { email: "delivered@resend.dev", password: "wrong1pass" });
+const wrongMsg = r.j.error;
+check("a wrong password is refused", r.status === 401, wrongMsg);
+r = await req("someone", "POST", "/api/profile/login", { email: "nobody@example.com", password: "night1shift" });
+check("an unknown email gets the very same answer", r.status === 401 && r.j.error === wrongMsg);
+r = await req(A.address, "POST", "/api/profile/login", { email: "Delivered@resend.dev", password: "night1shift" });
+check("email + password signs in (any case), no code", r.status === 200 && r.j.address === A.address.toLowerCase() && !!jar.get(A.address), r.j.error);
+check("signed in through the password", (await req(A.address, "GET", "/api/profile")).j.member?.registered === true);
+await clearWait(A.address);
+jar.delete(A.address);
+r = await req(A.address, "POST", "/api/profile/email", { address: A.address, email: "delivered@resend.dev" });
+r = await req(A.address, "POST", "/api/profile/email/verify", { address: A.address, code: await emailedCode(A.address, "delivered@resend.dev") });
+check("forgot password: the email code still signs in", r.status === 200, r.j.error);
+check("…and a new password can be set", (await req(A.address, "POST", "/api/profile/password", { password: "new2password" })).status === 200);
+check("the old password no longer works", (await req("x", "POST", "/api/profile/login", { email: "delivered@resend.dev", password: "night1shift" })).status === 401);
+check("the new one does", (await req("y", "POST", "/api/profile/login", { email: "delivered@resend.dev", password: "new2password" })).status === 200);
+
 // 10. deleting frees the username
 check("deleting the profile works", (await req(A.address, "DELETE", "/api/profile")).status === 200);
 check("the username is free again", (await req(null, "GET", "/api/member?username=alpha_1")).j.available === true);
 check("the wallet is no longer registered", (await req(null, "GET", `/api/member?address=${A.address}`)).j.registered === false);
+check("a deleted profile's password is gone", (await req("z", "POST", "/api/profile/login", { email: "delivered@resend.dev", password: "new2password" })).status === 401);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

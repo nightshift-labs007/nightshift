@@ -1,5 +1,5 @@
 import "server-only";
-import { createHmac, randomBytes, randomInt, timingSafeEqual } from "crypto";
+import { createHmac, randomBytes, randomInt, scrypt, timingSafeEqual } from "crypto";
 import { env } from "./env";
 import { kvDel, kvGet, kvHDel, kvHGetAll, kvHIncrBy, kvHSet, kvHSetNX, kvSAdd, kvSMembers, kvSet, kvSetEx, kvSetNX } from "./kv";
 import { normalizeInvite, type Membership, type Profile } from "./profile-shared";
@@ -21,6 +21,7 @@ const inviteUsesKey = (c: string) => `invite-uses:${c}`;
 const usernameKey = (u: string) => `username:${u.toLowerCase()}`;
 const emailKey = (e: string) => `email-owner:${e.toLowerCase()}`;
 const otpKey = (a: string) => `otp:${a.toLowerCase()}`;
+const passwordKey = (a: string) => `pw:${a.toLowerCase()}`; // scrypt$N$salt$hash, never the password itself
 const EMAIL_STATUS = "email:last"; // the last send: ok, or the provider's reason it failed
 
 type MemberRecord = { invite?: string; inviteAt?: number; email?: string; emailAt?: number };
@@ -41,9 +42,9 @@ export async function getMember(address: string): Promise<MemberRecord> {
 const putMember = (address: string, m: MemberRecord) => kvSet(memberKey(address), JSON.stringify(m));
 
 export async function membership(address: string, profile: Profile | null): Promise<Membership> {
-  const [m, all] = await Promise.all([getMember(address), kvHGetAll(MEMBERS)]);
+  const [m, all, pw] = await Promise.all([getMember(address), kvHGetAll(MEMBERS), kvGet(passwordKey(address))]);
   const at = all[address.toLowerCase()];
-  return { invite: !!m.invite, email: m.email ?? null, registered: !!(at && m.invite && m.email && profile?.username), registeredAt: at ? Number(at) : null };
+  return { invite: !!m.invite, email: m.email ?? null, registered: !!(at && m.invite && m.email && profile?.username), registeredAt: at ? Number(at) : null, hasPassword: !!pw };
 }
 
 /** Everyone who connected a wallet, and everyone registered: address → time (ms). For the leaderboard. */
@@ -241,6 +242,7 @@ export async function releaseMember(address: string, profile: Profile | null) {
   if (m.email) await kvDel(emailKey(m.email));
   await putMember(address, { invite: m.invite, inviteAt: m.inviteAt });
   await kvHDel(MEMBERS, address.toLowerCase());
+  await kvDel(passwordKey(address));
 }
 
 // ---------------------------------------------------------------- Nightshift wallets (Privy email login)
@@ -281,4 +283,32 @@ export async function moveMember(from: string, to: string, profile: Profile | nu
     await kvHDel(MEMBERS, f);
   }
   await putMember(f, {}); // the old wallet keeps nothing: no invite, no email
+}
+
+// ---------------------------------------------------------------- passwords (sign in without an email code)
+
+const SCRYPT_N = 16384;
+const derive = (password: string, salt: Buffer, n = SCRYPT_N) =>
+  new Promise<Buffer>((res, rej) => scrypt(password.normalize("NFKC"), salt, 64, { N: n, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }, (e, k) => (e ? rej(e) : res(k))));
+
+/** Stores a salted scrypt hash of the password for this wallet (replacing any earlier one). */
+export async function setPassword(address: string, password: string) {
+  const salt = randomBytes(16);
+  const hash = await derive(password, salt);
+  await kvSet(passwordKey(address), `scrypt$${SCRYPT_N}$${salt.toString("base64url")}$${hash.toString("base64url")}`);
+}
+
+/** Checks a password against the stored hash in constant time. False when there is no password yet. */
+export async function checkPassword(address: string, password: string): Promise<boolean> {
+  const stored = await kvGet(passwordKey(address));
+  if (!stored) return false;
+  const [kind, n, salt, hash] = stored.split("$");
+  if (kind !== "scrypt" || !salt || !hash) return false;
+  const want = Buffer.from(hash, "base64url");
+  const got = await derive(password, Buffer.from(salt, "base64url"), Number(n) || SCRYPT_N);
+  return want.length === got.length && timingSafeEqual(want, got);
+}
+
+export async function hasPassword(address: string) {
+  return !!(await kvGet(passwordKey(address)));
 }

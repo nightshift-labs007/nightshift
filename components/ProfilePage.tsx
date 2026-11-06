@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { addrUrl } from "@/lib/chain";
-import { AVATAR, EMPTY_PROFILE, LIMITS, USERNAME, validateProfile, type Membership, type Profile } from "@/lib/profile-shared";
+import { AVATAR, EMPTY_PROFILE, LIMITS, PASSWORD, USERNAME, validateProfile, type Membership, type Profile } from "@/lib/profile-shared";
 import { useWallet } from "@/lib/wallet";
 import { useBoard } from "./Leaderboard";
 import { PageShell } from "./Site";
@@ -266,6 +266,88 @@ function WalletSignUp({ onDone }: { onDone: () => void }) {
   );
 }
 
+/** Members sign in with email + password; the email code is only for the first time or a forgotten password. */
+function Login({ account, onDone }: { account: string; onDone: () => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [withCode, setWithCode] = useState(false);
+  if (withCode)
+    return (
+      <>
+        <SignUp account={account} member onDone={onDone} />
+        <button type="button" className="pf-link" onClick={() => setWithCode(false)}>← Sign in with your password instead</button>
+      </>
+    );
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const j = await post("/api/profile/login", { email, password });
+      if (j.address && j.address !== account.toLowerCase())
+        toast(`Signed in. That email belongs to ${short(j.address)}: connect that wallet to edit its profile.`, "warn");
+      else toast("Signed in.", "ok");
+      memberChanged();
+      onDone();
+    } catch (err) {
+      toast((err as Error).message, "warn");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="su-step" onSubmit={submit}>
+      <h3>Welcome back. Sign in</h3>
+      <p className="muted">{short(account)} is a member. Sign in with the email you signed up with and your password.</p>
+      <div className="su-col">
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@gmail.com" maxLength={LIMITS.email} autoComplete="email" aria-label="Email" autoFocus />
+        <input type="password" value={password} onChange={(e) => setPw(e.target.value)} placeholder="Password" maxLength={PASSWORD.max} autoComplete="current-password" aria-label="Password" />
+        <button className="btn primary" disabled={busy || !email.includes("@") || !password}>{busy ? "Signing in…" : "Sign in"}</button>
+      </div>
+      <p className="small muted">
+        First time signing in, or forgot your password?{" "}
+        <button type="button" className="pf-link" onClick={() => setWithCode(true)}>Email me a code</button>, then set a new password.
+      </p>
+    </form>
+  );
+}
+
+/** Choose (or change) the password for signing in next time. */
+function SetPassword({ onDone, onCancel, first }: { onDone: () => void; onCancel?: () => void; first: boolean }) {
+  const [pw, setPw] = useState("");
+  const [again, setAgain] = useState("");
+  const [busy, setBusy] = useState(false);
+  const okLen = pw.length >= PASSWORD.min && pw.length <= PASSWORD.max;
+  const okMix = /[A-Za-z]/.test(pw) && /[0-9]/.test(pw);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pw !== again) return toast("The two passwords don't match.", "warn");
+    setBusy(true);
+    try {
+      await post("/api/profile/password", { password: pw });
+      toast("Password saved. Next time, sign in with your email and this password.", "ok");
+      onDone();
+    } catch (err) {
+      toast((err as Error).message, "warn");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="pf-card su-step pf-password" onSubmit={submit}>
+      <p className="pf-label">{first ? "Set your password" : "Change password"}</p>
+      <p className="muted">{first ? "So next time you sign in with your email and password, no code needed." : "Choose a new password for signing in."}</p>
+      <div className="su-col">
+        <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder={`New password (${PASSWORD.min}+ characters, a letter and a number)`} maxLength={PASSWORD.max} autoComplete="new-password" aria-label="New password" />
+        <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} placeholder="Type it again" maxLength={PASSWORD.max} autoComplete="new-password" aria-label="Repeat the password" />
+        <button className="btn primary" disabled={busy || !okLen || !okMix || !again}>{busy ? "Saving…" : "Save password"}</button>
+      </div>
+      {pw && (!okLen || !okMix) && <p className="small muted">Use {PASSWORD.min} to {PASSWORD.max} characters with at least one letter and one number.</p>}
+      {onCancel && <button type="button" className="pf-link" onClick={onCancel}>Cancel</button>}
+    </form>
+  );
+}
+
 /** Live check that a username is still free (debounced). */
 function useUsernameFree(username: string, account: string, saved?: string) {
   const [state, setState] = useState<"" | "checking" | "free" | "taken" | "invalid">("");
@@ -376,6 +458,7 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
   const registered = useRegistered(account);
   const [saved, setSaved] = useState<Profile | null>(null);
   const [changingEmail, setChangingEmail] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const load = useCallback(async () => {
     const j = (await fetch("/api/profile", { cache: "no-store" }).then((r) => r.json()).catch(() => ({ enabled: false, error: "unreachable" }))) as Me;
@@ -494,7 +577,7 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
           <p className="pf-label">{registered ? "Sign in" : "Sign up"}</p>
         </div>
         {!registered && <Steps at={0} />}
-        {w.embedded ? <WalletSignUp onDone={load} /> : registered === null ? <p className="muted">Checking your wallet…</p> : <SignUp account={account} member={!!registered} onDone={load} />}
+        {w.embedded ? <WalletSignUp onDone={load} /> : registered === null ? <p className="muted">Checking your wallet…</p> : registered ? <Login account={account} onDone={load} /> : <SignUp account={account} member={false} onDone={load} />}
       </div>
     );
 
@@ -524,7 +607,12 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
       </div>
     );
 
+  const needPassword = !w.embedded && !member.hasPassword;
+  if (changingPassword)
+    return <SetPassword first={false} onCancel={() => setChangingPassword(false)} onDone={async () => { setChangingPassword(false); await load(); }} />;
   return (
+    <>
+    {needPassword && <SetPassword first onDone={load} />}
     <form className="pf-card pf-form" onSubmit={save}>
       <div className="pf-form-head">
         <p className="pf-label">{member.registered ? "Profile" : "Finish sign-up"}</p>
@@ -573,6 +661,7 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
           <div className="pf-verified">
             <span>{member.email}</span>
             <button type="button" className="pf-link" onClick={() => setChangingEmail(true)}>Change</button>
+            {!w.embedded && member.hasPassword && <> · <button type="button" className="pf-link" onClick={() => setChangingPassword(true)}>Change password</button></>}
           </div>
         </Field>
         <Field label="X (Twitter)">
@@ -600,6 +689,7 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
         </button>
       </div>
     </form>
+    </>
   );
 }
 

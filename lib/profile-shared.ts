@@ -13,7 +13,10 @@ export type Profile = {
 export type PublicProfile = Pick<Profile, "name" | "x" | "bio"> & { username?: string; avatarAt?: number };
 
 /** Where a wallet is in sign-up: connect → invite code → verified email → username and profile. */
-export type Membership = { invite: boolean; email: string | null; registered: boolean; registeredAt: number | null };
+export type Membership = { invite: boolean; email: string | null; registered: boolean; registeredAt: number | null; hasPassword?: boolean };
+
+/** Password rules for signing in (the email code is only for sign-up and resets). */
+export const PASSWORD = { min: 8, max: 128 };
 
 export const EMPTY_PROFILE: Profile = { username: "", name: "", email: "", x: "", telegram: "", website: "", bio: "", showPublic: true };
 export const USERNAME = /^[a-z0-9_]{3,20}$/;
