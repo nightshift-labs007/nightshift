@@ -38,7 +38,7 @@ const cls = (x: number) => (x >= 0 ? "up" : "down");
 
 export function HeadlineCard({ q }: { q: StockQuote }) {
   return (
-    <a className="card st-card" href={`/inspect#${q.ticker}`}>
+    <a className="card st-card" href={`/stock/${q.ticker}`}>
       <div className="st-card-top">
         <StockLogo q={q} />
         <div>
@@ -106,9 +106,9 @@ export function StockTable({ stocks, showSpark = true }: { stocks: StockQuote[];
         </thead>
         <tbody>
           {rows.map((q) => (
-            <tr key={q.ticker} id={q.ticker}>
+            <tr key={q.ticker} id={q.ticker} className="st-row" onClick={() => (window.location.href = `/stock/${q.ticker}`)}>
               <td>
-                <span className="st-name">
+                <a className="st-name" href={`/stock/${q.ticker}`}>
                   <StockLogo q={q} size={28} />
                   <span>
                     <b>{q.name}</b>
@@ -116,7 +116,7 @@ export function StockTable({ stocks, showSpark = true }: { stocks: StockQuote[];
                       {q.ticker} · {q.sector}
                     </small>
                   </span>
-                </span>
+                </a>
               </td>
               <td className="num mono">{usd(q.price)}</td>
               <td className="num mono">{usd(q.fairValue)}</td>

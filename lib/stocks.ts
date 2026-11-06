@@ -63,8 +63,8 @@ export type StockBoard = {
 };
 
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
-const ANCHOR_NAMES = { "NQ=F": "Nasdaq-100 futures", "ES=F": "S&P 500 futures" } as const;
-const BENCH = { "NQ=F": "QQQ", "ES=F": "SPY" } as const;
+export const ANCHOR_NAMES = { "NQ=F": "Nasdaq-100 futures", "ES=F": "S&P 500 futures" } as const;
+export const BENCH = { "NQ=F": "QQQ", "ES=F": "SPY" } as const;
 
 function dailyReturns(bars: Bar[]) {
   const m = new Map<string, number>();
@@ -73,7 +73,7 @@ function dailyReturns(bars: Bar[]) {
   return m;
 }
 
-function betaOf(stock: Bar[], bench: Bar[]) {
+export function betaOf(stock: Bar[], bench: Bar[]) {
   const a = dailyReturns(stock);
   const b = dailyReturns(bench);
   const xs: number[] = [];
@@ -202,5 +202,106 @@ export async function getStockBoard(): Promise<StockBoard> {
     futures,
     stocks,
     missing: STOCKS.filter((d) => !stocks.some((s) => s.ticker === d.ticker)).map((d) => d.ticker),
+  };
+}
+
+// ---------------------------------------------------------------- one stock in detail
+
+export type StockRange = "1D" | "5D" | "1M" | "3M";
+export const STOCK_RANGES: StockRange[] = ["1D", "5D", "1M", "3M"];
+
+export type StockCall = { date: string; prevClose: number; predictedOpen: number; actualOpen: number; nightshiftErrBps: number; staleErrBps: number };
+
+export type StockDetail = {
+  ticker: string;
+  range: StockRange;
+  lastClose: number;
+  closeT: number; // epoch s of the last completed close: points after it are Nightshift fair value
+  points: { t: number; v: number; fair?: true }[];
+  calls: StockCall[]; // newest first
+  avgNightshiftBps: number;
+  avgStaleBps: number;
+  wins: number;
+};
+
+const SPAN: Record<StockRange, { interval: "5m" | "1h" | "1d"; range: "1d" | "5d" | "1mo" | "3mo"; bar: number }> = {
+  "1D": { interval: "5m", range: "1d", bar: 300 },
+  "5D": { interval: "1h", range: "5d", bar: 3600 },
+  "1M": { interval: "1h", range: "1mo", bar: 3600 },
+  "3M": { interval: "1d", range: "3mo", bar: 86400 },
+};
+
+/**
+ * The stock's price over the chosen window, continued past the last close by Nightshift's fair value (the close moved
+ * by beta x the anchor future's change since then), and every recent open replayed: the call the engine would have made
+ * from data before 09:30 ET, graded against the real open and against a frozen price that just repeats the close.
+ */
+export async function getStockDetail(ticker: string, range: StockRange): Promise<StockDetail | null> {
+  const def = STOCKS.find((s) => s.ticker === ticker);
+  if (!def) return null;
+  const nowS = Date.now() / 1000;
+  const span = SPAN[range];
+  const [daily, bench, anchorHour, anchorFine, chart] = await Promise.all([
+    fetchChart(def.ticker, "1d", "3mo"),
+    fetchChart(BENCH[def.anchor], "1d", "3mo"),
+    fetchChart(def.anchor, "1h", "1mo"),
+    fetchChart(def.anchor, "5m", "5d"),
+    span.interval === "1d" ? Promise.resolve(null) : fetchChart(def.ticker, span.interval, span.range),
+  ]);
+  if (!daily) return null;
+  const sessions = toSessions(daily.bars);
+  const completed = sessions.filter((s) => s.closeT <= nowS);
+  const last = completed[completed.length - 1];
+  if (!last) return null;
+  const { beta } = bench ? betaOf(daily.bars, bench.bars) : { beta: 1 };
+
+  // market prices up to now (during the session) or up to the close; daily view uses session closes
+  let points: StockDetail["points"] = span.interval === "1d" ? sessions.map((s) => ({ t: Math.min(s.closeT, nowS), v: s.close })) : (chart?.bars ?? []).map((b) => ({ t: b.t, v: b.c }));
+  points = points.filter((p) => p.t <= nowS);
+  const live = sessions[sessions.length - 1];
+  const inSession = live.openT <= nowS && nowS < live.closeT;
+  if (!inSession) {
+    points = points.filter((p) => p.t < last.closeT);
+    points.push({ t: last.closeT, v: last.close });
+    const fine = anchorFine?.bars ?? [];
+    const base = priceAt(fine, last.closeT, 300) ?? priceAt(anchorHour?.bars ?? [], last.closeT);
+    if (base) {
+      let tail = fine.filter((b) => b.t > last.closeT).map((b) => ({ t: b.t, v: last.close * (1 + beta * (b.c / base - 1)), fair: true as const }));
+      // keep the tail readable next to a long daily history: one point per bar of the main window
+      if (span.bar > 300) tail = tail.filter((p, i) => i === tail.length - 1 || Math.floor(p.t / span.bar) !== Math.floor(tail[i + 1].t / span.bar));
+      points.push(...tail);
+    }
+  }
+
+  const calls: StockCall[] = [];
+  const aBars = anchorHour?.bars ?? [];
+  for (let i = sessions.length - 1; i >= 1 && calls.length < 20; i--) {
+    const s = sessions[i];
+    const prev = sessions[i - 1];
+    if (s.openT > nowS) continue;
+    const aClose = priceAt(aBars, prev.closeT);
+    const aOpen = priceAt(aBars, s.openT);
+    if (!aClose || !aOpen) break; // the anchor's hourly history ends here
+    const predictedOpen = prev.close * (1 + beta * (aOpen / aClose - 1));
+    calls.push({
+      date: s.date,
+      prevClose: prev.close,
+      predictedOpen,
+      actualOpen: s.open,
+      nightshiftErrBps: Math.abs(predictedOpen / s.open - 1) * 1e4,
+      staleErrBps: Math.abs(prev.close / s.open - 1) * 1e4,
+    });
+  }
+  const avg = (k: "nightshiftErrBps" | "staleErrBps") => (calls.length ? calls.reduce((a, c) => a + c[k], 0) / calls.length : 0);
+  return {
+    ticker: def.ticker,
+    range,
+    lastClose: last.close,
+    closeT: last.closeT,
+    points,
+    calls,
+    avgNightshiftBps: avg("nightshiftErrBps"),
+    avgStaleBps: avg("staleErrBps"),
+    wins: calls.filter((c) => c.nightshiftErrBps < c.staleErrBps).length,
   };
 }
