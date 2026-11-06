@@ -8,6 +8,7 @@ import type { PredictState } from "@/lib/predictions-shared";
 import type { FairSeries, Range } from "@/lib/series";
 import { InfoTip } from "./InfoTip";
 import { PageShell } from "./Site";
+import { SignedInGate } from "./SignedIn";
 import { signed, usd, useApi } from "./useApi";
 
 type LedgerEntry = { txId: string; explorer: string; lockedAt: string; session: string; tokens: { token: string; predicted: number; actual: number | null; errBps: number | null }[] };
@@ -37,6 +38,7 @@ export function EtfPage({ token, name, anchorName }: { token: string; name: stri
 
   return (
     <PageShell>
+      <SignedInGate>
       <section className="block etf-top">
         <div className="wrap">
           <Link className="etf-back" href="/app">← All prices</Link>
@@ -174,6 +176,7 @@ export function EtfPage({ token, name, anchorName }: { token: string; name: stri
           )}
         </div>
       </section>
+      </SignedInGate>
     </PageShell>
   );
 }

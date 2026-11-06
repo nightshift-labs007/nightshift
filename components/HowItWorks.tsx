@@ -60,7 +60,7 @@ const MODULES: { n: string; name: string; href: string; status: string; tone: st
   {
     n: "05",
     name: "Ledger",
-    href: "/transparency#ledger",
+    href: "/etf/SPY",
     status: "Live on Base",
     tone: "ready",
     what: "Records each pre-open prediction on Base so the track record can't be edited after the bell.",
@@ -97,7 +97,7 @@ export function HowItWorks() {
             </svg>
             <h3>{m.name}</h3>
             {VERIFIED_MODULE[m.name] && verifiedCount(VERIFIED_MODULE[m.name]) > 0 && (
-              <span className="module-verified" onClick={(e) => { e.preventDefault(); window.location.href = "/transparency#verified"; }}>
+              <span className="module-verified" onClick={(e) => { e.preventDefault(); window.open("https://github.com/nightshift-labs007/nightshift-formal", "_blank"); }}>
                 Mathematically verified · {verifiedCount(VERIFIED_MODULE[m.name])} properties
               </span>
             )}

@@ -166,7 +166,7 @@ export function ProtocolShowcase({ snap }: { snap: OracleSnapshot | null }) {
           </header>
           <strong>{properties.length} theorems</strong>
           <p>Machine-checked proofs of the Vault, Guardian, Oracle and Cloak rules, e.g. &ldquo;{properties[0].plain}&rdquo;</p>
-          <Link href="/transparency#verified">Read every theorem →</Link>
+          <a href="https://github.com/nightshift-labs007/nightshift-formal" target="_blank" rel="noopener noreferrer">Read every theorem ↗</a>
         </article>
       </div>
     </div>
@@ -216,7 +216,7 @@ function LedgerTile() {
           View the stamp ↗
         </a>
       ) : (
-        <Link href="/transparency#ledger">See the locked predictions →</Link>
+        <Link href="/etf/SPY">See every past call →</Link>
       )}
     </article>
   );

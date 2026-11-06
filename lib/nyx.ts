@@ -34,12 +34,12 @@ export type Intent =
   | { kind: "unknown"; text: string };
 
 export const PAGE_HREF: Record<Page, string> = {
-  home: "/", app: "/app", guardian: "/app#guardian", oracle: "/oracle", proof: "/proof", transparency: "/transparency",
+  home: "/", app: "/app", guardian: "/app#guardian", oracle: "/oracle", proof: "/proof", transparency: "/etf/SPY",
   docs: "/docs", leaderboard: "/leaderboard", profile: "/profile", stocks: "/#stocks", earn: "/earn",
 };
 export const PAGE_NAME: Record<Page, string> = {
   home: "the home page", app: "the App", guardian: "the Guardian", oracle: "the Oracle", proof: "the Proof page",
-  transparency: "Transparency", docs: "the Docs", leaderboard: "the leaderboard", profile: "your profile", stocks: "the stock board", earn: "Earn",
+  transparency: "the track record", docs: "the Docs", leaderboard: "the leaderboard", profile: "your profile", stocks: "the stock board", earn: "Earn",
 };
 export const TOKEN_NAME: Record<Token, string> = { SPY: "the S&P 500 ETF", QQQ: "the Nasdaq 100 ETF", GLD: "the gold ETF", SLV: "the silver ETF", IBIT: "the bitcoin ETF" };
 

@@ -10,6 +10,7 @@ const nextConfig = {
     return [
       { source: "/hi", destination: "/", permanent: true },
       { source: "/india", destination: "/", permanent: true },
+      { source: "/transparency", destination: "/app", permanent: false },
     ];
   },
 };

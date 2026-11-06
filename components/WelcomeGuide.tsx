@@ -78,7 +78,7 @@ const HOME: Step[] = [
     body: (
       <ul className="guide-list">
         <li><b>Proof</b>: 24 rules machine-proven in Lean 4 with Harmonic&apos;s Aristotle, and zero-knowledge solvency proofs.</li>
-        <li><b>Transparency</b>: every pre-open prediction recorded on Base before the bell, graded after.</li>
+        <li><b>Track record</b>: every pre-open prediction recorded on Base before the bell, graded after, on each ETF's page.</li>
         <li><b>Docs</b>: straight answers on how everything works, including what&apos;s still a demo.</li>
       </ul>
     ),

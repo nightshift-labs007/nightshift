@@ -82,109 +82,49 @@ function latestCalls(ledger: Ledger | null, shift: { reports: ShiftReport[] } | 
   return out;
 }
 
-function LastCall({ call, pending }: { call: Call | null; pending: Call | null }) {
-  if (pending)
-    return (
-      <div className="fp-call">
-        <div className="fp-call-head">
-          <span>Our call · {dayLabel(pending.session)}</span>
-          {pending.explorer && <a href={pending.explorer} target="_blank" rel="noreferrer">Base ↗</a>}
-        </div>
-        <div className="fp-call-row">
-          <span>Our call</span>
-          <b className="mono">{usd(pending.predicted)}</b>
-        </div>
-        <p className="fp-call-sub">Recorded {pending.lockedAt ? etTime(pending.lockedAt) : ""} on Base. Graded at the 09:30 ET open.</p>
-      </div>
-    );
-  if (!call) return null;
-  const beat = call.errPct !== null && call.frozenErrPct !== null && call.errPct < call.frozenErrPct;
+/** One ETF as a row of the stacked list; the whole row opens the ETF's page (chart and every past call). */
+function PriceRow({ q, call }: { q: Quote; call?: { last: Call | null; pending: Call | null } }) {
+  const c = call?.pending ?? call?.last ?? null;
+  const beat = c && c.errPct !== null && c.frozenErrPct !== null && c.errPct < c.frozenErrPct;
   return (
-    <div className="fp-call">
-      <div className="fp-call-head">
-        <span>Our call · {dayLabel(call.session)}</span>
-        {call.explorer && <a href={call.explorer} target="_blank" rel="noreferrer">Base ↗</a>}
-      </div>
-      <div className="fp-call-sub">{call.lockedAt ? `Locked ${etTime(call.lockedAt)}` : "Replayed from market data"}</div>
-      <div className="fp-call-row">
-        <span>Predicted</span>
-        <b className="mono">{usd(call.predicted)}</b>
-      </div>
-      {call.actual !== null && (
-        <div className="fp-call-row">
-          <span>Opened at</span>
-          <b className="mono">{usd(call.actual)}</b>
-        </div>
-      )}
-      {call.errPct !== null && (
-        <div className="fp-call-row">
-          <span>Our miss</span>
-          <b className={`mono ${beat ? "fp-good" : ""}`}>{call.errPct.toFixed(2)}%</b>
-        </div>
-      )}
-      {call.frozenErrPct !== null && (
-        <div className="fp-call-row muted-row">
-          <span>Frozen price miss</span>
-          <span className="mono">{call.frozenErrPct.toFixed(2)}%</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PriceCard({ q, call }: { q: Quote; call?: { last: Call | null; pending: Call | null } }) {
-  return (
-    <div className={`panel fp-card ${q.marketOpen ? "open" : "closed"}`}>
-      <div className="fp-card-top">
-        <div>
-          <span className="ticker"><Link href={`/etf/${q.token}`}>{q.token}</Link></span>
-          <div className="xs muted">{q.name}</div>
-        </div>
-        <span className={`badge ${q.marketOpen ? "open" : q.source === "live" ? "live" : "sim"}`}>
-          {q.marketOpen ? "Real price" : q.source === "live" ? "Fair value" : "Simulated"}
+    <Link className="fp-row" href={`/etf/${q.token}`} role="listitem">
+      <span className="fp-row-id">
+        <b className="mono">{q.token}</b>
+        <small>{q.name}</small>
+      </span>
+      <span className="num fp-row-price">
+        <b>{usd(q.fairValue)}</b>
+        <small className={q.source === "live" ? "muted" : "amber"}>{q.marketOpen ? "live price" : q.source === "live" ? "fair value" : "simulated"}</small>
+      </span>
+      <span className={`num mono ${q.driftPct >= 0 ? "up" : "down"}`}>{signed(q.driftPct)}</span>
+      {q.marketOpen ? (
+        <span className="num mono">{usd(q.lastClose)}</span>
+      ) : (
+        <span className="num fp-row-conf">
+          <span className="mono" style={{ color: confColor(q.confidence) }}>{q.confidence}</span>
+          <span className="fp-row-meter" aria-hidden="true"><i style={{ width: `${q.confidence}%`, background: confColor(q.confidence) }} /></span>
         </span>
-      </div>
-      <div className="fp-price">
-        <CountUp value={q.fairValue} format={(x) => usd(x)} />
-      </div>
-      <div className="xs muted mono">
-        {q.marketOpen ? "Live market price" : <>Nightshift fair value <InfoTip k="fairValue" label="fair value" /></>}
-      </div>
-      <div className="fp-rows">
-        <div className="row">
-          <span className="muted">{q.marketOpen ? "Last close" : "Last real price (close)"}</span>
-          <span className="mono">{usd(q.lastClose)}</span>
-        </div>
-        <div className="row">
-          <span className="muted">{q.marketOpen ? "Change today" : "Expected move at the open"}</span>
-          <span className={`mono ${q.driftPct >= 0 ? "up" : "down"}`}>{signed(q.driftPct)}</span>
-        </div>
-      </div>
-      {!q.marketOpen && (
-        <>
-          <div className="meter" title="Confidence">
-            <div style={{ width: `${q.confidence}%`, background: confColor(q.confidence) }} />
-          </div>
-          <div className="row fp-conf">
-            <span className="muted">
-              Confidence <InfoTip k="confidence" label="confidence" />
-            </span>
-            <span className="mono" style={{ color: confColor(q.confidence) }}>
-              {confWord(q.confidence)} · {q.confidence}/100
-            </span>
-          </div>
-          {!!q.flags?.length && (
-            <div className="oracle-flags">
-              {q.flags.map((f) => (
-                <div key={f}>Confidence lowered: {f}</div>
-              ))}
-            </div>
-          )}
-        </>
       )}
-      {call && <LastCall call={call.last} pending={call.pending} />}
-      <Link className="fp-more" href={`/etf/${q.token}`}>Chart and every past call →</Link>
-    </div>
+      <span className="fp-row-call small">
+        {!c ? (
+          <span className="muted">—</span>
+        ) : call?.pending ? (
+          <>
+            {dayLabel(c.session)} open: <b className="mono">{usd(c.predicted)}</b> <span className="muted">· graded at 09:30 ET</span>
+          </>
+        ) : (
+          <>
+            {dayLabel(c.session)}: <b className="mono">{usd(c.predicted)}</b> → {c.actual !== null ? <span className="mono">{usd(c.actual)}</span> : "…"}
+            {c.errPct !== null && (
+              <span className={beat ? "mint" : "muted"}>
+                {" "}· missed {c.errPct.toFixed(2)}%{c.frozenErrPct !== null ? ` (frozen ${c.frozenErrPct.toFixed(2)}%)` : ""}
+              </span>
+            )}
+          </>
+        )}
+      </span>
+      <span className="fp-row-go" aria-hidden="true">→</span>
+    </Link>
   );
 }
 
@@ -247,7 +187,7 @@ export function FairPrices({ snap }: { snap: OracleSnapshot | null }) {
             Last open: our calls missed by <b className="mint">{avg(graded.map((c) => c.errPct!)).toFixed(2)}%</b> on average.
             A frozen price missed by <b>{avg(graded.map((c) => c.frozenErrPct!)).toFixed(2)}%</b>.
           </span>
-          <Link href="/transparency">Full track record →</Link>
+          <Link href="/etf/SPY">Every past call →</Link>
         </div>
       )}
 
@@ -257,9 +197,17 @@ export function FairPrices({ snap }: { snap: OracleSnapshot | null }) {
         </div>
       )}
 
-      <div className="fp-grid">
+      <div className="fp-stack" role="list">
+        <div className="fp-row fp-row-head" aria-hidden="true">
+          <span>ETF</span>
+          <span className="num">{open ? "Price" : "Fair value"}</span>
+          <span className="num">{open ? "Today" : "Expected move"}</span>
+          <span className="num">{open ? "Last close" : "Confidence"}</span>
+          <span>Our last call</span>
+          <span />
+        </div>
         {snap.quotes.map((q) => (
-          <PriceCard key={q.token} q={q} call={calls[q.token]} />
+          <PriceRow key={q.token} q={q} call={calls[q.token]} />
         ))}
       </div>
 

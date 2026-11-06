@@ -381,6 +381,12 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
     const j = (await fetch("/api/profile", { cache: "no-store" }).then((r) => r.json()).catch(() => ({ enabled: false, error: "unreachable" }))) as Me;
     setMe(j);
     if (j.profile) { setForm(j.profile); setSaved(j.profile); onName(j.profile.name); }
+    // came here from a members-only page (?next=/app…): once signed in, go back there
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (j.signedIn && j.member?.registered && next && next.startsWith("/") && !next.startsWith("//")) {
+      memberChanged();
+      window.location.assign(next);
+    }
     if (j.signedIn && j.address) avatarChanged(j.address, j.avatarAt ?? null);
   }, [onName]);
   useEffect(() => { load(); }, [load, account]);
@@ -406,6 +412,8 @@ function Editor({ account, onName }: { account: string; onName: (n: string) => v
       if (j.member) setMe((m) => (m ? { ...m, member: j.member } : m));
       if (first) memberChanged();
       toast(first ? "You're in. Welcome to Nightshift!" : "Profile saved.", "ok");
+      const next = new URLSearchParams(window.location.search).get("next");
+      if (first && next && next.startsWith("/") && !next.startsWith("//")) setTimeout(() => window.location.assign(next), 900);
     } catch (e) {
       toast((e as Error).message, "warn");
     } finally {

@@ -40,6 +40,18 @@ export async function fetchChart(
       if (typeof o === "number" && typeof c === "number") bars.push({ t: ts[i], o, c });
     }
     if (bars.length < (prePost ? 1 : 5)) return fallbackChart(symbol, interval, range);
+    // during the session Yahoo's daily bar for today can repeat yesterday's open exactly; read today's open from the
+    // 5-minute bar that starts at the same moment (09:30 ET) instead
+    if (interval === "1d" && bars.length >= 2 && bars[bars.length - 1].o === bars[bars.length - 2].o) {
+      const last = bars[bars.length - 1];
+      const fine = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=1d`, { headers: { "User-Agent": UA }, next: { revalidate: 120 }, signal: AbortSignal.timeout(6000) })
+        .then((x) => (x.ok ? x.json() : null))
+        .catch(() => null);
+      const fr = fine?.chart?.result?.[0];
+      const i = (fr?.timestamp ?? []).indexOf(last.t);
+      const o = i >= 0 ? fr.indicators?.quote?.[0]?.open?.[i] : null;
+      if (typeof o === "number" && o > 0) last.o = o;
+    }
     const price = typeof r.meta?.regularMarketPrice === "number" ? r.meta.regularMarketPrice : bars[bars.length - 1].c;
     return { symbol, bars, price };
   } catch {
@@ -83,12 +95,12 @@ async function fallbackChart(symbol: string, interval: "5m" | "1h" | "1d", range
 
 /**
  * The official opening price of `symbol` on `date` (YYYY-MM-DD, New York), for settling prediction rounds. Two fresh
- * (uncached) Yahoo readings must agree within 0.3%: the open of the daily bar for that date, and the open of the 5-minute
- * bar that starts exactly at 09:30:00 ET. Anything missing or disagreeing returns null, so the caller waits and retries;
- * a lagging feed can never hand back the previous session's open.
+ * (uncached) intraday readings must agree within 0.3%: the open of the 1-minute bar and of the 5-minute bar that both
+ * start exactly at 09:30:00 ET. Yahoo's daily bar isn't used: during the session it can repeat the previous day's open.
+ * Anything missing or disagreeing returns null, so the caller waits and retries.
  */
 export async function officialOpen(symbol: string, date: string): Promise<{ open: number; check: number } | null> {
-  const get = async (interval: "1d" | "5m") => {
+  const get = async (interval: "1m" | "5m") => {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=5d`;
     const res = await fetch(url, { headers: { "User-Agent": UA }, cache: "no-store", signal: AbortSignal.timeout(8000) }).catch(() => null);
     if (!res?.ok) return null;
@@ -98,12 +110,12 @@ export async function officialOpen(symbol: string, date: string): Promise<{ open
     return ts.map((t, i) => ({ t, o: opens[i] }));
   };
   const openT = etToUtcMs(date, 9, 30) / 1000;
-  const [daily, intraday] = await Promise.all([get("1d"), get("5m")]);
-  const day = daily?.find((b) => etParts(b.t * 1000).date === date && b.t >= openT - 60 && b.t <= openT + 60);
-  const first = intraday?.find((b) => b.t === openT);
-  if (typeof day?.o !== "number" || typeof first?.o !== "number" || day.o <= 0 || first.o <= 0) return null;
-  if (Math.abs(day.o / first.o - 1) > 0.003) return null;
-  return { open: day.o, check: first.o };
+  const [m1, m5] = await Promise.all([get("1m"), get("5m")]);
+  const a = m1?.find((b) => b.t === openT);
+  const b = m5?.find((x) => x.t === openT);
+  if (typeof a?.o !== "number" || typeof b?.o !== "number" || a.o <= 0 || b.o <= 0) return null;
+  if (Math.abs(a.o / b.o - 1) > 0.003) return null;
+  return { open: a.o, check: b.o };
 }
 
 /** Price at time T (epoch s) using only information available at or before T. */

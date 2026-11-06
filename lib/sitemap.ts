@@ -19,7 +19,6 @@ export const PAGES = [
   { group: "check", href: "/oracle", label: "Live prices", tech: "Oracle", icon: "M4 18 9 12l4 3 7-9M15 6h5v5", what: "What SPY, QQQ, gold, silver and bitcoin ETFs are worth right now, even while markets are closed." },
   { group: "check", href: "/scorecard", label: "Weekly scorecard", tech: "Scorecard", icon: "M4 20V10M10 20V4M16 20v-7M22 20H2", what: "Our overnight price against the real open every week, wins and misses both shown." },
   { group: "check", href: "/transactions", label: "Every transaction", tech: "Transactions", icon: "M4 8h13l-3-3M20 16H7l3 3", what: "Loans, buys, price updates and records in one list, each linked to its block explorer." },
-  { group: "check", href: "/transparency", label: "Check our work", tech: "Transparency", icon: "M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6zM9 12l2 2 4-4", what: "Our past predictions, the safety rules proven by math, and every contract address." },
   { group: "check", href: "/proof", label: "Prove a loan is solvent, privately", tech: "Proof", icon: "M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6zM12 9.5a2.5 2.5 0 1 0 0 5", what: "Show a loan is solvent without revealing its size, using a zero-knowledge proof." },
   { group: "more", href: "/docs", label: "How it works", tech: "Docs", icon: "M6 3h9l3 3v15H6zM9 9h6M9 13h6M9 17h4", what: "Straight answers on prices, loans, protection and what is still a demo." },
   { group: "more", href: "/leaderboard", label: "Rankings", tech: "Leaderboard", icon: "M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3", what: "Everyone who has used Nightshift, ranked by what they've done." },
@@ -51,8 +50,8 @@ export const INTEGRATIONS: Integration[] = [
     short: "Aristotle machine-checked 24 Lean 4 proofs of the lending, Guardian and Oracle rules.",
     uses: "Harmonic's Aristotle checked 24 Lean 4 proofs of Nightshift's core rules: when a loan can be liquidated, how much the Guardian sells, and how far the Oracle's price and confidence can move.",
     matters: "Lending code fails at the edges. Proofs cover every input, not just the cases a test happened to try, so “a healthy loan can't be liquidated” is a theorem rather than a promise.",
-    page: { href: "/transparency#verified", label: "Transparency" },
-    proof: { href: "/transparency#verified", label: "See the 24 proofs" },
+    page: { href: "https://github.com/nightshift-labs007/nightshift-formal", label: "GitHub" },
+    proof: { href: "https://github.com/nightshift-labs007/nightshift-formal", label: "See the 24 proofs" },
   },
   {
     name: "Morpho",
@@ -63,7 +62,7 @@ export const INTEGRATIONS: Integration[] = [
     uses: "The Vault follows Morpho Blue's rules (health factor, LLTV, liquidation incentive), and Nightshift publishes its prices on Base in Morpho's oracle format, so a Morpho market can use them directly.",
     matters: "Morpho's rules are battle-tested and already proven in Lean for Nightshift's Vault, so lenders get familiar, audited-style mechanics priced by an overnight fair value.",
     page: { href: "/app", label: "App" },
-    proof: { href: "/transparency#verified", label: "See the proven Vault rules" },
+    proof: { href: "https://github.com/nightshift-labs007/nightshift-formal", label: "See the proven Vault rules" },
   },
   {
     name: "Base",
@@ -73,8 +72,8 @@ export const INTEGRATIONS: Integration[] = [
     short: "The Oracle, Vault, Guardian, Stack, predictions and the public record all live on Base.",
     uses: "Nightshift's contracts run on Base, and every weekday before the open its predicted prices are recorded there in a transaction, then graded against the real open. Sign-ups are recorded there too.",
     matters: "A track record you can edit afterwards is worthless. Locking each call on-chain before the market opens makes the accuracy record tamper-proof, losing days included.",
-    page: { href: "/transparency#ledger", label: "Transparency" },
-    proof: { href: "/transparency#ledger", label: "See the locked predictions" },
+    page: { href: "/etf/SPY", label: "Track record" },
+    proof: { href: "/etf/SPY", label: "See every past call" },
   },
   {
     name: "Sentora",

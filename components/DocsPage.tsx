@@ -439,7 +439,7 @@ export function DocsPage() {
               <p>
                 24 properties: 8 for the Vault, 6 for the Guardian, 6 for the Oracle and 4 for Cloak. They are written in Lean 4, proven with
                 Harmonic&apos;s Aristotle and re-checked by Lean&apos;s kernel. Each one, with a plain-English summary and its Lean source, is
-                on <Link href="/transparency">Transparency</Link>; the sources are public at <code>/verified/src/</code>. A manifest of all 24
+                on <a href="https://github.com/nightshift-labs007/nightshift-formal" target="_blank" rel="noopener noreferrer">GitHub</a>; the sources are public at <code>/verified/src/</code>. A manifest of all 24
                 is fingerprinted (SHA-256) and the fingerprint is recorded on Base, and 43 test cases check that the Lean models and the
                 Solidity contracts give the same answers.
               </p>
