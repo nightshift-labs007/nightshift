@@ -20,6 +20,9 @@ export interface DbHandle {
 
 export const MIGRATIONS_DIR = fileURLToPath(new URL("../migrations", import.meta.url));
 
+/** Arbitrary constant key for pg_advisory_lock around migrations. */
+const MIGRATION_LOCK_ID = 7_340_219_001;
+
 /**
  * `postgres://…` for real Postgres. `pglite:memory` or `pglite:<dir>` for embedded Postgres + pgvector
  * (tests and `pnpm dev:local`; one process only).
@@ -43,7 +46,18 @@ export async function openDb(url = process.env.DATABASE_URL): Promise<DbHandle> 
   const db = drizzlePostgres(sql, { schema });
   return {
     db: db as unknown as Db,
-    migrate: () => migratePostgres(db, { migrationsFolder: MIGRATIONS_DIR }),
+    // api and worker both migrate on boot; a session advisory lock (held on one reserved connection)
+    // makes the second process wait, then find nothing left to apply.
+    migrate: async () => {
+      const conn = await sql.reserve();
+      try {
+        await conn`select pg_advisory_lock(${MIGRATION_LOCK_ID})`;
+        await migratePostgres(db, { migrationsFolder: MIGRATIONS_DIR });
+      } finally {
+        await conn`select pg_advisory_unlock(${MIGRATION_LOCK_ID})`.catch(() => {});
+        conn.release();
+      }
+    },
     close: () => sql.end(),
   };
 }

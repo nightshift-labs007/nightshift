@@ -1,0 +1,17 @@
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/.data
+**/.expo
+**/*.log
+.env
+.env.*
+!.env.example
+replays
+evals
+packages/chain/out
+packages/chain/cache
+apps/mobile/ios
+apps/mobile/android

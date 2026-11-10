@@ -64,7 +64,10 @@ export const LIVE_REQUIRED = [
 ] as const;
 
 export function loadEnv(raw: NodeJS.ProcessEnv = process.env): Env {
-  const env = Env.parse(Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== "")));
+  const vars = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== ""));
+  // Hosts like Railway assign the listening port through PORT; an explicit API_PORT still wins.
+  if (!vars.API_PORT && vars.PORT) vars.API_PORT = vars.PORT;
+  const env = Env.parse(vars);
   if (env.NIGHTSHIFT_SIGNALS_MODE === "live") {
     const missing = LIVE_REQUIRED.filter((k) => !env[k]);
     if (missing.length) throw new Error(`live mode is missing: ${missing.join(", ")} (see .env.example)`);
