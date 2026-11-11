@@ -1,8 +1,15 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.nightshift.buzz" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "www.nightshift.buzz"
+        }
+      ],
       "destination": "https://nightshift.buzz/:path*",
       "permanent": true
     }
