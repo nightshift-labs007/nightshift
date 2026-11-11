@@ -14,7 +14,6 @@ import {
   PlatformLiveSender,
   TelegramNotifier,
   WebPushSender,
-  XNotifier,
   UniswapV3Quotes,
   VoyageEmbedder,
   chainClient,
@@ -131,9 +130,6 @@ export async function buildRuntime(env: Env, opts: { bus?: Bus; prices?: PriceCa
   const vapid = vapidKeys(env, local);
   deps.notifiers = opts.notifiers ?? [
     ...(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHANNEL_ID ? [new TelegramNotifier(env.TELEGRAM_BOT_TOKEN, env.TELEGRAM_CHANNEL_ID, fetch, env.TELEGRAM_MINIAPP_LINK ?? null)] : []),
-    ...(env.X_API_KEY && env.X_API_SECRET && env.X_ACCESS_TOKEN && env.X_ACCESS_SECRET
-      ? [new XNotifier({ apiKey: env.X_API_KEY, apiSecret: env.X_API_SECRET, accessToken: env.X_ACCESS_TOKEN, accessSecret: env.X_ACCESS_SECRET })]
-      : []),
     ...(vapid ? [new PushNotifier(handle.db, new WebPushSender({ ...vapid, subject: env.VAPID_SUBJECT }), env.APP_URL)] : []),
   ];
 

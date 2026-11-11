@@ -52,7 +52,7 @@ Robinhood Chain / Uniswap docs, never guesses):
 UNISWAP_QUOTER_ADDRESS, USDG_ADDRESS, TOKEN_REGISTRY`.
 
 Optional, as in `.env.example`: `VOYAGE_API_KEY`, `VAPID_*` (web push; **required for push in live mode**,
-since keys are only auto-generated in local mode), `TELEGRAM_*`, `X_*`, `ELEVENLABS_*`, `APNS_*`, `EXPO_ACCESS_TOKEN`,
+since keys are only auto-generated in local mode), `TELEGRAM_*`, `ELEVENLABS_*`, `APNS_*`, `EXPO_ACCESS_TOKEN`,
 `UNISWAP_CHAIN_SLUG`, `MAX_SLIP_BPS`, `MIN_POOL_LIQUIDITY_USDG`.
 `APNS_PRIVATE_KEY` can be pasted with literal `\n` for newlines.
 
