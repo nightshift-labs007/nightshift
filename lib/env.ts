@@ -21,6 +21,8 @@ export const env = {
   faucetKey: v("FAUCET_PRIVATE_KEY"),
   anthropicKey: v("ANTHROPIC_API_KEY"),
   twelveDataKey: v("TWELVEDATA_API_KEY"),
+  // The private store: Postgres (Railway) when set, else Upstash Redis.
+  databaseUrl: v("DATABASE_URL"),
   // Vercel's Upstash integration may name these KV_REST_API_*: accept either
   upstashUrl: v("UPSTASH_REDIS_REST_URL") || v("KV_REST_API_URL"),
   upstashToken: v("UPSTASH_REDIS_REST_TOKEN") || v("KV_REST_API_TOKEN"),
@@ -38,6 +40,9 @@ export const env = {
   turnstileSite: v("NEXT_PUBLIC_TURNSTILE_SITE_KEY"),
 };
 
+/** A durable store for profiles, members and rate limits: Postgres or Upstash. */
+export const storeConfigured = () => !!env.databaseUrl || !!(env.upstashUrl && env.upstashToken);
+
 const looksLikeKey = (k: string) => /^0x[0-9a-fA-F]{64}$/.test(k);
 
 /** What is configured, as booleans only (never values). */
@@ -50,8 +55,8 @@ export function configStatus() {
     faucet: looksLikeKey(env.faucetKey),
     newsAgent: env.anthropicKey.length > 0,
     priceFallback: env.twelveDataKey.length > 0,
-    durableRateLimit: !!(env.upstashUrl && env.upstashToken),
-    profiles: !!(env.upstashUrl && env.upstashToken && env.cronSecret.length >= 16),
+    durableRateLimit: storeConfigured(),
+    profiles: storeConfigured() && env.cronSecret.length >= 16,
     email: !!(env.resendKey && env.resendFrom),
     captcha: !!(env.turnstileSecret && env.turnstileSite),
     alerts: !!(env.telegramToken && env.telegramChat),
@@ -65,7 +70,7 @@ export function configProblems(): string[] {
   for (const [name, val] of [["ORACLE_UPDATER_PRIVATE_KEY", env.updaterKey], ["KEEPER_PRIVATE_KEY", env.keeperKey], ["FAUCET_PRIVATE_KEY", env.faucetKey]] as const)
     if (val && !looksLikeKey(val)) p.push(`${name} is not a 0x-prefixed 32-byte hex key`);
   if (env.cronSecret && env.cronSecret.length < 16) p.push("CRON_SECRET should be at least 16 characters");
-  if (!!env.upstashUrl !== !!env.upstashToken) p.push("set both UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN");
+  if (!env.databaseUrl && !!env.upstashUrl !== !!env.upstashToken) p.push("set both UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN");
   if (!!env.turnstileSecret !== !!env.turnstileSite) p.push("set both TURNSTILE_SECRET_KEY and NEXT_PUBLIC_TURNSTILE_SITE_KEY");
   return p;
 }

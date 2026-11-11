@@ -7,6 +7,7 @@ The site is one Next.js app. It is deployed twice from the same repo, and each c
 | Serves | every page | every `/api/*` route |
 | Domain | `nightshift.buzz` (unchanged, no DNS move) | `<service>.up.railway.app` |
 | Server secrets | none needed | all of them |
+| Database | none | Railway Postgres (`DATABASE_URL`): profiles, members, invites, waitlist, rate limits |
 
 `middleware.ts` does the routing. When `BACKEND_URL` is set (Vercel), every `/api/*` request is forwarded to Railway
 under the same origin, so the browser's relative `fetch("/api/…")` calls and the session cookies on `nightshift.buzz`
@@ -40,7 +41,7 @@ BASE_RPC_URL                     ETH_RPC_URL             PRICE_STALE_MINUTES
 ANTHROPIC_API_KEY                NEWS_MODEL
 GROQ_API_KEY                     NYX_MODEL
 TWELVEDATA_API_KEY
-UPSTASH_REDIS_REST_URL           UPSTASH_REDIS_REST_TOKEN    (or KV_REST_API_URL / KV_REST_API_TOKEN)
+DATABASE_URL=${{Postgres.DATABASE_URL}}   the private store; tables are created on first use
 PRIVY_APP_SECRET                 NEXT_PUBLIC_PRIVY_APP_ID
 RESEND_API_KEY                   RESEND_FROM
 TURNSTILE_SECRET_KEY             NEXT_PUBLIC_TURNSTILE_SITE_KEY
@@ -50,6 +51,16 @@ SENTORA_VAULT_ADDRESS  SENTORA_VAULT_CONFIRMED  SENTORA_FIRELIGHT_COVER  SENTORA
 SENTORA_LLAMA_POOL     SENTORA_DEPOSIT_URL      SENTORA_APY_7D           SENTORA_APY_AS_OF
 ```
 `ALGORAND_MNEMONIC`, if you have it set on Vercel, goes here too.
+
+### Moving existing data from Upstash
+Before this, profiles, sessions, invites and the waitlist lived in Upstash Redis. Copy them once so existing users keep
+their accounts. Use Railway's **public** Postgres URL (Postgres service → Variables → `DATABASE_PUBLIC_URL`) and the
+Upstash REST URL and token (Vercel → Storage → the database, or the Upstash console):
+
+```
+KV_REST_API_URL=… KV_REST_API_TOKEN=… DATABASE_URL=<public postgres url> node scripts/migrate-upstash-to-postgres.mjs
+```
+Safe to re-run: every row is an upsert.
 
 ## 2. Vercel: switch the frontend over
 
