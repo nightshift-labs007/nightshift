@@ -9,7 +9,7 @@ Status as of 12 Oct 2026. For architecture and formulas see [TECHNICAL.md](TECHN
 | Layer | Stack |
 |---|---|
 | App | Next.js 15 (App Router), React 19, TypeScript 5.9 |
-| Hosting | Vercel (Hobby), Vercel Cron, cron-job.org for 5-min keeper |
+| Hosting | Pages on Vercel, every `/api` route on Railway (docs/DEPLOY_SPLIT.md); cron-job.org for scheduled jobs |
 | EVM | Solidity 0.8.26 (solc), Hardhat 2 (local chain), viem 2, Base Sepolia |
 | Wallets | EIP-6963 browser wallets, WalletConnect v2 (Reown) |
 | Lending model | Morpho Blue (LLTV tiers, LIF liquidation, `IOracle` adapter) |
@@ -69,7 +69,7 @@ If a market feed fails, that asset falls back to labelled simulated data (`"sour
 ## Tooling & ops
 
 - **Scripts:** `contracts:compile`, `contracts:deploy`, `chain:local`, `zk:build`, `algo:account`, `formal:prove | check | test | anchor`
-- **Crons (`vercel.json`):** `/api/commit` weekdays 12:00 UTC (Algorand stamp), `/api/keeper` daily 12:30 UTC (fallback; cron-job.org runs it every 5 min)
+- **Crons (cron-job.org, via nightshift.buzz):** `/api/commit` weekdays 12:00 UTC (Algorand stamp), `/api/keeper` every 10 min
 - **CI:** GitHub Actions `formal-verification` — Lean build, axiom audit, Lean test vectors replayed against the real contracts on Hardhat, manifest build, Algorand anchor on `main`
 - **Lean:** toolchain `v4.28.0`, Mathlib `v4.28.0` (pinned to what Aristotle supports)
 
