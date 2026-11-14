@@ -11,7 +11,6 @@
 import fs from "node:fs";
 import solc from "solc";
 import { createPublicClient, createWalletClient, http, parseEther, defineChain } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
 
 const ROUNDS = Number(process.argv[2] ?? 150);
 let seed = Number(process.argv[3] ?? Date.now() % 1e9);
@@ -22,8 +21,9 @@ const pick = (lo, hi) => Math.floor(lo + rand() * (hi - lo + 1));
 const A = JSON.parse(fs.readFileSync("lib/chain/artifacts.json", "utf8"));
 const chain = defineChain({ id: 31337, name: "local", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: ["http://127.0.0.1:8545"] } } });
 const pub = createPublicClient({ chain, transport: http() });
-const KEYS = ["0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"];
-const [owner, user, keeper] = KEYS.map((k) => createWalletClient({ chain, transport: http(), account: privateKeyToAccount(k) }));
+// The local Hardhat node's own funded dev accounts. The node signs for them, so no private keys live in this repo.
+const ACCOUNTS = await pub.request({ method: "eth_accounts" });
+const [owner, user, keeper] = ACCOUNTS.slice(0, 3).map((account) => createWalletClient({ chain, transport: http(), account }));
 const E = parseEther;
 const BPS = 10_000n, WAD = 10n ** 18n;
 

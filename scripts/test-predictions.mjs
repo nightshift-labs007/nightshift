@@ -5,20 +5,14 @@
 // the Pyth path (MockPyth), refunds (tie, one-sided, cancel) and properties P1 to P5, plus a randomised fuzz pass.
 import fs from "node:fs";
 import { createPublicClient, createWalletClient, http, parseEther, formatEther, defineChain, toHex } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
 
 const A = JSON.parse(fs.readFileSync("lib/chain/artifacts.json", "utf8"));
 const chain = defineChain({ id: 31337, name: "local", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: ["http://127.0.0.1:8545"] } } });
 const pub = createPublicClient({ chain, transport: http() });
-const KEYS = [
-  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // owner + arbiter
-  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // keeper (operator)
-  "0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a", // alice
-  "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6", // bob
-  "0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a", // carol
-  "0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba", // mallory (never registered)
-];
-const [owner, keeper, alice, bob, carol, mallory] = KEYS.map((k) => createWalletClient({ chain, transport: http(), account: privateKeyToAccount(k) }));
+// The local Hardhat node's own funded dev accounts. The node signs for them, so no private keys live in this repo.
+// Roles: owner + arbiter, keeper (operator), alice, bob, carol, mallory (never registered).
+const ACCOUNTS = await pub.request({ method: "eth_accounts" });
+const [owner, keeper, alice, bob, carol, mallory] = ACCOUNTS.slice(0, 6).map((account) => createWalletClient({ chain, transport: http(), account }));
 const PLAYERS = [alice, bob, carol];
 
 let pass = 0, fail = 0;
