@@ -102,3 +102,23 @@ export function nextSessionDate(nowMs = Date.now()): string {
   }
   return etParts(nowMs).date;
 }
+
+export type RoundPlan =
+  | { ok: true; session: string; lockTime: number; marketOpen: number }
+  | { ok: false; reason: "market open" | "before the evening call" | "too close to the open"; session?: string };
+
+/**
+ * When the evening "Call the Open" rounds may be created, and their times (unix seconds). Rounds target the next
+ * trading session (weekends and NYSE holidays skipped), open four hours after the last close (20:00 ET on a normal
+ * day, 17:00 ET after an early close), lock at 09:00 ET and settle on the 09:30 ET open. `early` skips the evening
+ * wait (team action). Pure, so it can be tested without a chain: the keeper calls it before any transaction.
+ */
+export function eveningRoundPlan(nowMs: number, lastCloseMs: number, opts: { marketOpen?: boolean; early?: boolean } = {}): RoundPlan {
+  if (opts.marketOpen) return { ok: false, reason: "market open" };
+  const session = nextSessionDate(nowMs);
+  if (nowMs < lastCloseMs + 4 * 3600_000 && !opts.early) return { ok: false, reason: "before the evening call", session };
+  const lockTime = Math.floor(etToUtcMs(session, 9, 0) / 1000);
+  const marketOpen = Math.floor(etToUtcMs(session, 9, 30) / 1000);
+  if (lockTime - nowMs / 1000 < 30 * 60) return { ok: false, reason: "too close to the open", session };
+  return { ok: true, session, lockTime, marketOpen };
+}
