@@ -65,3 +65,24 @@ test("trading-date stepping and round spans", () => {
   assert.deepEqual(playRoundsBetween("2026-11-24", "2026-11-30"), ["2026-11-24", "2026-11-25", "2026-11-27", "2026-11-30"]);
   assert.deepEqual(playRoundsBetween("2026-11-21", "2026-11-23"), ["2026-11-23"]); // a weekend start rolls forward
 });
+
+// ---------------------------------------------------------------- Beat the AI
+import { aiRoundFor, currentAiRound } from "../lib/time.ts";
+
+test("Beat the AI: call at 20:00 ET the evening before, lock 04:00 ET, settle at the 09:30 open", () => {
+  assert.deepEqual(aiRoundFor("2026-11-20"), {
+    date: "2026-11-20",
+    callMs: ms("2026-11-20T01:00:00Z"), // Thu 20:00 ET
+    lockMs: ms("2026-11-20T09:00:00Z"), // Fri 04:00 ET
+    openMs: ms("2026-11-20T14:30:00Z"),
+  });
+});
+
+test("Beat the AI: the round in play by time of day, weekend and holiday", () => {
+  assert.equal(currentAiRound(ms("2026-11-20T08:59:00Z")).date, "2026-11-20"); // Fri 03:59 ET: still Friday's round
+  assert.equal(currentAiRound(ms("2026-11-20T09:00:00Z")).date, "2026-11-23"); // Fri 04:00 ET: locked, next is Monday
+  const mon = aiRoundFor("2026-11-23");
+  assert.equal(mon.callMs, ms("2026-11-21T01:00:00Z"), "Monday's call comes Friday 20:00 ET");
+  assert.equal(aiRoundFor("2026-11-27").callMs, ms("2026-11-26T01:00:00Z"), "after Thanksgiving: Wed 20:00 ET");
+  assert.equal(aiRoundFor("2026-11-30").callMs, ms("2026-11-27T22:00:00Z"), "after the 13:00 early close: 17:00 ET");
+});

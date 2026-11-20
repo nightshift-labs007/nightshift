@@ -187,3 +187,31 @@ export function playRoundsBetween(fromDate: string, toDate: string): string[] {
   }
   return out;
 }
+
+// ---------------------------------------------------------------- "Beat the AI" (points only)
+
+/**
+ * A "Beat the AI" round is named by its session S (the open it is decided by). Nightshift's call is taken four hours
+ * after the previous close (20:00 ET; 17:00 after an early close), picks lock at 04:00 ET on S (before pre-market
+ * trading starts) and the round settles on S's 09:30 ET open.
+ */
+export type AiRound = { date: string; callMs: number; lockMs: number; openMs: number };
+
+export function aiRoundFor(session: string): AiRound {
+  return {
+    date: session,
+    callMs: closeUtcMs(prevTradingDate(session)) + 4 * 3600_000,
+    lockMs: etToUtcMs(session, 4, 0),
+    openMs: etToUtcMs(session, 9, 30),
+  };
+}
+
+/** The next "Beat the AI" round whose lock is still ahead (its call may not have been made yet: see callMs). */
+export function currentAiRound(nowMs: number): AiRound {
+  let d = etParts(nowMs).date;
+  for (let i = 0; i < 15; i++) {
+    if (isTradingDate(d) && etToUtcMs(d, 4, 0) > nowMs) return aiRoundFor(d);
+    d = addDays(d, 1);
+  }
+  return aiRoundFor(d);
+}

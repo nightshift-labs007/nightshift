@@ -4,6 +4,8 @@ import { authorized } from "@/lib/env";
 import { getHealth } from "@/lib/health";
 import { pushPrices, runGuardian, runStack } from "@/lib/chain/keeper";
 import { runPredictions } from "@/lib/chain/predictions";
+import { ensureAiCall } from "@/lib/play/ai";
+import { runReminders } from "@/lib/play/remind";
 import { settleDue } from "@/lib/play/settle";
 import { getOracleSnapshot } from "@/lib/oracle";
 
@@ -37,7 +39,9 @@ export async function GET(req: NextRequest) {
     out.predictions = { error: String(e).slice(0, 300) };
   }
   try {
-    out.play = await settleDue(Date.now()); // points game: settle rounds whose open has happened (off-chain)
+    const now = Date.now();
+    // points games (off-chain): Nightshift's evening call for Beat the AI, settling due rounds, reminder emails
+    out.play = { aiCall: !!(await ensureAiCall(now)), settled: await settleDue(now), reminders: await runReminders(now) };
   } catch (e) {
     out.play = { error: String(e).slice(0, 300) };
   }

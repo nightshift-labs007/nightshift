@@ -1,7 +1,7 @@
 import "server-only";
 import { formatUnits, type Address } from "viem";
 import { EVENING_PREFIX, ledgerAddress, stampPrediction, type Prediction } from "@/lib/ledger";
-import { officialOpen } from "@/lib/data";
+import { officialOpen } from "@/lib/prices";
 import { kvEnabled, kvGet, kvHDel, kvHGetAll, kvHSet, kvSetEx } from "@/lib/kv";
 import { people } from "@/lib/members";
 import { getOracleSnapshot } from "@/lib/oracle";
@@ -185,7 +185,7 @@ async function settleRounds(c: NonNullable<ReturnType<typeof roleClients>>, pm: 
     const proposed: string[] = [];
     const waiting: string[] = [];
     for (const r of toPropose) {
-      // two fresh readings of the official open must agree (lib/data.ts officialOpen); otherwise wait for the next run
+      // two fresh readings of the official open must agree (lib/prices officialOpen); otherwise wait for the next run
       const o = await officialOpen(r.token, r.session);
       if (!o) {
         waiting.push(`${r.token} ${r.session}`);

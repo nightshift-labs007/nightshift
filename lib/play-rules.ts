@@ -64,6 +64,7 @@ export type PlayStats = {
   accuracy: number | null; // wins / (wins + losses); pushes and voids don't count
   streak: number; // rounds played in a row, up to now
   bestStreak: number;
+  byRound: Record<string, number>; // points earned in each settled round (for weekly totals)
 };
 
 /**
@@ -71,8 +72,9 @@ export type PlayStats = {
  * (`open: true`). Streak = consecutive rounds with at least one pick. A round you skipped resets it; the open round
  * only adds to it once you've picked (there's still time). Points come from settled rounds only.
  */
-export function playStats(rounds: PlayedRound[]): PlayStats {
-  const s: PlayStats = { points: 0, wins: 0, losses: 0, pushes: 0, pending: 0, accuracy: null, streak: 0, bestStreak: 0 };
+export function playStats(rounds: PlayedRound[], opts: { streakBonus?: boolean } = {}): PlayStats {
+  const s: PlayStats = { points: 0, wins: 0, losses: 0, pushes: 0, pending: 0, accuracy: null, streak: 0, bestStreak: 0, byRound: {} };
+  const bonusOn = opts.streakBonus !== false;
   let run = 0;
   for (const r of rounds) {
     const tickers = Object.keys(r.picks);
@@ -83,17 +85,36 @@ export function playStats(rounds: PlayedRound[]): PlayStats {
     run += 1;
     s.bestStreak = Math.max(s.bestStreak, run);
     let settled = false;
+    let earned = 0;
     for (const t of tickers) {
       const res = scorePick(r.picks[t], r.result, t);
-      if (res === "win") (s.wins++, (s.points += POINTS.correct));
+      if (res === "win") (s.wins++, (earned += POINTS.correct));
       else if (res === "loss") s.losses++;
       else if (res === "push") s.pushes++;
       else if (res === "pending") s.pending++;
       if (res !== "pending" && res !== "void") settled = true;
     }
-    if (settled && run >= POINTS.streakBonusFrom) s.points += POINTS.streakBonus;
+    if (settled && bonusOn && run >= POINTS.streakBonusFrom) earned += POINTS.streakBonus;
+    if (settled) s.byRound[r.date] = earned;
+    s.points += earned;
   }
   s.streak = run;
   s.accuracy = s.wins + s.losses ? s.wins / (s.wins + s.losses) : null;
   return s;
+}
+
+/** Monday of the New York week that contains `date` (YYYY-MM-DD), for weekly leaderboards. */
+export function weekStart(date: string): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
+export type BoardRow = { nick: string; points: number; week: number; accuracy: number | null; streak: number; rounds: number };
+
+/** Leaderboard order: points (for the chosen period), then accuracy, then rounds played, then nickname. */
+export function rankBoard(rows: BoardRow[], by: "week" | "points"): BoardRow[] {
+  return [...rows]
+    .filter((r) => r[by] > 0 || r.rounds > 0)
+    .sort((a, b) => b[by] - a[by] || (b.accuracy ?? -1) - (a.accuracy ?? -1) || b.rounds - a.rounds || a.nick.localeCompare(b.nick));
 }
