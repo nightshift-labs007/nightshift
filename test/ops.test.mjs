@@ -41,7 +41,7 @@ test("day-1 and day-7 return by first-seen cohort", () => {
   assert.equal(addDays("2026-12-31", 1), "2027-01-01");
 });
 
-test("test mode: on locally, on a preview only with the flag, never in production", () => {
+test("test mode: on locally, on a preview or staging only with the flag, never in production", () => {
   const save = { ...process.env };
   try {
     process.env.NODE_ENV = "development";
@@ -56,8 +56,15 @@ test("test mode: on locally, on a preview only with the flag, never in productio
     assert.equal(testMode(), true, "Vercel preview with the flag: on");
     delete process.env.PLAY_TEST_MODE;
     assert.equal(testMode(), false, "Vercel preview without the flag: off");
+    delete process.env.VERCEL_ENV;
+    process.env.NIGHTSHIFT_ENV = "staging";
+    assert.equal(testMode(), false, "staging without the flag: off");
+    process.env.PLAY_TEST_MODE = "1";
+    assert.equal(testMode(), true, "staging (e.g. Railway) with the flag: on");
+    process.env.NIGHTSHIFT_ENV = "production";
+    assert.equal(testMode(), false, "marked production: off even with the flag");
   } finally {
-    for (const k of ["NODE_ENV", "VERCEL_ENV", "PLAY_TEST_MODE"]) {
+    for (const k of ["NODE_ENV", "VERCEL_ENV", "PLAY_TEST_MODE", "NIGHTSHIFT_ENV"]) {
       if (save[k] === undefined) delete process.env[k];
       else process.env[k] = save[k];
     }

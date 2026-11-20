@@ -75,4 +75,10 @@ export function verifySig(data: string, sig: string): boolean {
 /** The site's own origin for links in emails and share cards. */
 export const siteOrigin = () =>
   (process.env.SITE_URL ?? "").trim().replace(/\/$/, "") ||
-  (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.NODE_ENV === "production" ? "https://nightshift.buzz" : "http://localhost:3000");
+  (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.RAILWAY_PUBLIC_DOMAIN // set by Railway once the service has a public domain
+      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+      : process.env.NODE_ENV === "production"
+        ? "https://nightshift.buzz"
+        : "http://localhost:3000");
