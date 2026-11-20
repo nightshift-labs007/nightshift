@@ -18,6 +18,7 @@ import { useApi } from "./useApi";
 import { VaultApp } from "./VaultApp";
 import { GettingStarted } from "./GettingStarted";
 import { FairPrices } from "./FairPrices";
+import { PlayGame } from "./PlayGame";
 import { PredictTab } from "./PredictTab";
 import { TopStocks } from "./Stocks";
 import type { StockBoard } from "@/lib/stocks";
@@ -34,9 +35,7 @@ const INTRO: Record<AppTab, string> = {
     ? `Borrow ${sym("USDG")} against ETF tokens. Practice without a wallet, or connect one and get free demo funds.`
     : "Borrow against ETF tokens with a practice account. No wallet needed.",
   stack: "Buy gold and silver on a schedule, only at a fair price.",
-  predict: PREDICT_STAKE.real
-    ? `Predict whether each ETF opens higher or lower than Nightshift's call, with small ${PREDICT_STAKE.symbol} stakes. Beta.`
-    : "Predict whether each ETF opens higher or lower than Nightshift's call. Demo tokens, no value.",
+  predict: "Free to play: will Nvidia, Apple, Tesla, the S&P 500 and gold open up or down? Points only, no wallet.",
 };
 
 const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
@@ -129,6 +128,11 @@ export function AppPage() {
       ) : tab === "predict" ? (
         <section className="block" id="predict">
           <div className="wrap">
+            <PlayGame />
+            <div className="pl-divider">
+              <p className="mono xs muted">REAL STAKES · BETA</p>
+              <h3 className="sub-title">Call the Open with {PREDICT_STAKE.symbol}</h3>
+            </div>
             <PredictTab />
           </div>
         </section>
