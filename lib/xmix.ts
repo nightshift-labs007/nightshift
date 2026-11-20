@@ -1,10 +1,11 @@
 import "server-only";
-import { getShiftReports } from "./backtest";
 import { getSentoraEarn } from "./earn/sentora";
 import { getHealth } from "./health";
 import { latestHeadlines } from "./news";
 import { getOracleSnapshot } from "./oracle";
+import { recordedCalls } from "./recorded";
 import { getStockBoard } from "./stocks";
+import { trackRecordLines } from "./x-text";
 
 /**
  * The non-Q&A posts in the X agent's hourly mix. Each returns post lines, or null when its data isn't available
@@ -62,18 +63,8 @@ export async function movers({ stamp }: MixCtx): Promise<string[] | null> {
 }
 
 export async function trackRecord({ stamp }: MixCtx): Promise<string[] | null> {
-  const reports = live(await getShiftReports());
-  if (!reports.length) return null;
-  const pct = (bps: number) => `${(bps / 100).toFixed(2)}%`;
-  const opens = reports.reduce((a, r) => a + r.rows.length, 0);
-  const wins = reports.reduce((a, r) => a + r.wins, 0);
-  return [
-    `Our track record, last ${reports[0].rows.length} market opens:`,
-    "",
-    ...reports.map((r) => `${r.token}: avg miss ${pct(r.avgNightshiftBps)} · frozen price ${pct(r.avgStaleBps)}`),
-    "",
-    `Closer than a frozen price on ${wins} of ${opens} opens · ${stamp}`,
-  ];
+  // recorded calls only: the replay reads futures at the moment of the open, so it is never posted as a track record
+  return trackRecordLines(await recordedCalls(), stamp);
 }
 
 export async function onchain({ stamp }: MixCtx): Promise<string[] | null> {

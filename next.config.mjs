@@ -5,6 +5,12 @@ const nextConfig = {
   serverExternalPackages: ["snarkjs"],
   // Lets a verification build run beside `next dev` without sharing .next
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Privy optionally imports a Farcaster/Solana package we never use (email login, EVM only); resolve it to nothing
+  // instead of warning on every build.
+  webpack: (config) => {
+    config.resolve.alias = { ...config.resolve.alias, "@farcaster/mini-app-solana": false };
+    return config;
+  },
   // the Hindi page and the India desk were retired
   async redirects() {
     return [

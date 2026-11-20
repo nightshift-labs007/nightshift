@@ -53,7 +53,7 @@ function useReveal() {
 /** Landing page: the engine hero, the stock board, live checks, integrations and the roadmap; the app itself lives at /app. */
 export function Dashboard() {
   const { data: snap } = useApi<OracleSnapshot>("/api/oracle", 60_000);
-  const { data: board } = useApi<StockBoard>("/api/stocks", 120_000);
+  const { data: board, error: boardError } = useApi<StockBoard>("/api/stocks", 120_000);
   useReveal();
 
   return (
@@ -69,7 +69,7 @@ export function Dashboard() {
               title="The world's biggest stocks, priced after the bell."
               lead="The same engine that prices the ETF tokens estimates where each of these stocks would trade right now, from index futures and each stock's own measured sensitivity to them."
             />
-            <TopStocks board={board} />
+            <TopStocks board={board} error={boardError} />
           </div>
         </section>
 

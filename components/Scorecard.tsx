@@ -209,7 +209,7 @@ export function Scorecard() {
               <Headline lines={summarise(replayed.rows)} label="Replay" />
               <WeekTable lines={summarise(replayed.rows)} />
               <p className="xs muted sc-note">
-                Each open is predicted again using only data available before it, then compared with the real open and with a frozen feed that
+                Each open is replayed from futures read at the moment of the 09:30 ET open, so it shows how well the overnight model tracks the open, not how accurate a call made hours earlier is, then compared with the real open and with a frozen feed that
                 still shows the previous close (what a traditional oracle reports overnight). A replay is a backtest, so the locked record above
                 is the one to judge us by.
               </p>

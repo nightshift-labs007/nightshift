@@ -18,7 +18,7 @@ import {
   type PredictRound,
   type PredictState,
 } from "@/lib/predictions-shared";
-import { etParts, etToUtcMs, nextSessionDate } from "@/lib/time";
+import { etParts, eveningRoundPlan } from "@/lib/time";
 import { ABI, DEPLOYMENT, PREDICT_STAKE } from "./index";
 import { publicClient, readMany, roleClients } from "./keeper";
 
@@ -123,14 +123,11 @@ async function syncMembers(c: NonNullable<ReturnType<typeof roleClients>>, pm: A
 async function openRounds(c: NonNullable<ReturnType<typeof roleClients>>, pm: Address, early = false) {
   const now = Date.now();
   const snap = await getOracleSnapshot();
-  if (snap.market.open) return { skipped: "market open" };
-  const session = nextSessionDate(now);
   const lastClose = Math.max(...snap.quotes.map((q) => Date.parse(q.lastCloseAt)));
-  // the evening call: four hours after the last close (20:00 ET on a normal day)
-  if (now < lastClose + 4 * 3600_000 && !early) return { skipped: "before the evening call", session };
-  const lockTime = Math.floor(etToUtcMs(session, 9, 0) / 1000);
-  const marketOpen = Math.floor(etToUtcMs(session, 9, 30) / 1000);
-  if (lockTime - now / 1000 < 30 * 60) return { skipped: "too close to the open", session };
+  // the evening call: four hours after the last close (20:00 ET on a normal day); see eveningRoundPlan
+  const plan = eveningRoundPlan(now, lastClose, { marketOpen: snap.market.open, early });
+  if (!plan.ok) return plan.session ? { skipped: plan.reason, session: plan.session } : { skipped: plan.reason };
+  const { session, lockTime, marketOpen } = plan;
 
   const live = snap.quotes.filter((q) => q.source === "live");
   const existing = (await readMany(

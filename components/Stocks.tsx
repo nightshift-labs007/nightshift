@@ -141,9 +141,9 @@ export function StockTable({ stocks, showSpark = true }: { stocks: StockQuote[];
 }
 
 /** Home-page section: the four headline stocks up front, every other tracked stock one click away. */
-export function TopStocks({ board }: { board: StockBoard | null }) {
+export function TopStocks({ board, error }: { board: StockBoard | null; error?: string | null }) {
   const [all, setAll] = useState(false);
-  if (!board) return <div className="skeleton">Loading stocks…</div>;
+  if (!board) return <div className="skeleton">{error ? "Couldn't load the stocks. Retrying…" : "Loading stocks…"}</div>;
   const head = ["AAPL", "NVDA", "MSFT", "TSLA"].map((t) => board.stocks.find((s) => s.ticker === t)).filter((x): x is StockQuote => !!x);
   const rest = board.stocks.filter((s) => !head.includes(s));
   return (

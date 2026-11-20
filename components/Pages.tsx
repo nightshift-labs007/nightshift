@@ -18,6 +18,7 @@ import { useApi } from "./useApi";
 import { VaultApp } from "./VaultApp";
 import { GettingStarted } from "./GettingStarted";
 import { FairPrices } from "./FairPrices";
+import { PlayGame } from "./PlayGame";
 import { PredictTab } from "./PredictTab";
 import { TopStocks } from "./Stocks";
 import type { StockBoard } from "@/lib/stocks";
@@ -34,9 +35,7 @@ const INTRO: Record<AppTab, string> = {
     ? `Borrow ${sym("USDG")} against ETF tokens. Practice without a wallet, or connect one and get free demo funds.`
     : "Borrow against ETF tokens with a practice account. No wallet needed.",
   stack: "Buy gold and silver on a schedule, only at a fair price.",
-  predict: PREDICT_STAKE.real
-    ? `Predict whether each ETF opens higher or lower than Nightshift's call, with small ${PREDICT_STAKE.symbol} stakes. Beta.`
-    : "Predict whether each ETF opens higher or lower than Nightshift's call. Demo tokens, no value.",
+  predict: "Free to play: will Nvidia, Apple, Tesla, the S&P 500 and gold open up or down? Points only, no wallet.",
 };
 
 const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
@@ -45,7 +44,7 @@ const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
 
 export function AppPage() {
   const snap = useSnapshot();
-  const { data: board } = useApi<StockBoard>("/api/stocks", 120_000);
+  const { data: board, error: boardError } = useApi<StockBoard>("/api/stocks", 120_000);
   // practice first: visitors without a wallet start in the paper account; a connected wallet switches to the real
   // demo, unless the visitor picked a mode themselves
   const [mode, setModeState] = useState<"testnet" | "paper">("paper");
@@ -122,13 +121,18 @@ export function AppPage() {
               title="The world's biggest stocks, priced after the bell."
               lead="The same engine estimates where each of these would trade right now, from index futures and each stock's measured sensitivity to them."
             />
-            <TopStocks board={board} />
+            <TopStocks board={board} error={boardError} />
           </div>
         </section>
         </>
       ) : tab === "predict" ? (
         <section className="block" id="predict">
           <div className="wrap">
+            <PlayGame />
+            <div className="pl-divider">
+              <p className="mono xs muted">REAL STAKES · BETA</p>
+              <h3 className="sub-title">Call the Open with {PREDICT_STAKE.symbol}</h3>
+            </div>
             <PredictTab />
           </div>
         </section>

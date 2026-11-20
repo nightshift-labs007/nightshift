@@ -18,10 +18,11 @@
     "algo:build": "cd algorand && . .venv/bin/activate && ~/.local/bin/puyapy contracts --out-dir \"$PWD/artifacts\" --output-bytecode --output-arc56",
     "algo:test": "cd algorand && uv run pytest -q",
     "algo:deploy-oracle": "node --env-file=.env.local scripts/algo-deploy-oracle.mjs",
-    "algo:push": "node --env-file=.env.local scripts/algo-push-prices.mjs"
+    "algo:push": "node --env-file=.env.local scripts/algo-push-prices.mjs",
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.6"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

@@ -42,9 +42,21 @@ function account() {
   return key && /^0x[0-9a-fA-F]{64}$/.test(key) && isDeployed ? privateKeyToAccount(key as Hex) : null;
 }
 
+/** The ledger wallet we can sign with (null without ORACLE_UPDATER_PRIVATE_KEY). Use it before writing a note. */
 export function ledgerAddress(): string | null {
   return account()?.address ?? null;
 }
+
+/**
+ * The ledger wallet's public address, for reading and linking only. Falls back to the deployment's updater role, so
+ * pages that show the record don't depend on the private key being present (it isn't, on a local or read-only server).
+ */
+export function ledgerReadAddress(): string | null {
+  return ledgerAddress() ?? (isDeployed ? (DEPLOYMENT.roles?.updater ?? null) : null);
+}
+
+/** Whether the index of recorded calls (Redis) can be read; without it the record can't be listed quickly. */
+export const ledgerIndexAvailable = () => kvEnabled();
 
 /** Writes a note on Base (a 0-ETH self-transaction) and waits for it. Retries once on a nonce clash with other jobs. */
 async function writeNote(note: string): Promise<{ hash: Hex; block: number; time: number }> {

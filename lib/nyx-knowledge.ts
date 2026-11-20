@@ -3,7 +3,7 @@ import fuzz from "../public/verified/guardian-fuzz.json";
 import lltvStudy from "../public/verified/lltv-study.json";
 import manifest from "../public/verified/manifest.json";
 import slither from "../public/verified/security/slither.json";
-import { ledgerAddress, readStamps } from "./ledger";
+import { ledgerReadAddress, readStamps } from "./ledger";
 import { getShiftReports } from "./backtest";
 import { DEPLOYMENT, isDeployed } from "./chain";
 import { getSentoraEarn } from "./earn/sentora";
@@ -77,7 +77,7 @@ const SECTIONS: Section[] = [
   {
     re: /\b(accura\w*|track record|graded|predict\w*|ledger|miss\w*|how (good|right)|hit rate|backtest|frozen)\b/,
     build: async () => {
-      const [rep, stamps] = await Promise.all([within(getShiftReports()), within((async () => { const a = ledgerAddress(); return a ? readStamps(a, 5) : null; })())]);
+      const [rep, stamps] = await Promise.all([within(getShiftReports()), within((async () => { const a = ledgerReadAddress(); return a ? readStamps(a, 5) : null; })())]);
       const parts: string[] = [];
       if (rep?.length) parts.push(`Track record (last ${rep[0].rows.length} opens, predicted open vs a frozen last close):\n${rep.map((r) => `${r.token}: average miss ${f2(r.avgNightshiftBps / 100)}% vs frozen ${f2(r.avgStaleBps / 100)}%, closer on ${r.wins} of ${r.rows.length}`).join("\n")}`);
       if (stamps?.length) parts.push(`Latest predictions recorded on Base: ${stamps.slice(0, 3).map((s) => `${s.session} (locked ${new Date(s.roundTime * 1000).toISOString().slice(11, 16)} UTC): ${Object.entries(s.p).map(([k, v]) => `${k} $${f2(v)}`).join(", ")}`).join("; ")}.`);

@@ -10,8 +10,8 @@ const v = (k: string) => (process.env[k] ?? "").trim();
 const keys = () => ({ key: v("X_API_KEY"), secret: v("X_API_SECRET"), token: v("X_ACCESS_TOKEN"), tokenSecret: v("X_ACCESS_SECRET") });
 
 export const xConfigured = () => Object.values(keys()).every(Boolean);
-/** X_POSTING=off pauses the agent without removing the keys. */
-export const xPostingOn = () => v("X_POSTING").toLowerCase() !== "off";
+/** Posting is OFF unless X_POSTING=on (decided 2026-11-20: off until the owner says otherwise). Drafts and dry runs still work. */
+export const xPostingOn = () => v("X_POSTING").toLowerCase() === "on";
 
 const enc = (s: string) => encodeURIComponent(s).replace(/[!'()*]/g, (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase());
 

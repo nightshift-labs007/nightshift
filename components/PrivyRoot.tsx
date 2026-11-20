@@ -18,7 +18,7 @@ export function PrivyRoot({ children }: { children: React.ReactNode }) {
       appId={PRIVY_APP_ID}
       config={{
         loginMethods: ["email"],
-        appearance: { theme: "dark", accentColor: "#c4ecd9", logo: "https://nightshift.buzz/brand/nightshift-n-128.png", landingHeader: "Sign in to Nightshift" },
+        appearance: { theme: "dark", accentColor: "#c4ecd9", logo: "/brand/nightshift-n-128.png", landingHeader: "Sign in to Nightshift" },
         embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" }, showWalletUIs: false },
         defaultChain: chain,
         supportedChains: [chain],
