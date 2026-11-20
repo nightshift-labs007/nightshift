@@ -33,6 +33,13 @@ Newest entries go at the top of each section.
   Our `main` (Phases 1–3.5) assumes Vercel + Upstash and changes the X agent. The two need reconciling before either goes live.
 ## Decisions
 
+- 2026-11-21 (owner): deploy a **separate, temporary staging copy on a new Railway project**, deployed from the laptop with `railway up` (no GitHub push, so the existing Vercel `nightshift3` and Railway services, and `main`, are untouched).
+  - Storage: Upstash free tier (our store speaks Upstash's REST API).
+  - Address: the Railway `*.up.railway.app` domain; nightshift.buzz unchanged.
+  - Secrets: entered by the owner in Railway's dashboard only.
+  - Code prep (commit b566ba4): test mode also allowed with `NIGHTSHIFT_ENV=staging` + `PLAY_TEST_MODE=1` (never with `NIGHTSHIFT_ENV=production` or Vercel production; unit-tested); links use `RAILWAY_PUBLIC_DOMAIN`; `railway.json` (build, start, health check `/api/ops/health?soft=1`); `.railwayignore`.
+  - Status: waiting for `railway login` (the CLI's saved session had expired).
+
 - 2026-11-21 (Phase 3.5, my choices, cheap to undo):
   - **Scheduler:** game jobs moved from `/api/keeper` to `/api/jobs/play` (every 5 min); the keeper stays every 10 min (cron-job.org; see `docs/DEPLOY.md`). Every job records a heartbeat (`lib/ops.ts` `runJob`).
     - A job is **stale** after 3 missed intervals of **scheduled, successful** runs. Page-triggered backstop runs never count, so a stopped scheduler can't hide.
