@@ -1023,6 +1023,7 @@ section.block.app-start { padding-top: 8px; }
 .pd-result.higher, .pd-result.lower { border-color: var(--mint); color: var(--text); }
 .pd-result.pending { border-color: var(--amber); }
 .pd-pools { display: grid; gap: 6px; margin-top: 2px; }
+.pd-pools-empty { display: block; padding: 10px 12px; border: 1px dashed var(--line, rgba(255,255,255,.15)); border-radius: 10px; }
 .pd-pool-bar { height: 6px; border-radius: 99px; background: var(--red); opacity: 0.85; overflow: hidden; }
 .pd-pool-bar i { display: block; height: 100%; background: var(--mint); }
 .pd-pool-row { display: flex; justify-content: space-between; gap: 6px; font-size: 13px; }

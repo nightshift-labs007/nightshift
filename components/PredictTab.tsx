@@ -6,6 +6,7 @@ import { createPublicClient, createWalletClient, custom, isAddress, parseUnits, 
 import { ABI, DEPLOYMENT, NETWORK, PREDICT_STAKE, chainOf, chainTransport, isDeployed, txUrl } from "@/lib/chain";
 import type { OracleSnapshot } from "@/lib/oracle";
 import { SIDE, payoutMultiple, weightAt, type PredictRound, type PredictState } from "@/lib/predictions-shared";
+import { allOverdue, poolView, roundPhase, showsLiveComparison } from "@/lib/round-view";
 import { useWallet } from "@/lib/wallet";
 import { useRegistered } from "./Member";
 import { toast } from "./Toast";
@@ -49,6 +50,8 @@ const units = (n: number) => parseUnits(n.toFixed(PREDICT_STAKE.decimals), PREDI
 const ACK = "ns-predict-ack"; // "I understand it's an unaudited beta", once per browser
 const acked = () => { try { return localStorage.getItem(ACK) === "1"; } catch { return false; } };
 const fmt = (n: number, d = 2) => n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+/** Pool amounts: whole units, except small non-zero stakes (0.3 USDC would otherwise show as "0"). */
+const stakeText = (n: number) => fmt(n, n > 0 && n < 10 ? 2 : 0);
 const day = (unix: number) => new Date(unix * 1000).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: ET });
 const time = (unix: number) => new Date(unix * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: ET }) + " ET";
 function until(unix: number) {
@@ -200,6 +203,8 @@ export function PredictTab() {
   const now = Date.now() / 1000;
   const lock = current[0]?.lockTime ?? 0;
   const betting = current.some((r) => r.status === "Open" && now < r.lockTime);
+  // the newest rounds are more than a day past their open and unsettled: don't present them as "this session"
+  const stale = allOverdue(current, now);
   const claimable = (me?.positions ?? []).filter((p) => p.owed > 0 && !p.claimed);
   const owedTotal = claimable.reduce((a, p) => a + p.owed, 0);
   const history = rounds.filter((r) => r.status === "Settled" || r.status === "Cancelled").slice(0, 15);
@@ -210,11 +215,25 @@ export function PredictTab() {
       <div className={`panel pd-status ${betting ? "open" : ""}`}>
         <div>
           <p className="mono xs muted">{REAL ? `CALL THE OPEN · REAL ${STAKE} · BETA, SMALL STAKES` : "CALL THE OPEN · DEMO TOKENS, NO VALUE"}</p>
-          <h2>{betting ? "Predictions are open." : current.length ? "Predictions are closed for this session." : "The first rounds open soon."}</h2>
+          <h2>
+            {betting
+              ? "Predictions are open."
+              : stale
+                ? "No round is open right now."
+                : current.length
+                  ? "Predictions are closed for this session."
+                  : "The first rounds open soon."}
+          </h2>
           <p>
             Every evening at 20:00 ET, Nightshift records its call for each ETF&apos;s next opening price on Base. Predict whether the real open comes
             in <b>higher</b> or <b>lower</b>. Correct predictions split the pool; early predictions count more.
           </p>
+          {stale && (
+            <p className="small amber">
+              The latest rounds (for the {day(current[0].marketOpen)} open) are still waiting to be settled, and no new rounds have opened since.
+              They&apos;re listed below for the record.
+            </p>
+          )}
         </div>
         <div className="pd-status-side">
           {betting ? (
@@ -223,7 +242,7 @@ export function PredictTab() {
               <b>{day(lock)} {time(lock)}</b>
               <span className="xs muted">in {until(lock)}</span>
             </>
-          ) : current.length ? (
+          ) : current.length && !stale ? (
             <>
               <span className="xs muted">{current.every((r) => r.status === "Settled" || r.status === "Cancelled") ? "Settled" : "Settles after the open"}</span>
               <b>{day(current[0].marketOpen)} {time(current[0].marketOpen)}</b>
@@ -427,6 +446,8 @@ function RoundCard({
   const chosen = lockedSide ?? side;
   const vsCall = quote ? (quote.fairValue / r.strike - 1) * 100 : null;
   const settled = r.status === "Settled" || r.status === "Cancelled";
+  const phase = roundPhase(r, now);
+  const emptyPool = !settled && poolView(r, "Higher").kind === "empty";
 
   return (
     <div className={`panel pd-card ${settled ? "done" : ""}`}>
@@ -445,7 +466,7 @@ function RoundCard({
         <span className="xs muted">Nightshift&apos;s call</span>
         <b>{usd(r.strike)}</b>
       </div>
-      {!settled && quote && vsCall !== null && (
+      {showsLiveComparison(phase) && quote && vsCall !== null && (
         <div className="pd-row">
           <span className="muted">{quote.marketOpen ? "Live" : "Now"}</span>
           <span className="mono">
@@ -469,24 +490,51 @@ function RoundCard({
       {r.status === "Proposed" && (
         <div className="pd-result pending">
           Proposed open {usd(r.openPrice ?? 0)} ({(r.openPrice ?? 0) > r.strike ? "Higher" : (r.openPrice ?? 0) < r.strike ? "Lower" : "tie"}).
-          {r.disputed ? " Disputed: the arbiter decides." : ` Final at ${time((r.proposedAt ?? 0) + limits.challengeWindow)} unless disputed.`}
+          {r.disputed
+            ? " Disputed: the arbiter decides."
+            : phase === "overdue"
+              ? " Settlement is overdue: it's waiting for Nightshift's keeper to finalize it."
+              : ` Final at ${time((r.proposedAt ?? 0) + limits.challengeWindow)} unless disputed.`}
+        </div>
+      )}
+      {r.status === "Open" && (phase === "settling" || phase === "overdue") && (
+        <div className="pd-result pending">
+          {phase === "overdue" ? "Settlement is overdue: the opening price hasn't been recorded yet." : "The market has opened. The result is being recorded."}
         </div>
       )}
 
-      <div className="pd-pools">
-        <div className="pd-pool-bar" aria-hidden="true">
-          <i style={{ width: `${pctHigher}%` }} />
+      {emptyPool ? (
+        <div className="pd-pools pd-pools-empty">
+          {open ? (
+            <>
+              <b>Be the first to call it.</b>
+              <span className="xs muted"> Nobody has predicted on this round yet. Payouts appear once both sides have predictions.</span>
+            </>
+          ) : (
+            <span className="xs muted">Nobody predicted on this round.</span>
+          )}
         </div>
-        {(["Higher", "Lower"] as const).map((s) => (
-          <div key={s} className="pd-pool-row">
-            <b className={s === "Higher" ? "up" : "down"}>{s === "Higher" ? "▲ Higher" : "▼ Lower"}</b>
-            <span className="mono">
-              {fmt(s === "Higher" ? r.stakeHigher : r.stakeLower, 0)}
-              {!settled && <span className="muted"> · pays {mult(s).toFixed(2)}×</span>}
-            </span>
+      ) : (
+        <div className="pd-pools">
+          <div className="pd-pool-bar" aria-hidden="true">
+            <i style={{ width: `${pctHigher}%` }} />
           </div>
-        ))}
-      </div>
+          {(["Higher", "Lower"] as const).map((s) => (
+            <div key={s} className="pd-pool-row">
+              <b className={s === "Higher" ? "up" : "down"}>{s === "Higher" ? "▲ Higher" : "▼ Lower"}</b>
+              <span className="mono">
+                {stakeText(s === "Higher" ? r.stakeHigher : r.stakeLower)}
+                {open &&
+                  (poolView(r, s).kind === "pays" ? (
+                    <span className="muted"> · pays {mult(s).toFixed(2)}×</span>
+                  ) : (
+                    <span className="muted"> · no one on the other side yet</span>
+                  ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {position && position.stake > 0 && (
         <div className="pd-mine">
