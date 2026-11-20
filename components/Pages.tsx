@@ -45,7 +45,7 @@ const useSnapshot = () => useApi<OracleSnapshot>("/api/oracle", 60_000).data;
 
 export function AppPage() {
   const snap = useSnapshot();
-  const { data: board } = useApi<StockBoard>("/api/stocks", 120_000);
+  const { data: board, error: boardError } = useApi<StockBoard>("/api/stocks", 120_000);
   // practice first: visitors without a wallet start in the paper account; a connected wallet switches to the real
   // demo, unless the visitor picked a mode themselves
   const [mode, setModeState] = useState<"testnet" | "paper">("paper");
@@ -122,7 +122,7 @@ export function AppPage() {
               title="The world's biggest stocks, priced after the bell."
               lead="The same engine estimates where each of these would trade right now, from index futures and each stock's measured sensitivity to them."
             />
-            <TopStocks board={board} />
+            <TopStocks board={board} error={boardError} />
           </div>
         </section>
         </>
