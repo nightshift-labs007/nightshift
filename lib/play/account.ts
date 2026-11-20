@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash, randomInt, randomUUID } from "crypto";
-import { dropPick, getPicks, hDel, hGet, hSet, sDel, sGet, sSet, setAdd, setMembers, setPick, type Mode } from "./store";
+import { delKey, dropPick, getPicks, hDel, hGet, hSet, sDel, sGet, sSet, setAdd, setMembers, setPick, setRemove, type Mode } from "./store";
 import { sendMail, sign, siteOrigin, verifySig } from "./mail";
 
 /**
@@ -156,4 +156,21 @@ export async function unsubscribe(h: string, t: string): Promise<boolean> {
   const uid = await sGet(`play:email:${h}`);
   if (!uid) return false;
   return !!(await setReminders(uid, { open: false, lock: false, results: false }));
+}
+
+/**
+ * Deletes an account and everything tied to its id: the account record, email and nickname links, picks in both games
+ * and the analytics "first seen" entry. Aggregate crowd counts and daily totals stay (they contain no personal data).
+ */
+export async function deleteAccount(uid: string): Promise<boolean> {
+  const a = await getAccount(uid);
+  if (!a) return false;
+  await sDel(`play:email:${emailHash(a.email)}`);
+  await hDel("play:nick", a.nick);
+  await setRemove("play:accounts", uid);
+  await sDel(`play:acct:${uid}`);
+  await delKey(`play:u:${uid}`);
+  await delKey(`play:ua:${uid}`);
+  await hDel("an:first", uid);
+  return true;
 }

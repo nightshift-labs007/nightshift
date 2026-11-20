@@ -101,6 +101,7 @@ export function PlayGame() {
       <div className="panel pd-status open">
         <div>
           <p className="mono xs muted">FREE TO PLAY · POINTS ONLY · NO WALLET NEEDED</p>
+          <p className="pl-notice xs">Not financial advice. Points mode uses no real money: points have no cash value and can&apos;t be bought, sold or exchanged.</p>
           <h2>
             Up or down at {openName}?
           </h2>

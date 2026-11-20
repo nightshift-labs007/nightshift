@@ -39,3 +39,4 @@ export const kvHGetAll = async (key: string) => {
 };
 export const kvSAdd = (key: string, member: string) => cmd<number>(["SADD", key, member]);
 export const kvSMembers = (key: string) => cmd<string[]>(["SMEMBERS", key]);
+export const kvSRem = (key: string, member: string) => cmd<number>(["SREM", key, member]);
