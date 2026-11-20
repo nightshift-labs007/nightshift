@@ -5,10 +5,38 @@ Newest entries go at the top of each section.
 
 ## Current phase
 
-**Phase 2 (2A built, 2B designed): done 2026-11-20 on branch `phase-2a-points` (stacked on `phase-1-fixes`), waiting for "go" and the 2B decisions.**
-Nothing is merged or pushed. No contracts, funds or secrets were touched.
+**Phase 3 (price provider, sign-in, leaderboard, Beat the AI, share cards, reminders): done 2026-11-21 on branch `phase-3`, waiting for "go".**
+- `main` now contains Phases 1 and 2A (merged locally from `phase-2a-points`, which includes `phase-1-fixes`). **Not pushed**; `main` is 17 commits ahead of `origin/main`.
+- `phase-3` is stacked on `phase-2a-points` and is **not** merged into `main` yet.
+- No contracts, funds or secrets were touched.
 
 ## Decisions
+
+- 2026-11-20 (Phase 2B, by the owner):
+  - Settlement **Option B**.
+  - Real stakes later for **SPY and GLD only**; all 5 assets stay in points mode.
+  - **Keep invite-gating** for real stakes.
+  - Starting **fee 3%** and small per-pick caps, adjusted after legal review.
+  - **Legal review before any real-stakes launch.**
+  - No contract work yet.
+- 2026-11-21 (Phase 3, my choices, cheap to undo):
+  - **Price provider:** everything that settles (both games and the keeper's Call the Open) uses `lib/prices` `officialClose` / `officialOpen`. Yahoo is the default (`PRICE_PROVIDER=yahoo`). Confirmed prices are cached forever per provider. A throttling host (429 or 5xx) is skipped with backoff (1, 2, 4, 8, 16, then 30 min). A licensed feed implements `PriceProvider` and is added to `PROVIDERS`.
+  - **Sign-in = email code** (6 digits, 10 min, 5 tries), chosen because Resend is already set up, it recovers across browsers, and reminders need an email anyway.
+    - No-wallet play keeps working. A new email creates an account that keeps the browser's id; a known email signs in and merges the browser's picks. Where both picked the same asset, the account's pick stays and the duplicate crowd count is removed.
+    - The cookie (`ns_play`) holds the account id. It never appears in links.
+    - Locally, without Resend, emails go to a dev outbox (`/api/play/dev/outbox`, 404 in production).
+  - **Leaderboard:** signed-in players only, by nickname (3–16 chars a–z 0–9 _), this week (Mon–Fri ET) and all time. Order: points, then accuracy, then rounds, then name. No emails or ids.
+  - **Beat the AI:** points only, assets NVDA/AAPL/TSLA/SPY/GLD.
+    - Nightshift's call = the engine's fair value (live prices only) taken at 20:00 ET (17:00 after an early close).
+    - Picks lock at **04:00 ET** (before pre-market). Settled at the 09:30 open, compared to the cent. +10 per correct pick, no streak bonus; points add to the same total.
+    - The call is stored off-chain and never described as recorded on Base.
+  - **Share cards:** built on the server from the player's real picks and results, signed (HMAC with `PLAY_SECRET` or `CRON_SECRET`), so edited links fail. Page `/s/{token}` with a PNG card image; X and Telegram share links. Words instead of symbols on the image (the image font has no arrows).
+  - **Reminders:** email only (Telegram needs a bot and chat linking; later if wanted). Opt-in per type:
+    - round opens (and Beat the AI's call is up);
+    - 1 hour before the lock, only if assets are still unpicked;
+    - your results.
+
+    Each is sent at most once per player, only inside its window, with a one-click unsubscribe (signed by email hash, not the id). Run by the keeper and after page loads.
 
 - 2026-11-20 (Phase 2A, decided by me as cheap to undo):
   - Rounds are named by their lock date D. There is always exactly one round taking picks: the first trading date whose close is still ahead. So you can pick at any hour, and after Friday's close picks go to Monday's round.
@@ -61,10 +89,17 @@ Nothing is merged or pushed. No contracts, funds or secrets were touched.
 
 ## Open questions
 
-- **2B decisions (see `docs/PHASE2B_REAL_STAKES_DESIGN.md` §8):** settlement option (B recommended), which assets get real stakes, keep the member allow-list, fee and caps, legal review.
+- **Q11 (new): production needs, before Phase 3 can go live:**
+  - `RESEND_API_KEY` and `RESEND_FROM` for codes and reminders (without them, sign-in says email isn't set up);
+  - `PLAY_SECRET` (or `CRON_SECRET`) for codes, unsubscribe links and share cards;
+  - `SITE_URL` if not nightshift.buzz;
+  - Upstash Redis (otherwise everything is in memory and lost on restart);
+  - the keeper's outside scheduler (Q3).
+- **Q12 (new): scale limits to revisit.** The leaderboard and reminders walk every account on each run (fine for hundreds of players). Past that, keep running totals at settlement. Price backoff is per server instance (in memory), not shared.
+- **Q13 (new): abuse.** Anonymous picks are rate-limited per IP but not per person; the leaderboard counts signed-in accounts only, and one email = one account. Turnstile (already in the repo) could gate sign-in if fake accounts show up.
+- **Q14 (new):** email reminders state times in ET only. Phase 4 adds the player's own time zone.
 - **Q8 (new): Yahoo is a fragile source.** It returned HTTP 429 on both hosts for most of 2026-11-20, partly because the dev server polls it too. The points game copes (retries, 20 s budget, void after 72 h), but a licensed feed, or Twelve Data as a keyed fallback, should come before real money.
-- **Q9 (new):** points-game progress lives in one browser cookie. Clearing cookies loses it. Phase 3 should let a player save it to an account (email via Privy).
-- **Q10 (new):** "Beat the AI" (the 20:00 ET evening mode, points only) isn't built yet. Phase 3 or later?
+- Q9 resolved in Phase 3 (email sign-in). Q10 resolved in Phase 3 (Beat the AI built).
 - Q6 resolved (X agent). Q7 resolved (Node engines).
 
 - **Q6 (new, Phase 1): the X agent posts replay numbers as performance.** `lib/xagent.ts:135` and `lib/xmix.ts:73` post "off by X%" from the shift-report replay (futures at the open). It only runs on production, so it's dormant while hosting is down. Before production comes back, it should post only recorded calls, or label replays clearly. Not changed yet because it's outward-facing and can't be tested without X keys.
@@ -77,6 +112,26 @@ Nothing is merged or pushed. No contracts, funds or secrets were touched.
 - **Q5:** Earlier ideas from 2026-11-20 not yet scheduled: blind call (user picks before seeing the AI), and crowd calls blended into the public signal (never into lending prices).
 
 ## Done
+
+- 2026-11-21: **Phase 3** on branch `phase-3`:
+  - **Code:** `lib/prices/` (provider, backoff, Yahoo parsing), `lib/play/{account,mail,ai,leaderboard,share,remind}.ts`, `/api/play/account/{code,verify,settings,signout}`, `/api/play/leaderboard`, `/api/play/share`, `/api/play/unsubscribe`, dev-only `/api/play/dev/{outbox,ai-call}`, `/s/[token]` with `opengraph-image`, `components/PlayParts.tsx`.
+  - **Unit tests:** 61/61 (`npm test`). New ones cover price backoff and confirming the close and open, the Beat the AI calendar (weekend, Thanksgiving, early close), weekly points, no streak bonus in Beat the AI, and leaderboard order.
+  - **`scripts/test-play3.mjs` (new), 34/34 against the dev server:**
+    - email code: wrong code, used once, nickname taken;
+    - a second browser merged into the account, with no double-counted crowd;
+    - Beat the AI: before the call, an asset without a call, the 04:00 lock;
+    - real settlement of both games from Yahoo: Beat the AI SPY call $714 → open $713.56 = below;
+    - points = both games;
+    - results email sent once; unsubscribe link has no id and turns everything off;
+    - leaderboard shows the player with the right points and no emails;
+    - share link, page and PNG card render; an edited link is rejected;
+    - lock reminder lists the unpicked assets;
+    - sign-out clears the cookie.
+  - **`scripts/test-play.mjs` (2A):** still 17/17.
+  - **Production build** (`next build` in a separate folder): succeeds. Its only warning is pre-existing (viem/ox via Earn).
+  - **Browser (headless Chrome):** no console errors on the game page. Signing in through the form works end to end (outbox code → "Signed in as …"). Reminder toggles now update instantly (they lagged about 2 s and looked unchecked; fixed with an optimistic update).
+  - **Share card image:** the first version rendered overlapping text and missing-glyph boxes; fixed and re-checked visually.
+  - **Merge:** `phase-2a-points` (with `phase-1-fixes`) merged into `main` locally after 49/49 tests. Not pushed. A typecheck on that branch showed 20 errors, all in stale `.next/types` generated for Phase 3 routes by the running dev server (0 in source).
 
 - 2026-11-20: **Phase 2** on branch `phase-2a-points`:
   - **2A, points game (built and tested):**
