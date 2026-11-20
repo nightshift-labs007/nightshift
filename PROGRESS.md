@@ -11,6 +11,26 @@ Newest entries go at the top of each section.
 - **Not done: a real preview deployment.** I have no hosting access, and the Vercel project is disabled. The smoke test ran instead against a local production build started as a Vercel preview, then as production (see Done).
 - No contracts, funds or secrets were touched.
 
+**2026-11-21, push authorized by the owner. Paused before pushing (nothing pushed yet):**
+- **Step 1 (pre-push checks) passed:**
+  - `origin` = `github.com/nightshift-labs007/nightshift`, **PUBLIC**; the account has admin rights.
+  - Secret scan of all 140 commits on every local and remote branch (137k added diff lines):
+    - no API keys, tokens, RPC URLs with keys, Upstash, Resend, Vercel or Privy secrets, PEM blocks or mnemonics;
+    - the only hits are lockfile integrity hashes, plus Hardhat's three **public** default test keys in `scripts/` (derived addresses checked: none is a Nightshift owner or role wallet).
+  - `.env*` (except `.env.example`) and `.vercel` are gitignored and were never committed. `.env.example` has no values.
+  - New commits are authored as `jalaj88 <jalaj8985@gmail.com>`, already public on origin.
+  - Push dry run: `main` fast-forwards (488ea0d→4cb31fd), 4 new branches, no force needed.
+- **Why paused (step 3 findings):** the repo has two deployment integrations.
+  - Vercel project `nightshift3` (team `talonrobotics48-7144`, the one returning 402).
+  - Railway project with services "Nightshift" (production deploys of `deploy/railway-backend`, latest 11 Nov) and "sunny-prosperity" (deployed **`main`** @488ea0d to production on 10 Nov).
+  - Pushing `main` may therefore start a production deploy on Railway and/or Vercel. The owner asked for production only after a "go".
+- **Parallel work found:** Sarthak's `origin/deploy/railway-backend` (6 commits, 10–14 Nov, not in `main`) splits hosting:
+  - pages on Vercel, every `/api` route on Railway behind a proxy secret;
+  - replaces Upstash with **Railway Postgres** as the private store;
+  - **deletes the X agent**;
+  - its doc copies every Vercel variable, including the on-chain keeper keys, to Railway.
+
+  Our `main` (Phases 1–3.5) assumes Vercel + Upstash and changes the X agent. The two need reconciling before either goes live.
 ## Decisions
 
 - 2026-11-21 (Phase 3.5, my choices, cheap to undo):
