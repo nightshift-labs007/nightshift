@@ -86,8 +86,8 @@ async function jobsFor(a: Account, now: number): Promise<Job[]> {
   return jobs;
 }
 
-export async function runReminders(now: number): Promise<{ sent: number; failed: number; skipped?: string }> {
-  if (!(await tryLock("play:reminding", 60))) return { sent: 0, failed: 0, skipped: "another run is in progress" };
+export async function runReminders(now: number, opts: { noLock?: boolean } = {}): Promise<{ sent: number; failed: number; skipped?: string }> {
+  if (!opts.noLock && !(await tryLock("play:reminding", 60))) return { sent: 0, failed: 0, skipped: "another run is in progress" };
   let sent = 0;
   let failed = 0;
   for (const uid of await accountUids()) {

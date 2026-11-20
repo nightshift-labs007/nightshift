@@ -15,8 +15,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const { now, overridden } = playNow(req);
   if (overridden) {
-    await settleDue(now);
-    await runReminders(now);
+    await settleDue(now, { noLock: true }); // test clock (non-production only): no throttling locks
+    await runReminders(now, { noLock: true });
   } else {
     after(async () => {
       await ensureAiCall(now).catch(() => null);

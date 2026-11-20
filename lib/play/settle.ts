@@ -64,8 +64,8 @@ export async function settleRound(date: string, nowMs: number, mode: Mode = "clo
 }
 
 /** Settles due rounds of both games, oldest first, a couple per call. Safe to call from any request or the keeper. */
-export async function settleDue(nowMs: number): Promise<SettleOutcome[]> {
-  if (!(await tryLock("play:settling", 90))) return [];
+export async function settleDue(nowMs: number, opts: { noLock?: boolean } = {}): Promise<SettleOutcome[]> {
+  if (!opts.noLock && !(await tryLock("play:settling", 90))) return [];
   const out: SettleOutcome[] = [];
   const worked = () => out.filter((o) => o.status !== "already" && o.status !== "too early").length;
   for (const mode of ["close", "ai"] as const) {
