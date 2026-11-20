@@ -4,6 +4,7 @@ import { authorized } from "@/lib/env";
 import { getHealth } from "@/lib/health";
 import { pushPrices, runGuardian, runStack } from "@/lib/chain/keeper";
 import { runPredictions } from "@/lib/chain/predictions";
+import { settleDue } from "@/lib/play/settle";
 import { getOracleSnapshot } from "@/lib/oracle";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,11 @@ export async function GET(req: NextRequest) {
     out.predictions = await runPredictions(); // "Call the Open": member sync, evening rounds, settlement
   } catch (e) {
     out.predictions = { error: String(e).slice(0, 300) };
+  }
+  try {
+    out.play = await settleDue(Date.now()); // points game: settle rounds whose open has happened (off-chain)
+  } catch (e) {
+    out.play = { error: String(e).slice(0, 300) };
   }
   // alert at most about once an hour (the first run in each hour) while something is wrong
   try {
