@@ -3,6 +3,7 @@ import { PLAY_TICKERS, isSide } from "@/lib/play-rules";
 import { getAiCall } from "@/lib/play/ai";
 import { setPick } from "@/lib/play/store";
 import { newPlayerId, playNow, playState, playerId, setPlayerCookie } from "@/lib/play/state";
+import { track } from "@/lib/ops";
 import { allow } from "@/lib/ratelimit";
 import { currentAiRound, currentPlayRound } from "@/lib/time";
 
@@ -17,7 +18,9 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  if (!(await allow(`play:pick:${ip}`, 60, 60)).ok) return NextResponse.json({ error: "Too many picks. Try again in a minute." }, { status: 429 });
+  // abuse limits: per IP per minute and per day, per player per hour (a full round is 5 picks; changing them is allowed)
+  const [perMin, perDay] = await Promise.all([allow(`play:pick:${ip}`, 60, 60), allow(`play:pick:day:${ip}`, 2000, 86400)]);
+  if (!perMin.ok || !perDay.ok) return NextResponse.json({ error: "Too many picks. Try again later." }, { status: 429 });
 
   const body = (await req.json().catch(() => null)) as { mode?: unknown; date?: unknown; ticker?: unknown; side?: unknown } | null;
   const mode = body?.mode === "ai" ? "ai" : "close";
@@ -42,7 +45,9 @@ export async function POST(req: NextRequest) {
   let uid = playerId(req);
   const fresh = !uid;
   uid ??= newPlayerId();
+  if (!(await allow(`play:pick:uid:${uid}`, 120, 3600)).ok) return NextResponse.json({ error: "Too many changes. Try again later." }, { status: 429 });
   await setPick(uid, date, ticker, body.side, mode);
+  await track("pick", uid, now);
   const res = NextResponse.json(await playState(uid, now), { headers: { "Cache-Control": "no-store" } });
   if (fresh) setPlayerCookie(res, uid);
   return res;
