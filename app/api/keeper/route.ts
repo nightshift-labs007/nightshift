@@ -1,22 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { alert } from "@/lib/alert";
 import { authorized } from "@/lib/env";
+import { runJob } from "@/lib/ops";
 import { getHealth } from "@/lib/health";
 import { pushPrices, runGuardian, runStack } from "@/lib/chain/keeper";
 import { runPredictions } from "@/lib/chain/predictions";
-import { ensureAiCall } from "@/lib/play/ai";
-import { runReminders } from "@/lib/play/remind";
-import { settleDue } from "@/lib/play/settle";
 import { getOracleSnapshot } from "@/lib/oracle";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Called every few minutes by an external scheduler (e.g. cron-job.org, with an "Authorization: Bearer <CRON_SECRET>"
-// header), because Vercel's free plan only allows daily crons. Pushes Oracle prices on Base, then runs the Guardian, due Stack plans and the "Call the Open" prediction rounds on Base Sepolia.
+// Called every 10 minutes by an outside scheduler (cron-job.org, with "Authorization: Bearer <CRON_SECRET>"; Vercel's free
+// plan only allows daily crons; see docs/DEPLOY.md). Pushes Oracle prices on Base, then runs the Guardian, due Stack plans and
+// the "Call the Open" prediction rounds. The points games run from /api/jobs/play. Its heartbeat shows at /api/ops/health.
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return NextResponse.json(await runJob("keeper", true, () => keeperRun()));
+}
 
+async function keeperRun() {
   const out: Record<string, unknown> = { at: new Date().toISOString() };
   try {
     out.prices = await pushPrices();
@@ -38,13 +40,6 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     out.predictions = { error: String(e).slice(0, 300) };
   }
-  try {
-    const now = Date.now();
-    // points games (off-chain): Nightshift's evening call for Beat the AI, settling due rounds, reminder emails
-    out.play = { aiCall: !!(await ensureAiCall(now)), settled: await settleDue(now), reminders: await runReminders(now) };
-  } catch (e) {
-    out.play = { error: String(e).slice(0, 300) };
-  }
   // alert at most about once an hour (the first run in each hour) while something is wrong
   try {
     const h = await getHealth();
@@ -53,5 +48,5 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     out.health = { error: String(e).slice(0, 200) };
   }
-  return NextResponse.json(out);
+  return out;
 }

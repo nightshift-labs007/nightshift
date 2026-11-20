@@ -1,5 +1,5 @@
 import "server-only";
-import { kvDel, kvEnabled, kvGet, kvHDel, kvHGet, kvHGetAll, kvHIncrBy, kvHSet, kvSAdd, kvSet, kvSetEx, kvSetNX, kvSMembers } from "@/lib/kv";
+import { kvDel, kvEnabled, kvGet, kvHDel, kvHGet, kvHGetAll, kvHIncrBy, kvHSet, kvSAdd, kvSet, kvSetEx, kvSetNX, kvSMembers, kvSRem } from "@/lib/kv";
 import type { RoundResult, Side } from "@/lib/play-rules";
 
 /**
@@ -63,7 +63,7 @@ export async function hDel(k: string, f: string) {
   else memHash(k).delete(f);
 }
 export const hGetAll = async (k: string): Promise<Record<string, string>> => (kvEnabled() ? kvHGetAll(k) : Object.fromEntries(memHash(k)));
-async function hIncr(k: string, f: string, by: number) {
+export async function hIncr(k: string, f: string, by: number) {
   if (kvEnabled()) await kvHIncrBy(k, f, by);
   else memHash(k).set(f, String(Math.max(0, Number(memHash(k).get(f) ?? 0) + by)));
 }
@@ -72,6 +72,15 @@ export async function setAdd(k: string, m: string) {
   else memSet(k).add(m);
 }
 export const setMembers = async (k: string): Promise<string[]> => (kvEnabled() ? kvSMembers(k) : [...memSet(k)]);
+export async function setRemove(k: string, m: string) {
+  if (kvEnabled()) await kvSRem(k, m);
+  else memSet(k).delete(m);
+}
+/** Deletes a whole key (string or hash). */
+export async function delKey(k: string) {
+  if (kvEnabled()) await kvDel(k);
+  else (mem.str.delete(k), mem.hash.delete(k), mem.set.delete(k));
+}
 
 /** Permanent cache for immutable values (an official close or open). */
 export const cacheGet = (k: string) => sGet(k);
