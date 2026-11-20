@@ -145,6 +145,20 @@ try {
     ok(m.length === 1 && /Still to pick: NVDA, AAPL, TSLA, GLD/.test(m[0].text), "lock reminder lists the assets still to pick");
   }
 
+  console.log("deleting an account");
+  {
+    const e3 = `del-${RUN}@example.com`;
+    const p = await pick("2026-11-24", "AAPL", "up", { now: "2026-11-24T15:00:00.000Z" });
+    const s = await signIn(e3, p.cookie, `del_${RUN}`.slice(0, 16));
+    ok((await call("/api/play/account/delete", { method: "POST", body: {}, cookie: s.cookie })).status === 400, "deletion needs an explicit confirmation");
+    const d = await call("/api/play/account/delete", { method: "POST", body: { confirm: "delete" }, cookie: s.cookie });
+    ok(d.status === 200 && /ns_play=;/.test(d.cookie + ";"), "account deleted and this browser signed out");
+    const lb = (await call("/api/play/leaderboard", { now: "2026-11-24T15:00:00.000Z" })).json;
+    ok(![...lb.all, ...lb.week].some((r) => r.nick === `del_${RUN}`.slice(0, 16)), "gone from the leaderboard");
+    const again = await signIn(e3, null, `del2_${RUN}`.slice(0, 16));
+    ok(again.r2.status === 200 && again.r2.json.created === true && Object.keys(again.r2.json.state.myPicks).length === 0, "the same email later starts a brand-new, empty account");
+  }
+
   console.log("signing out");
   {
     const r = await call("/api/play/account/signout", { method: "POST" });
