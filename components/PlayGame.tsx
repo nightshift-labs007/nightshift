@@ -5,6 +5,7 @@ import type { OracleSnapshot } from "@/lib/oracle";
 import type { PlayState } from "@/lib/play/state";
 import type { Side } from "@/lib/play-rules";
 import type { StockBoard } from "@/lib/stocks";
+import { AccountPanel, AiGame, Leaderboard, ShareButton } from "./PlayParts";
 import { toast } from "./Toast";
 import { signed, usd, useApi } from "./useApi";
 
@@ -52,17 +53,18 @@ export function PlayGame() {
   // reload right after the lock, so the page moves to the next round on its own
   useEffect(() => {
     if (!state) return;
-    const ms = state.round.lockAt - Date.now() + 1500;
+    const ms = Math.min(...[state.round.lockAt, state.ai.round.lockAt, state.ai.round.callAt].filter((t) => t > Date.now())) - Date.now() + 1500;
     if (ms <= 0 || ms > 2 ** 31 - 1) return;
     const id = setTimeout(load, ms);
     return () => clearTimeout(id);
   }, [state, load]);
 
-  async function pick(ticker: string, side: Side) {
+  async function pick(ticker: string, side: Side, mode: "close" | "ai" = "close") {
     if (!state || busy) return;
-    setBusy(ticker);
+    setBusy(mode === "ai" ? `ai-${ticker}` : ticker);
     try {
-      const r = await fetch("/api/play/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ date: state.round.date, ticker, side }) });
+      const date = mode === "ai" ? state.ai.round.date : state.round.date;
+      const r = await fetch("/api/play/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode, date, ticker, side }) });
       const j = await r.json().catch(() => null);
       if (r.status === 409) {
         toast("That round just locked. Your pick wasn't saved; make it for the next round.", "warn");
@@ -89,6 +91,10 @@ export function PlayGame() {
   const todayIsLock = etDay(Date.now()) === etDay(round.lockAt);
   const closeName = todayIsLock ? "today's close" : `${dateDay(round.date).split(",")[0]}'s close`;
   const openName = `${dateDay(round.settleDate).split(",")[0]}'s open`;
+  const wins = (stats?.wins ?? 0) + (state.aiStats?.wins ?? 0);
+  const losses = (stats?.losses ?? 0) + (state.aiStats?.losses ?? 0);
+  const pending = (stats?.pending ?? 0) + (state.aiStats?.pending ?? 0);
+  const acc = wins + losses ? wins / (wins + losses) : null;
 
   return (
     <div className="pl">
@@ -113,17 +119,19 @@ export function PlayGame() {
         </div>
       </div>
 
-      {stats && (
+      {(stats || state.aiStats) && (
         <div className="pl-stats">
-          <div className="panel"><span className="xs muted">Points</span><b>{stats.points}</b></div>
-          <div className="panel"><span className="xs muted">Streak</span><b>{stats.streak} {stats.streak === 1 ? "round" : "rounds"}</b></div>
+          <div className="panel"><span className="xs muted">Points</span><b>{state.points}</b><span className="xs muted">{state.week} this week</span></div>
+          <div className="panel"><span className="xs muted">Streak</span><b>{stats?.streak ?? 0} {stats?.streak === 1 ? "round" : "rounds"}</b><span className="xs muted">best {stats?.bestStreak ?? 0}</span></div>
           <div className="panel">
             <span className="xs muted">Accuracy</span>
-            <b>{stats.accuracy === null ? "—" : `${Math.round(stats.accuracy * 100)}%`}</b>
-            <span className="xs muted">{stats.wins} right · {stats.losses} wrong{stats.pending ? ` · ${stats.pending} waiting` : ""}</span>
+            <b>{acc === null ? "—" : `${Math.round(acc * 100)}%`}</b>
+            <span className="xs muted">{wins} right · {losses} wrong{pending ? ` · ${pending} waiting` : ""}</span>
           </div>
         </div>
       )}
+
+      <AccountPanel state={state} onState={setState} />
 
       <div className="pd-grid">
         {state.assets.map((a) => {
@@ -171,14 +179,19 @@ export function PlayGame() {
         })}
       </div>
 
+      <AiGame state={state} busy={busy} onPick={(t, side) => pick(t, side, "ai")} />
+
       {state.history.length > 0 && (
         <div className="panel pl-history">
           <h3 className="sub-title">Your recent rounds</h3>
           {state.history.map((h) => (
-            <div key={h.date} className="pl-round">
-              <div className="xs muted">
-                {dateDay(h.date)} close → {dateDay(h.settleDate)} open ·{" "}
-                {h.status === "pending" ? "waiting for the open" : h.status === "void" ? "void: prices couldn't be confirmed, no points" : "settled"}
+            <div key={`${h.mode}-${h.date}`} className="pl-round">
+              <div className="xs muted pl-round-head">
+                <span>
+                  {h.mode === "ai" ? `Beat the AI · ${dateDay(h.date)} open` : `${dateDay(h.date)} close → ${dateDay(h.settleDate)} open`} ·{" "}
+                  {h.status === "pending" ? "waiting for the open" : h.status === "void" ? "void: prices couldn't be confirmed, no points" : "settled"}
+                </span>
+                <ShareButton mode={h.mode} date={h.date} />
               </div>
               <div className="pl-picks">
                 {h.picks.map((p) => (
@@ -204,6 +217,8 @@ export function PlayGame() {
         </div>
       )}
 
+      <Leaderboard signedIn={!!state.account} />
+
       <details className="pl-rules small muted">
         <summary>How it works</summary>
         <ul>
@@ -217,7 +232,14 @@ export function PlayGame() {
             The close and the open come from Yahoo Finance&apos;s public price data, checked against a second reading before a round is settled. If they
             can&apos;t be confirmed within {state.rules.voidAfterHours} hours of the open, the round is void and nobody gains or loses points.
           </li>
-          <li>Points have no money value and can&apos;t be exchanged for anything. Your picks are saved in this browser only.</li>
+          <li>
+            Beat the AI: each evening (20:00 ET) Nightshift makes its call for each asset&apos;s next open. Say whether the open lands above or below it,
+            until 04:00 ET. A correct call earns {state.rules.points.correct} points, decided to the cent like the main game. No streak bonus in this mode.
+          </li>
+          <li>
+            Points have no money value and can&apos;t be exchanged for anything. Without an account your picks live in this browser only; save your progress
+            to keep them on any device and appear on the leaderboard.
+          </li>
         </ul>
       </details>
     </div>
