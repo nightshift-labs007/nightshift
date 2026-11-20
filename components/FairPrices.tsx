@@ -11,9 +11,9 @@ import { signed, usd, useApi } from "./useApi";
 
 type LedgerToken = { token: string; predicted: number; confidence: number | null; actual: number | null; errBps: number | null };
 type LedgerEntry = { txId: string; explorer: string; lockedAt: string; session: string; tokens: LedgerToken[] };
-type Ledger = { configured: boolean; accountUrl?: string; entries?: LedgerEntry[] };
+type Ledger = { configured: boolean; indexed?: boolean; accountUrl?: string; entries?: LedgerEntry[] };
 
-/** Our call for one token: the prediction recorded on Base before an open (or, without a stamp, the replay). */
+/** Our call for one token: the prediction recorded on Base before an open. Replays are never shown as calls. */
 type Call = {
   session: string;
   predicted: number;
@@ -65,25 +65,13 @@ function latestCalls(ledger: Ledger | null, shift: { reports: ShiftReport[] } | 
       } else if (!slot.last) slot.last = call;
     }
   }
-  for (const r of shift?.reports ?? []) {
-    const slot = (out[r.token] ??= { last: null, pending: null });
-    const row = r.rows[0]; // newest first
-    if (slot.last || !row) continue;
-    slot.last = {
-      session: row.date,
-      predicted: row.predictedOpen,
-      actual: row.actualOpen,
-      errPct: row.nightshiftErrBps / 100,
-      frozenErrPct: row.staleErrBps / 100,
-      lockedAt: null,
-      explorer: null,
-    };
-  }
+  // Only calls recorded on Base before the open count as "our call". The shift-report replay is never used here: it
+  // reads futures at the moment of the open, so it looks far more accurate than a call made in advance.
   return out;
 }
 
 /** One ETF as a row of the stacked list; the whole row opens the ETF's page (chart and every past call). */
-function PriceRow({ q, call }: { q: Quote; call?: { last: Call | null; pending: Call | null } }) {
+function PriceRow({ q, call, empty }: { q: Quote; call?: { last: Call | null; pending: Call | null }; empty: string }) {
   const c = call?.pending ?? call?.last ?? null;
   const beat = c && c.errPct !== null && c.frozenErrPct !== null && c.errPct < c.frozenErrPct;
   return (
@@ -107,7 +95,7 @@ function PriceRow({ q, call }: { q: Quote; call?: { last: Call | null; pending: 
       )}
       <span className="fp-row-call small">
         {!c ? (
-          <span className="muted">—</span>
+          <span className="muted">{empty}</span>
         ) : call?.pending ? (
           <>
             {dayLabel(c.session)} open: <b className="mono">{usd(c.predicted)}</b> <span className="muted">· graded at 09:30 ET</span>
@@ -147,6 +135,8 @@ export function FairPrices({ snap }: { snap: OracleSnapshot | null }) {
   const graded = Object.values(calls).map((c) => c.last).filter((c): c is Call => !!c && c.errPct !== null && c.frozenErrPct !== null);
   const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
   const anySim = snap.quotes.some((q) => q.source === "simulated");
+  // what the "Our last call" cell says when there's no recorded call to show
+  const noCallText = !ledger ? "Loading…" : ledger.configured && ledger.indexed === false ? "Record not available on this server" : "No recorded call yet";
 
   return (
     <div className="fp">
@@ -207,7 +197,7 @@ export function FairPrices({ snap }: { snap: OracleSnapshot | null }) {
           <span />
         </div>
         {snap.quotes.map((q) => (
-          <PriceRow key={q.token} q={q} call={calls[q.token]} />
+          <PriceRow key={q.token} q={q} call={calls[q.token]} empty={noCallText} />
         ))}
       </div>
 

@@ -168,7 +168,7 @@ export function EtfPage({ token, name, anchorName }: { token: string; name: stri
               </div>
               <p className="xs muted">
                 &ldquo;Recorded on Base&rdquo; calls were written on-chain before the open, so they can&apos;t be changed. &ldquo;Replay&rdquo; rows rebuild the call
-                from market data available before that open, for opens before the record started.
+                from futures read at the moment of the 09:30 ET open, so it shows how well the overnight model tracks the open, not how accurate a call made hours earlier is.
               </p>
             </>
           ) : (

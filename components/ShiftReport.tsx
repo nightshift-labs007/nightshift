@@ -91,7 +91,7 @@ export function ShiftReport() {
         </div>
       </div>
       <p className="xs muted" style={{ marginTop: 10 }}>
-        Replay of the anchor signal using only data available before each 09:30 ET open (1 bps = 0.01%). The stale feed is what a
+        Replay of the anchor signal, using futures read at the moment of the 09:30 ET open, so it shows how well the overnight model tracks the open, not how accurate a call made hours earlier is (1 bps = 0.01%). The stale feed is what a
         traditional oracle reports overnight: the previous close.
       </p>
     </>
