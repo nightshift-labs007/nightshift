@@ -11,12 +11,13 @@ async function call(path, { method = "GET", body, cookie, now } = {}) {
   const headers = { "content-type": "application/json" };
   if (cookie) headers.cookie = cookie;
   if (now) headers["x-play-now"] = now;
-  const res = await fetch(BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const res = await fetch(BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(120_000) });
   const set = res.headers.get("set-cookie");
   return { status: res.status, json: await res.json().catch(() => null), cookie: set ? set.split(";")[0] : null };
 }
 const pick = (date, ticker, side, opts) => call("/api/play/pick", { method: "POST", body: { date, ticker, side }, ...opts });
 
+try {
 console.log("validation");
 {
   const s = (await call("/api/play")).json;
@@ -82,4 +83,9 @@ console.log("streaks and settlement from real prices");
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
+} catch (e) {
+  fail++;
+  console.log("  FAIL", "request error:", e?.cause?.code ?? e?.message ?? e);
+  console.log(`\n${pass} passed, ${fail} failed`);
+}
 process.exit(fail ? 1 : 0);

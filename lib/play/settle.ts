@@ -18,6 +18,11 @@ import { getResult, roundsWithPicks, setResult, tryLock } from "./store";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const SETTLE_DELAY_MS = 5 * 60_000; // give the opening prints a few minutes to appear
 const MAX_ROUNDS_PER_CALL = 2; // bounds the Yahoo requests one page load can trigger
+const ROUND_BUDGET_MS = 20_000; // one round's price lookups give up after this and retry on a later call
+
+/** Resolves to null if `p` hasn't settled within `ms` (the lookups keep running but nobody waits for them). */
+const withDeadline = <T,>(p: Promise<T>, ms: number) =>
+  Promise.race([p.catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), ms))]);
 
 async function chart(symbol: string, query: string) {
   for (const host of ["query1", "query2"]) {
@@ -61,8 +66,15 @@ export async function settleRound(date: string, nowMs: number): Promise<SettleOu
   if (nowMs < round.openMs + SETTLE_DELAY_MS) return { date, status: "too early" };
   const assets: Record<string, AssetResult> = {};
   const missing: string[] = [];
+  // all assets at once, with a hard time budget: a slow or throttling Yahoo means "try again later", never a hung request
+  const prices = await withDeadline(
+    Promise.all(PLAY_TICKERS.map(async (t) => [t, await officialClose(t, date), await officialOpen(t, round.settleDate)] as const)),
+    ROUND_BUDGET_MS,
+  );
   for (const t of PLAY_TICKERS) {
-    const [close, open] = await Promise.all([officialClose(t, date), officialOpen(t, round.settleDate)]);
+    const row = prices?.find((x) => x[0] === t);
+    const close = row?.[1] ?? null;
+    const open = row?.[2] ?? null;
     if (close && open) assets[t] = { close, open: open.open, outcome: outcomeOf(close, open.open) };
     else missing.push(t);
   }
