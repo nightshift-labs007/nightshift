@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { explorerAccount, explorerTx, ledgerAddress, readStamps } from "@/lib/ledger";
+import { explorerAccount, explorerTx, ledgerIndexAvailable, ledgerReadAddress, readStamps } from "@/lib/ledger";
 import { loadAllPairs, toSessions } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const address = ledgerAddress();
+  const address = ledgerReadAddress();
   if (!address) return NextResponse.json({ configured: false });
+  // reading needs only the public address; listing needs the index (Redis). Say which is missing instead of an empty list.
+  if (!ledgerIndexAvailable()) return NextResponse.json({ configured: true, indexed: false, address, accountUrl: explorerAccount(address), entries: [] });
 
   try {
     const [stamps, pairs] = await Promise.all([readStamps(address), loadAllPairs()]);
@@ -33,8 +35,8 @@ export async function GET() {
         };
       }),
     }));
-    return NextResponse.json({ configured: true, address, accountUrl: explorerAccount(address), entries });
+    return NextResponse.json({ configured: true, indexed: true, address, accountUrl: explorerAccount(address), entries });
   } catch (e) {
-    return NextResponse.json({ configured: true, address, accountUrl: explorerAccount(address), error: String(e), entries: [] });
+    return NextResponse.json({ configured: true, indexed: true, address, accountUrl: explorerAccount(address), error: String(e), entries: [] });
   }
 }

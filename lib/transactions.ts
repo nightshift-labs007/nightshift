@@ -3,7 +3,7 @@ import { decodeEventLog, formatEther, zeroAddress, type Address, type Log } from
 import { ABI, DEPLOYMENT, addrUrl, isDeployed, txUrl } from "@/lib/chain";
 import { publicClient } from "@/lib/chain/keeper";
 import { EARN_TXS, EARN_WALLET } from "@/lib/team-wallets";
-import { explorerTx, ledgerAddress, readJoins, readStamps } from "@/lib/ledger";
+import { explorerTx, ledgerReadAddress, readJoins, readStamps } from "@/lib/ledger";
 
 /**
  * Every transaction Nightshift is behind, in one list: Vault activity, Oracle price pushes, Cloak attestations
@@ -204,7 +204,7 @@ async function baseRows(): Promise<{ rows: TxRow[]; bots: Pick<Record<BotId, Bot
 
 // ---------------------------------------------------------------- the public record on Base: prediction stamps and sign-ups
 async function ledgerRows(): Promise<{ rows: TxRow[]; stat: BotStat }> {
-  const addr = ledgerAddress();
+  const addr = ledgerReadAddress();
   if (!addr) return { rows: [], stat: { actions: 0, last: null } };
   const [preds, joins] = await Promise.all([readStamps(addr, 1000), readJoins()]);
   const rows: TxRow[] = [
