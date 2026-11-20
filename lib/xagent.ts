@@ -1,15 +1,16 @@
 import "server-only";
 import manifest from "../public/verified/manifest.json";
-import { getShiftReports } from "./backtest";
+import { recordedCalls } from "./recorded";
 import { getOracleSnapshot, type Quote } from "./oracle";
 import { etParts, etToUtcMs, isTradingDay } from "./time";
 import { postToX, xConfigured, xLength, xPostingOn } from "./x";
+import { gradedLines } from "./x-text";
 import { CARDS } from "./xtheorems";
 import { feature, marketUpdate, movers, news, onchain, trackRecord, type MixCtx } from "./xmix";
 
 /**
- * Nightshift's X agent. It never invents a number: every figure in a post comes from the Oracle, the
- * graded shift report or the verification manifest, and a post is skipped when that data is simulated or missing.
+ * Nightshift's X agent. It never invents a number: every figure in a post comes from the Oracle, calls recorded
+ * on Base before the open (never the replay) or the verification manifest, and a post is skipped when that data is simulated or missing.
  * No links in posts (X charges much more for them); nightshift.buzz lives in the bio.
  *
  * - hourly: a rotating mix (Q&A on a proven rule, market update, news, stock movers, track record, on-chain status,
@@ -41,8 +42,6 @@ const etStamp = (now: number) => {
 };
 /** "up 0.26%", "down 0.04%", "flat" */
 const move = (pct: number) => (Math.abs(pct) < 0.005 ? "flat" : `${pct > 0 ? "up" : "down"} ${Math.abs(pct).toFixed(2)}%`);
-/** basis points → percent, for people */
-const pctOff = (bpsVal: number) => `${(bpsVal / 100).toFixed(bpsVal < 10 ? 3 : 2)}%`;
 
 function fit(lines: string[]) {
   const out = [...lines];
@@ -121,24 +120,16 @@ async function preopen(now: number): Promise<Draft> {
     date,
   );
   const line = (q: Quote) => `${q.token}  ${money(q.fairValue)}  (${move(q.driftPct)})`;
-  return { slot: "preopen", text: fit([head, "", ...qs.map(line), "", "vs yesterday's close. We'll grade this at 9:30 ET."]) };
+  return { slot: "preopen", text: fit([head, "", ...qs.map(line), "", "vs yesterday's close."]) };
 }
 
 async function graded(now: number): Promise<Draft> {
   const date = etParts(now).date;
-  const reports = await getShiftReports();
-  const today = reports
-    .filter((r) => r.source === "live")
-    .map((r) => ({ r, row: r.rows.find((x) => x.date === date) }))
-    .filter((x): x is { r: (typeof reports)[number]; row: NonNullable<(typeof x)["row"]> } => !!x.row);
-  if (!today.length) return { slot: "graded", skip: `no graded open for ${date} yet` };
-  const lines = today.map(({ r, row }) => `${r.token}: off by ${pctOff(row.nightshiftErrBps)} (frozen price: ${pctOff(row.staleErrBps)})`);
-  const spy = today.find((x) => x.r.token === "SPY")?.r ?? today[0].r;
-  const head = pick(["How close was our 9am call to the actual open?", "Scorecard: our pre-open call vs the real open", "Graded: our call vs today's open"], date);
-  return {
-    slot: "graded",
-    text: fit([head, "", ...lines, "", `Last ${spy.rows.length} opens on ${spy.token}: we beat the frozen price ${spy.wins} times.`]),
-  };
+  // only calls recorded on Base before the open; the replay (futures at the open) is never posted as a miss
+  const head = pick(["How close was our recorded call to the actual open?", "Scorecard: our recorded pre-open call vs the real open", "Graded: our recorded call vs today's open"], date);
+  const lines = gradedLines(date, await recordedCalls(), head);
+  if (!lines) return { slot: "graded", skip: `no recorded call graded for ${date}` };
+  return { slot: "graded", text: fit(lines) };
 }
 
 async function weekend(now: number): Promise<Draft> {
@@ -206,7 +197,7 @@ export async function runSlot(slot: Slot, opts: { force?: boolean; dryRun?: bool
   if (!opts.force && posted.has(key)) return { slot, status: "already posted" };
   const d = await draft(slot, now);
   if ("skip" in d) return { slot, status: "skipped", reason: d.skip };
-  if (opts.dryRun || !xConfigured() || !xPostingOn()) return { slot, status: opts.dryRun ? "dry run" : !xConfigured() ? "X keys not configured" : "posting is off (X_POSTING=off)", text: d.text };
+  if (opts.dryRun || !xConfigured() || !xPostingOn()) return { slot, status: opts.dryRun ? "dry run" : !xConfigured() ? "X keys not configured" : "posting is off (set X_POSTING=on to enable)", text: d.text };
   const r = await postToX(d.text);
   posted.add(key);
   return { slot, status: "posted", url: r.url, text: d.text };
