@@ -6,6 +6,7 @@ import { aiRoundFor, currentAiRound, currentPlayRound, playRoundFor, playRoundsB
 import { getAccount, maskEmail, type Reminders } from "./account";
 import { getAiCall } from "./ai";
 import { getCounts, getPicks, getResult, storeKind, type Mode } from "./store";
+import { testMode } from "@/lib/play/testmode";
 
 export const PLAY_COOKIE = "ns_play";
 const UID = /^[0-9a-f-]{36}$/;
@@ -21,12 +22,12 @@ export function setPlayerCookie(res: NextResponse, uid: string | null) {
 }
 
 /**
- * The clock. Outside production, tests may send `x-play-now: <ISO time>` to play a round at a chosen moment (lock
+ * The clock. In test mode (local, or a preview deployment with PLAY_TEST_MODE=1), tests may send `x-play-now: <ISO time>` to play a round at a chosen moment (lock
  * and settlement tests against real past prices). Production always uses the real time.
  */
 export function playNow(req: NextRequest): { now: number; overridden: boolean } {
   const h = req.headers.get("x-play-now");
-  if (h && process.env.NODE_ENV !== "production") {
+  if (h && testMode()) {
     const t = Date.parse(h);
     if (Number.isFinite(t)) return { now: t, overridden: true };
   }
