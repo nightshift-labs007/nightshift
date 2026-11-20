@@ -5,12 +5,25 @@ Newest entries go at the top of each section.
 
 ## Current phase
 
-**Phase 3 (price provider, sign-in, leaderboard, Beat the AI, share cards, reminders): done 2026-11-21 on branch `phase-3`, waiting for "go".**
-- `main` now contains Phases 1 and 2A (merged locally from `phase-2a-points`, which includes `phase-1-fixes`). **Not pushed**; `main` is 17 commits ahead of `origin/main`.
-- `phase-3` is stacked on `phase-2a-points` and is **not** merged into `main` yet.
+**Phase 3.5 (go-live readiness): done 2026-11-21 on branch `phase-3-5`, waiting for "go".**
+- `main` contains Phases 1, 2A and 3 (Phase 3 merged locally). **Not pushed**; `main` is 27 commits ahead of `origin/main`.
+- `phase-3-5` is not merged.
+- **Not done: a real preview deployment.** I have no hosting access, and the Vercel project is disabled. The smoke test ran instead against a local production build started as a Vercel preview, then as production (see Done).
 - No contracts, funds or secrets were touched.
 
 ## Decisions
+
+- 2026-11-21 (Phase 3.5, my choices, cheap to undo):
+  - **Scheduler:** game jobs moved from `/api/keeper` to `/api/jobs/play` (every 5 min); the keeper stays every 10 min (cron-job.org; see `docs/DEPLOY.md`). Every job records a heartbeat (`lib/ops.ts` `runJob`).
+    - A job is **stale** after 3 missed intervals of **scheduled, successful** runs. Page-triggered backstop runs never count, so a stopped scheduler can't hide.
+    - `/api/ops/health` returns 200 when ready, 503 when not, for uptime monitors.
+  - **Test mode** (`lib/play/testmode.ts`): the test clock, dev outbox and test routes work locally, and on a Vercel **preview** only with `PLAY_TEST_MODE=1`. Never in production, whatever the flags say (unit-tested).
+  - **Abuse caps:** codes 10/h and 20/day per IP, 3 per 10 min and 5/day per address; **all email 10/day per address**; picks 60/min and 2,000/day per IP, 120/h per player; shares 30/h per player; Turnstile on sign-in when configured. Durable only with Redis.
+  - **Monitoring without a third-party service:** server errors through `instrumentation.ts` `onRequestError`, browser errors through `ErrorReporter`. Both are scrubbed (no emails, keys or ids) into a 50-entry log at `/api/ops/errors` (Bearer `CRON_SECRET`). Sentry can be added later in `instrumentation.ts`.
+  - **Analytics** keyed by the anonymous player id only (no IP, email or user agent): daily counts of visit, pick, signup, code_sent, share_created, share_view, reminder_sent, reminder_click; active days per player; D1/D7 by first-seen cohort. All at `/api/ops/metrics` (Bearer).
+    - **Reminder "opens" are measured as clicks** through `/r/{kind}` links. Open pixels are unreliable and more invasive.
+  - **Privacy:** players can delete their game account (email, nickname, picks; aggregate counts stay). The privacy and terms pages are **drafts for legal review**, with a placeholder contact address.
+  - **Kill switch:** `PLAY_REMINDERS=off` pauses all reminder emails.
 
 - 2026-11-20 (Phase 2B, by the owner):
   - Settlement **Option B**.
@@ -89,14 +102,19 @@ Newest entries go at the top of each section.
 
 ## Open questions
 
-- **Q11 (new): production needs, before Phase 3 can go live:**
+- **Q15 (new, blocks the beta):** someone with Vercel access must resolve the `402 DEPLOYMENT_DISABLED` (or create a new project), then follow `docs/DEPLOY.md`. Check whether Vercel's Hobby terms (personal, non-commercial) fit, or use Pro.
+- **Q16 (new, blocks the beta):** a contact address for the privacy and terms pages, and a legal review of both.
+- **Q17 (new):** no admin page. Renaming an offensive nickname or deleting someone's account is done in Redis or code (`docs/DEPLOY.md` §11).
+- **Q18 (new):** the real-stakes prediction contract and its keeper are still in the codebase. The runbook says not to add the on-chain keys for this beta. Decide whether the Predict tab's real-USDC section should be hidden during the beta.
+
+- Q11 is now covered by `docs/DEPLOY.md`. **Original note: production needs, before Phase 3 can go live:**
   - `RESEND_API_KEY` and `RESEND_FROM` for codes and reminders (without them, sign-in says email isn't set up);
   - `PLAY_SECRET` (or `CRON_SECRET`) for codes, unsubscribe links and share cards;
   - `SITE_URL` if not nightshift.buzz;
   - Upstash Redis (otherwise everything is in memory and lost on restart);
   - the keeper's outside scheduler (Q3).
 - **Q12 (new): scale limits to revisit.** The leaderboard and reminders walk every account on each run (fine for hundreds of players). Past that, keep running totals at settlement. Price backoff is per server instance (in memory), not shared.
-- **Q13 (new): abuse.** Anonymous picks are rate-limited per IP but not per person; the leaderboard counts signed-in accounts only, and one email = one account. Turnstile (already in the repo) could gate sign-in if fake accounts show up.
+- Q13 partly addressed in Phase 3.5 (daily caps, per-player limits, Turnstile option). **Original note: abuse.** Anonymous picks are rate-limited per IP but not per person; the leaderboard counts signed-in accounts only, and one email = one account. Turnstile (already in the repo) could gate sign-in if fake accounts show up.
 - **Q14 (new):** email reminders state times in ET only. Phase 4 adds the player's own time zone.
 - **Q8 (new): Yahoo is a fragile source.** It returned HTTP 429 on both hosts for most of 2026-11-20, partly because the dev server polls it too. The points game copes (retries, 20 s budget, void after 72 h), but a licensed feed, or Twelve Data as a keyed fallback, should come before real money.
 - Q9 resolved in Phase 3 (email sign-in). Q10 resolved in Phase 3 (Beat the AI built).
@@ -112,6 +130,19 @@ Newest entries go at the top of each section.
 - **Q5:** Earlier ideas from 2026-11-20 not yet scheduled: blind call (user picks before seeing the AI), and crowd calls blended into the public signal (never into lending prices).
 
 ## Done
+
+- 2026-11-21: **Phase 3.5** on branch `phase-3-5`:
+  - **Docs:** `docs/DEPLOY.md` (runbook: services, secrets, every env var with its production/preview scope, setup order, scheduler, monitoring, abuse limits, incident table) and `docs/BETA_CHECKLIST.md` (before inviting, invite text, daily checks, metrics and targets, tester questions, stop rules, exit criteria). `.env.example` updated.
+  - **Code:** `lib/ops.ts`, `lib/ops-rules.ts`, `lib/play/testmode.ts`, `lib/turnstile.ts`, `/api/jobs/play`, `/api/ops/{health,errors,metrics,error}`, `/r/[kind]`, `/api/play/account/delete`, `/privacy`, `/terms`, `instrumentation.ts`, `components/ErrorReporter.tsx`.
+  - **Unit tests:** 67/67 (6 new: staleness, scrubbing, retention cohorts, test-mode gating). Typecheck: 0 errors in source.
+  - **`scripts/test-play3.mjs`:** 38/38 (adds account deletion). **`scripts/test-play.mjs`:** 17/17.
+  - **`scripts/smoke.mjs` (new), three runs:**
+    - dev server: 16 passed, 1 skipped (no `CRON_SECRET` there);
+    - **local production build started as a Vercel preview** (`VERCEL_ENV=preview`, `PLAY_TEST_MODE=1`, a test `CRON_SECRET`): **22/22**, covering sign-in, pick, lock at the close, settlement from real prices (SPY 715.87 → 713.56), one results email with tracked and unsubscribe links, scheduler endpoints and heartbeats, scrubbed error log, analytics counts, code and pick limits;
+    - **the same build started as production** (with `PLAY_TEST_MODE=1` set on purpose): 20 passed, 1 skipped. The dev outbox and test routes return 404, the test clock is ignored, metrics need the secret, strict health returns 503 without Redis and email. The skip: code limits can't run without Resend.
+  - **Browser (headless Chrome):** the privacy page renders with the draft banner; the game shows the "not financial advice" notice; no console errors.
+  - **Merge:** Phase 3 merged into `main` locally after 61/61 tests. Not pushed.
+  - **Noticed:** `next build` rewrites `tsconfig.json` to include its build folder. Reverted; it happens with any `NEXT_DIST_DIR`.
 
 - 2026-11-21: **Phase 3** on branch `phase-3`:
   - **Code:** `lib/prices/` (provider, backoff, Yahoo parsing), `lib/play/{account,mail,ai,leaderboard,share,remind}.ts`, `/api/play/account/{code,verify,settings,signout}`, `/api/play/leaderboard`, `/api/play/share`, `/api/play/unsubscribe`, dev-only `/api/play/dev/{outbox,ai-call}`, `/s/[token]` with `opengraph-image`, `components/PlayParts.tsx`.
