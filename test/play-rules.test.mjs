@@ -68,3 +68,31 @@ test("pending and void rounds keep the streak but earn nothing", () => {
   assert.equal(s.pending, 2);
   assert.equal(s.accuracy, null);
 });
+
+// ---------------------------------------------------------------- weekly points, leaderboard, Beat the AI scoring
+import { rankBoard, weekStart } from "../lib/play-rules.ts";
+
+test("points per round are recorded for weekly totals", () => {
+  const up = (d) => settled(d, { NVDA: res(1, 2), SPY: res(1, 2) });
+  const s = playStats(["2026-11-16", "2026-11-17", "2026-11-18"].map((d) => ({ date: d, picks: { NVDA: "up", SPY: "down" }, result: up(d) })));
+  assert.deepEqual(s.byRound, { "2026-11-16": 10, "2026-11-17": 10, "2026-11-18": 15 });
+});
+
+test("Beat the AI has no streak bonus", () => {
+  const up = (d) => settled(d, { NVDA: res(1, 2) });
+  const rounds = ["d1", "d2", "d3", "d4"].map((d) => ({ date: d, picks: { NVDA: "up" }, result: up(d) }));
+  assert.equal(playStats(rounds, { streakBonus: false }).points, 4 * POINTS.correct);
+});
+
+test("week starts on Monday (New York dates)", () => {
+  assert.equal(weekStart("2026-11-20"), "2026-11-16");
+  assert.equal(weekStart("2026-11-16"), "2026-11-16");
+  assert.equal(weekStart("2026-11-22"), "2026-11-16");
+  assert.equal(weekStart("2026-11-23"), "2026-11-23");
+});
+
+test("leaderboard order: points, then accuracy, then rounds, then name; players with nothing are left out", () => {
+  const row = (nick, points, accuracy, rounds) => ({ nick, points, week: points, accuracy, streak: 0, rounds });
+  const ranked = rankBoard([row("b", 20, 0.5, 4), row("a", 20, 0.5, 4), row("c", 20, 0.8, 2), row("d", 30, 0.1, 9), row("e", 0, null, 0)], "points");
+  assert.deepEqual(ranked.map((r) => r.nick), ["d", "c", "a", "b"]);
+});
