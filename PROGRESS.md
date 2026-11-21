@@ -225,3 +225,4 @@ Newest entries go at the top of each section.
 - Fix: deployed `phase-3-5` from the laptop with `railway up`; set `NIGHTSHIFT_ENV=staging`, `PLAY_TEST_MODE=1` (non-secret). Build + healthcheck passed.
 - Smoke: 11 passed, 0 failed, 3 skipped (sign-in, scheduler, email — need `PLAY_SECRET`, `CRON_SECRET`, Upstash, Resend, which the owner enters).
 - Open: the service is still connected to GitHub `main` — a push to `main` would redeploy over this. Disconnect or repoint in the dashboard before pushing.
+- 2026-11-21: built-in scheduler (`IN_APP_SCHEDULER=1`, commit 1dcecea) deployed to Railway; verified locally (all jobs scheduled, `schedulerPlay: true`). Inactive on Railway until the owner sets `CRON_SECRET`. Waiting on owner: `CRON_SECRET`, `PLAY_SECRET`, Upstash URL/token; then switch to production.
