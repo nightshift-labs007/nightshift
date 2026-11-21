@@ -74,7 +74,7 @@ export const EXPLAIN: Record<Topic, string> = {
   stack:
     "Stack buys gold or silver for you on a schedule, like a savings plan. You pick the metal, the amount and how often, and it only buys when the price is within a small margin of my fair value. The tokens go straight to your wallet, and you can pause or cancel any time. Say something like: start a 20 dollar weekly gold stack.",
   demo:
-    "Lending and Stack use demo tokens with no value; only predictions use small real USDC stakes. Try the paper account in the App, no wallet needed, or sign up with email for a Nightshift wallet.",
+    "Lending and Stack use demo tokens with no value; the prediction game uses points with no cash value, and real-money predictions are switched off. Try the paper account in the App, no wallet needed, or sign up with email for a Nightshift wallet.",
   beta:
     "Beta is how strongly an ETF moves with its futures overnight. I measure it from past nights, then pull it gently toward one so a short history can't fool me. If the fit is weak, I simply use one.",
 };

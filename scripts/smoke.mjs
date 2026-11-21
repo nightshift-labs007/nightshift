@@ -3,6 +3,7 @@
 //   node scripts/smoke.mjs https://<preview-url>            # public checks + pick + abuse limits + safety
 //   CRON_SECRET=… node scripts/smoke.mjs <url>              # + scheduler endpoints, metrics, error log
 //   SMOKE_EMAIL=you@… node scripts/smoke.mjs <url>          # + real sign-in: asks you to paste the code from your inbox
+//   Last, it loads the public pages in headless Chrome (scripts/smoke-browser.mjs): real content, no wall, no errors.
 //
 // On a deployment in TEST MODE (local dev, or a preview/staging with PLAY_TEST_MODE=1) it also runs the full game cycle
 // on a past round with the test clock: pick → lock → settle from real prices → results email (dev outbox when Resend
@@ -13,6 +14,7 @@
 // does every 5 minutes. SMOKE_WRITE=1 adds the checks that write test data to production (a pick, the rate limits,
 // an error-log entry); clean up afterwards.
 import { createInterface } from "node:readline/promises";
+import { browserChecks } from "./smoke-browser.mjs";
 
 const BASE = (process.argv[2] ?? "http://localhost:3000").replace(/\/$/, "");
 const SECRET = process.env.CRON_SECRET ?? "";
@@ -148,6 +150,12 @@ try {
 } catch (e) {
   fail++;
   console.log("  FAIL request error:", e?.cause?.code ?? e?.message ?? e);
+}
+try {
+  await browserChecks(BASE, { ok, skipped });
+} catch (e) {
+  fail++;
+  console.log("  FAIL browser checks:", e?.message ?? e);
 }
 console.log(`\n${pass} passed, ${fail} failed, ${skip} skipped`);
 process.exit(fail ? 1 : 0);

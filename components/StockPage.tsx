@@ -5,7 +5,6 @@ import { useMemo, useRef, useState } from "react";
 import type { StockBoard, StockDetail, StockRange } from "@/lib/stocks";
 import { InfoTip } from "./InfoTip";
 import { PageShell } from "./Site";
-import { SignedInGate } from "./SignedIn";
 import { StockLogo } from "./Stocks";
 import { signed, usd, useApi } from "./useApi";
 
@@ -32,7 +31,6 @@ export function StockPage({ ticker }: { ticker: string }) {
 
   return (
     <PageShell>
-      <SignedInGate what="the full stock report">
         <section className="block etf-top">
           <div className="wrap">
             <Link className="etf-back" href="/#stocks">← All stocks</Link>
@@ -178,7 +176,6 @@ export function StockPage({ ticker }: { ticker: string }) {
             </div>
           </section>
         )}
-      </SignedInGate>
     </PageShell>
   );
 }

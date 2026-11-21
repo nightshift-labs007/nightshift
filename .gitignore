@@ -36,3 +36,4 @@ formal/aristotle-*.rejected.lean
 
 # Local waitlist store used by `npm run dev` when Upstash is not connected (contains emails)
 .data/
+.next-prod/

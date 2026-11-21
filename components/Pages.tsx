@@ -13,7 +13,6 @@ import { ShiftReport } from "./ShiftReport";
 import { StackTab } from "./StackTab";
 import { MemberGate } from "./Member";
 import { PageHero, PageShell, SectionHead } from "./Site";
-import { SignedInGate } from "./SignedIn";
 import { useApi } from "./useApi";
 import { VaultApp } from "./VaultApp";
 import { GettingStarted } from "./GettingStarted";
@@ -92,7 +91,6 @@ export function AppPage() {
   }, [tab]);
   return (
     <PageShell>
-      <SignedInGate>
       <section className="block app-top">
         <div className="wrap">
           <div className="app-top-row">
@@ -186,7 +184,6 @@ export function AppPage() {
           <GettingStarted />
         </div>
       </section>
-      </SignedInGate>
     </PageShell>
   );
 }
@@ -198,7 +195,6 @@ export function OraclePage() {
   useEffect(() => markStep("price"), []);
   return (
     <PageShell>
-      <SignedInGate>
       <PageHero
         overline="ORACLE · LIVE"
         title="Fair value while the market is closed."
@@ -220,7 +216,6 @@ export function OraclePage() {
           </div>
         </div>
       </section>
-      </SignedInGate>
     </PageShell>
   );
 }

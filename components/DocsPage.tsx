@@ -310,7 +310,7 @@ export function DocsPage() {
       <PageHero
         overline="DOCS · HOW NIGHTSHIFT WORKS"
         title="What's live, how it works, and what isn't done yet."
-        lead="Straight answers to the questions partners and reviewers ask most. Where something is a demo or not built yet, it says so. Nightshift is an unaudited beta on Base: demo assets with no value for lending and Stack, small real-USDC stakes for predictions, and a paper account."
+        lead="Straight answers to the questions partners and reviewers ask most. Where something is a demo or not built yet, it says so. Nightshift is an unaudited beta on Base: demo assets with no value for lending and Stack, a points-only prediction game (real-money predictions are switched off), and a paper account."
       />
       <section className="block">
         <div className="wrap docs">
