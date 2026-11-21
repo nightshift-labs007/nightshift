@@ -22,6 +22,18 @@ export async function cmd<T>(args: (string | number)[]): Promise<T> {
   return j.result as T;
 }
 
+/** A real round trip: true only if Redis answers PING with PONG within `timeoutMs`. Never throws. */
+export async function kvPing(timeoutMs = 2000): Promise<boolean> {
+  if (!kvEnabled()) return false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<false>((r) => (timer = setTimeout(() => r(false), timeoutMs)));
+  try {
+    return await Promise.race([cmd<string>(["PING"]).then((x) => x === "PONG", () => false), late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const kvGet = (key: string) => cmd<string | null>(["GET", key]);
 export const kvSet = (key: string, value: string) => cmd<string>(["SET", key, value]);
 export const kvDel = (key: string) => cmd<number>(["DEL", key]);

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { configStatus, env } from "@/lib/env";
+import { kvPing } from "@/lib/kv";
 import { jobsStatus } from "@/lib/ops";
 import { playSecret } from "@/lib/play/mail";
 import { storeKind } from "@/lib/play/store";
@@ -14,11 +15,11 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: NextRequest) {
   const now = Date.now();
-  const jobs = await jobsStatus(now);
+  const [jobs, redisUp] = await Promise.all([jobsStatus(now), kvPing()]);
   const cfg = configStatus();
   const secret = playSecret();
   const checks = {
-    redis: storeKind() === "redis", // otherwise everything is in memory and lost on restart
+    redis: storeKind() === "redis" && redisUp, // a real PING round trip; false if not configured (memory) or unreachable
     email: cfg.email, // RESEND_API_KEY + RESEND_FROM
     playSecret: !!secret && secret !== "nightshift-dev-only-play-secret", // PLAY_SECRET or CRON_SECRET
     cronSecret: cfg.cron,
