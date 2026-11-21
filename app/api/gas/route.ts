@@ -3,6 +3,7 @@ import { formatEther, isAddress, parseEther, recoverMessageAddress, type Address
 import { isMainnet } from "@/lib/chain";
 import { roleClients } from "@/lib/chain/keeper";
 import { gasMessage } from "@/lib/drip";
+import { isRegisteredWallet } from "@/lib/gates";
 import { isRegistered, signupRequired } from "@/lib/members";
 import { SESSION_COOKIE, readSession } from "@/lib/profile";
 import { allow, take } from "@/lib/ratelimit";
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (signer?.toLowerCase() === body.address.toLowerCase()) address = body.address.toLowerCase();
   }
   if (!address) return NextResponse.json({ error: "sign" }, { status: 401 });
-  if (signupRequired() && !(await isRegistered(address).catch(() => false)))
+  if (!isRegisteredWallet({ gateReady: signupRequired(), registered: signupRequired() ? await isRegistered(address).catch(() => null) : null }))
     return NextResponse.json({ error: "Finish sign-up first: Nightshift covers gas for registered users." }, { status: 403 });
 
   const bal = await c.pub.getBalance({ address: address as Address });

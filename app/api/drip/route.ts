@@ -5,6 +5,7 @@ import { roleClients } from "@/lib/chain/keeper";
 import { env } from "@/lib/env";
 import { take } from "@/lib/ratelimit";
 import { dripMessage } from "@/lib/drip";
+import { isRegisteredWallet } from "@/lib/gates";
 import { isRegistered, signupRequired } from "@/lib/members";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
   if (!signer || signer.toLowerCase() !== address.toLowerCase()) return NextResponse.json({ error: "Signature doesn't match this address." }, { status: 401 });
 
   // 2. only wallets that finished sign-up (invite code, verified email, username)
-  if (signupRequired() && !(await isRegistered(address).catch(() => false)))
+  if (!isRegisteredWallet({ gateReady: signupRequired(), registered: signupRequired() ? await isRegistered(address).catch(() => null) : null }))
     return NextResponse.json({ error: "Finish your profile first (invite code and email) to get demo funds." }, { status: 403 });
 
   // 3. captcha (when configured)

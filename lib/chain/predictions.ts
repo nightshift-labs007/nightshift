@@ -1,5 +1,6 @@
 import "server-only";
 import { formatUnits, type Address } from "viem";
+import { realStakesOn } from "../gates";
 import { EVENING_PREFIX, ledgerAddress, stampPrediction, type Prediction } from "@/lib/ledger";
 import { officialOpen } from "@/lib/prices";
 import { kvEnabled, kvGet, kvHDel, kvHGetAll, kvHSet, kvSetEx } from "@/lib/kv";
@@ -215,6 +216,7 @@ async function settleRounds(c: NonNullable<ReturnType<typeof roleClients>>, pm: 
 
 /** Adds one registered wallet to the contract's allow-list right away (the 5-minute sync would also get to it). */
 export async function addMemberNow(address: string) {
+  if (!realStakesOn(process.env)) throw new Error("real stakes are off (REAL_STAKES)");
   const pm = PM();
   const c = roleClients("keeper");
   if (!pm || !c) throw new Error("predictions not deployed or keeper not configured");
@@ -229,6 +231,7 @@ export async function addMemberNow(address: string) {
 
 /** Team-only: open the next session's rounds now instead of waiting for 20:00 ET (still only while the market is closed). */
 export async function openRoundsNow() {
+  if (!realStakesOn(process.env)) return { skipped: "real stakes are off (REAL_STAKES)" };
   const pm = PM();
   const c = roleClients("keeper");
   if (!pm || !c) return { skipped: "predictions not deployed or keeper not configured" };
@@ -240,9 +243,12 @@ export async function runPredictions() {
   const c = roleClients("keeper");
   if (!pm || !c) return { skipped: "predictions not deployed or keeper not configured" };
   const out: Record<string, unknown> = { at: etParts(Date.now()) };
+  // with real stakes off, only settle: existing rounds still finalize (funds aren't stuck), but nobody new is
+  // allowed in and no new rounds open
+  const on = realStakesOn(process.env);
+  if (!on) out.members = out.open = { skipped: "real stakes are off (REAL_STAKES)" };
   for (const [label, job] of [
-    ["members", syncMembers],
-    ["open", openRounds],
+    ...(on ? ([["members", syncMembers], ["open", openRounds]] as const) : []),
     ["settle", settleRounds],
   ] as const) {
     try {
