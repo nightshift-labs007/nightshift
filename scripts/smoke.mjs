@@ -4,14 +4,20 @@
 //   CRON_SECRET=… node scripts/smoke.mjs <url>              # + scheduler endpoints, metrics, error log
 //   SMOKE_EMAIL=you@… node scripts/smoke.mjs <url>          # + real sign-in: asks you to paste the code from your inbox
 //
-// On a deployment in TEST MODE (local dev, or a Vercel preview with PLAY_TEST_MODE=1) it also runs the full game cycle
+// On a deployment in TEST MODE (local dev, or a preview/staging with PLAY_TEST_MODE=1) it also runs the full game cycle
 // on a past round with the test clock: pick → lock → settle from real prices → results email (dev outbox when Resend
 // isn't set; otherwise check the inbox). On production it checks that every test-only door is closed.
+//
+// PRODUCTION IS READ-ONLY BY DEFAULT: no picks, no player cookie (so no analytics), no error-log entry, no sign-in codes,
+// no rate-limit burst. The only thing it triggers is one scheduled job run (with CRON_SECRET), exactly what the scheduler
+// does every 5 minutes. SMOKE_WRITE=1 adds the checks that write test data to production (a pick, the rate limits,
+// an error-log entry); clean up afterwards.
 import { createInterface } from "node:readline/promises";
 
 const BASE = (process.argv[2] ?? "http://localhost:3000").replace(/\/$/, "");
 const SECRET = process.env.CRON_SECRET ?? "";
 const EMAIL = process.env.SMOKE_EMAIL ?? "";
+const WRITE_OPT_IN = process.env.SMOKE_WRITE === "1";
 let pass = 0, fail = 0, skip = 0;
 const ok = (c, m) => (c ? (pass++, console.log("  ok  ", m)) : (fail++, console.log("  FAIL", m)));
 const skipped = (m) => (skip++, console.log("  skip", m));
@@ -38,15 +44,22 @@ try {
   const health = (await call("/api/ops/health?soft=1")).json;
   ok(!!health && typeof health.ready === "boolean", "/api/ops/health answers");
   const TEST = health?.testMode === true;
+  const WRITE = TEST || WRITE_OPT_IN; // test-mode deployments hold test data anyway
+  console.log(TEST ? "  info test mode: full cycle, writes test data" : WRITE ? "  WARN SMOKE_WRITE=1 on production: this writes test picks, events and an error-log entry" : "  info production, read-only (SMOKE_WRITE=1 adds the write checks)");
   console.log(`  info ready=${health?.ready} testMode=${TEST} store=${health?.store} checks=${JSON.stringify(health?.checks)}`);
   for (const [k, v] of Object.entries(health?.checks ?? {})) if (!v && k !== "captcha") console.log(`  warn not ready: ${k}`);
 
   console.log("\nthe game without an account");
   const st = (await call("/api/play")).json;
   ok(st?.round?.date && st.assets?.length === 5, `current round ${st?.round?.date}, 5 assets`);
-  const p = await call("/api/play/pick", { method: "POST", body: { date: st.round.date, ticker: "SPY", side: "up" } });
-  ok(p.status === 200 && !!p.cookie, "a pick with no wallet or account is saved and sets a cookie");
-  ok((await call("/api/play", { cookie: p.cookie })).json?.myPicks?.SPY === "up", "the pick is there on reload");
+  let p = { cookie: null };
+  if (WRITE) {
+    p = await call("/api/play/pick", { method: "POST", body: { date: st.round.date, ticker: "SPY", side: "up" } });
+    ok(p.status === 200 && !!p.cookie, "a pick with no wallet or account is saved and sets a cookie");
+    ok((await call("/api/play", { cookie: p.cookie })).json?.myPicks?.SPY === "up", "the pick is there on reload");
+  } else skipped("saving a pick (writes to production; SMOKE_WRITE=1)");
+  ok((await call("/api/predict")).json?.enabled === false || process.env.SMOKE_EXPECT_REAL_STAKES === "1", "real stakes are off (/api/predict enabled:false)");
+  ok((await call("/api/member?address=0x0000000000000000000000000000000000000001")).json?.registered === false, "an unknown wallet is not registered (gate fails closed)");
 
   if (!TEST) {
     console.log("\nproduction safety (test mode is off here)");
@@ -106,16 +119,20 @@ try {
     ok(!h2.jobs.settle.stale && !h2.jobs.reminders.stale && !h2.jobs.aiCall.stale, "after a scheduled run, the game jobs are not stale");
     const k = await call("/api/keeper", { auth: true });
     ok(k.status === 200, "/api/keeper runs");
-    await call("/api/ops/error", { method: "POST", body: { msg: `smoke ${RUN} for me@example.com`, where: "/smoke?x=1" } });
-    const errs = (await call("/api/ops/errors", { auth: true })).json?.errors ?? [];
-    const mine = errs.find((e) => e.msg.includes(`smoke ${RUN}`));
-    ok(!!mine && !mine.msg.includes("me@example.com") && !mine.where.includes("?"), "a browser error is logged, scrubbed of the email and the query string");
+    if (WRITE) {
+      await call("/api/ops/error", { method: "POST", body: { msg: `smoke ${RUN} for me@example.com`, where: "/smoke?x=1" } });
+      const errs = (await call("/api/ops/errors", { auth: true })).json?.errors ?? [];
+      const mine = errs.find((e) => e.msg.includes(`smoke ${RUN}`));
+      ok(!!mine && !mine.msg.includes("me@example.com") && !mine.where.includes("?"), "a browser error is logged, scrubbed of the email and the query string");
+    } else ok(Array.isArray((await call("/api/ops/errors", { auth: true })).json?.errors), "the error log answers with the secret");
     const m = (await call("/api/ops/metrics?days=2", { auth: true })).json;
     const today = m?.daily?.at(-1)?.events ?? {};
-    ok((today.pick ?? 0) >= 1 && (today.visit ?? 0) >= 1, `today's events are counted (${JSON.stringify(today)})`);
+    if (WRITE) ok((today.pick ?? 0) >= 1 && (today.visit ?? 0) >= 1, `today's events are counted (${JSON.stringify(today)})`);
+    else ok(Array.isArray(m?.daily), `metrics answer (today: ${JSON.stringify(today)})`);
   } else skipped("scheduler, metrics and error log (set CRON_SECRET to run them)");
   console.log("\nabuse limits");
-  {
+  if (!WRITE) skipped("abuse limits (sends codes and 130 picks; SMOKE_WRITE=1)");
+  else {
     // Resend's test address accepts mail without delivering it; on a local server mail goes to the dev outbox
     const target = `delivered+smoke-${RUN}@resend.dev`;
     const codes = [];
