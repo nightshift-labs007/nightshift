@@ -67,7 +67,7 @@ test("trading-date stepping and round spans", () => {
 });
 
 // ---------------------------------------------------------------- Beat the AI
-import { aiRoundFor, currentAiRound } from "../lib/time.ts";
+import { aiCallIsCurrent, aiRoundFor, currentAiRound } from "../lib/time.ts";
 
 test("Beat the AI: call at 20:00 ET the evening before, lock 04:00 ET, settle at the 09:30 open", () => {
   assert.deepEqual(aiRoundFor("2026-11-20"), {
@@ -81,8 +81,24 @@ test("Beat the AI: call at 20:00 ET the evening before, lock 04:00 ET, settle at
 test("Beat the AI: the round in play by time of day, weekend and holiday", () => {
   assert.equal(currentAiRound(ms("2026-11-20T08:59:00Z")).date, "2026-11-20"); // Fri 03:59 ET: still Friday's round
   assert.equal(currentAiRound(ms("2026-11-20T09:00:00Z")).date, "2026-11-23"); // Fri 04:00 ET: locked, next is Monday
-  const mon = aiRoundFor("2026-11-23");
-  assert.equal(mon.callMs, ms("2026-11-21T01:00:00Z"), "Monday's call comes Friday 20:00 ET");
-  assert.equal(aiRoundFor("2026-11-27").callMs, ms("2026-11-26T01:00:00Z"), "after Thanksgiving: Wed 20:00 ET");
-  assert.equal(aiRoundFor("2026-11-30").callMs, ms("2026-11-27T22:00:00Z"), "after the 13:00 early close: 17:00 ET");
+  assert.equal(currentAiRound(ms("2026-11-22T12:00:00Z")).date, "2026-11-23"); // Sunday: Monday's round, call not yet taken
+});
+
+test("Beat the AI: the call is taken the evening right before the session, never across a weekend or holiday", () => {
+  assert.equal(aiRoundFor("2026-11-23").callMs, ms("2026-11-23T01:00:00Z"), "Monday's call: Sunday 20:00 ET, not Friday");
+  assert.equal(aiRoundFor("2026-11-27").callMs, ms("2026-11-27T01:00:00Z"), "after Thanksgiving: Thursday 20:00 ET, not Wednesday");
+  assert.equal(aiRoundFor("2026-11-30").callMs, ms("2026-11-30T01:00:00Z"), "after Friday's 13:00 early close: Sunday 20:00 ET");
+  assert.equal(aiRoundFor("2026-11-24").callMs, ms("2026-11-24T01:00:00Z"), "a normal weekday: the evening before, 20:00 ET");
+  assert.equal(aiRoundFor("2026-11-02").callMs, ms("2026-11-02T01:00:00Z"), "DST ended that Sunday: 20:00 EST");
+  assert.equal(aiRoundFor("2027-03-15").callMs, ms("2027-03-15T00:00:00Z"), "DST started that Sunday: 20:00 EDT");
+  for (const d of ["2026-11-20", "2026-11-23", "2026-11-27", "2026-11-30", "2027-01-19"]) {
+    const r = aiRoundFor(d);
+    assert.equal(r.lockMs - r.callMs, 8 * 3600_000, `${d}: the call is exactly 8 hours old at the 04:00 ET lock`);
+  }
+});
+
+test("Beat the AI: a call taken before its round's call time is stale and doesn't count", () => {
+  assert.equal(aiCallIsCurrent({ session: "2026-11-23", at: ms("2026-11-21T01:00:30Z") }), false, "Friday's call for Monday (old rule)");
+  assert.equal(aiCallIsCurrent({ session: "2026-11-23", at: ms("2026-11-23T01:00:00Z") }), true, "taken at Sunday 20:00 ET");
+  assert.equal(aiCallIsCurrent({ session: "2026-11-20", at: ms("2026-11-20T01:00:00Z") }), true, "weekday calls are unchanged");
 });

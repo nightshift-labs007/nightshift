@@ -191,8 +191,9 @@ export function playRoundsBetween(fromDate: string, toDate: string): string[] {
 // ---------------------------------------------------------------- "Beat the AI" (points only)
 
 /**
- * A "Beat the AI" round is named by its session S (the open it is decided by). Nightshift's call is taken four hours
- * after the previous close (20:00 ET; 17:00 after an early close), picks lock at 04:00 ET on S (before pre-market
+ * A "Beat the AI" round is named by its session S (the open it is decided by). Nightshift's call is taken at 20:00 ET on
+ * the calendar evening right before S (Sunday evening for Monday, the holiday evening after a holiday), so a call is
+ * never more than 8 hours old at the lock, even after a weekend. Picks lock at 04:00 ET on S (before pre-market
  * trading starts) and the round settles on S's 09:30 ET open.
  */
 export type AiRound = { date: string; callMs: number; lockMs: number; openMs: number };
@@ -200,11 +201,14 @@ export type AiRound = { date: string; callMs: number; lockMs: number; openMs: nu
 export function aiRoundFor(session: string): AiRound {
   return {
     date: session,
-    callMs: closeUtcMs(prevTradingDate(session)) + 4 * 3600_000,
+    callMs: etToUtcMs(addDays(session, -1), 20, 0),
     lockMs: etToUtcMs(session, 4, 0),
     openMs: etToUtcMs(session, 9, 30),
   };
 }
+
+/** A stored call counts only if it was taken at or after its round's call time (an older one is stale: ignored). */
+export const aiCallIsCurrent = (call: { session: string; at: number }) => call.at >= aiRoundFor(call.session).callMs;
 
 /** The next "Beat the AI" round whose lock is still ahead (its call may not have been made yet: see callMs). */
 export function currentAiRound(nowMs: number): AiRound {

@@ -2,26 +2,33 @@ import "server-only";
 import { getOracleSnapshot } from "@/lib/oracle";
 import { PLAY_TICKERS } from "@/lib/play-rules";
 import { getStockBoard } from "@/lib/stocks";
-import { currentAiRound } from "@/lib/time";
+import { aiCallIsCurrent, currentAiRound } from "@/lib/time";
 import { sGet, sSet, tryLock } from "./store";
 import { testMode } from "@/lib/play/testmode";
 
 /**
  * Nightshift's evening call for "Beat the AI": the engine's fair value for each game asset, taken once per session
- * after the evening call time (20:00 ET) and stored unchanged. Players pick whether the open lands above or below it.
+ * at the evening call time (20:00 ET the evening before the session) and stored unchanged. Players pick whether the open lands above or below it.
  * The call is kept off-chain (it decides points only); it is never described as recorded on Base.
  */
 export type AiCall = { session: string; at: number; p: Record<string, number> };
 
 const KEY = (session: string) => `play:ai:call:${session}`;
 
-export async function getAiCall(session: string): Promise<AiCall | null> {
-  const v = await sGet(KEY(session));
+async function readCall(key: string): Promise<AiCall | null> {
+  const v = await sGet(key);
   try {
     return v ? (JSON.parse(v) as AiCall) : null;
   } catch {
     return null;
   }
+}
+
+/** The session's call, if it was taken at or after its call time. One taken earlier (under the old "4 h after the last
+ *  close" rule, e.g. Friday evening for Monday) is stale and doesn't count. */
+export async function getAiCall(session: string): Promise<AiCall | null> {
+  const c = await readCall(KEY(session));
+  return c && aiCallIsCurrent(c) ? c : null;
 }
 
 /** Test-only (non-production): set a call for a past or future session, so settlement can be tested on real opens. */
@@ -50,6 +57,8 @@ export async function ensureAiCall(nowMs: number): Promise<AiCall | null> {
   }
   if (!Object.keys(p).length) return null;
   const call: AiCall = { session: round.date, at: nowMs, p };
+  const stale = await readCall(KEY(round.date));
+  if (stale) await sSet(`${KEY(round.date)}:stale`, JSON.stringify(stale)); // keep the superseded call, don't lose it
   await sSet(KEY(round.date), JSON.stringify(call));
   return call;
 }

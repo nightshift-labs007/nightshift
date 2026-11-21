@@ -234,8 +234,8 @@ export function PlayGame() {
             can&apos;t be confirmed within {state.rules.voidAfterHours} hours of the open, the round is void and nobody gains or loses points.
           </li>
           <li>
-            Beat the AI: each evening (20:00 ET) Nightshift makes its call for each asset&apos;s next open. Say whether the open lands above or below it,
-            until 04:00 ET. A correct call earns {state.rules.points.correct} points, decided to the cent like the main game. No streak bonus in this mode.
+            Beat the AI: at 20:00 ET on the evening before each trading day (Sunday evening for Monday), Nightshift makes its call for each asset&apos;s
+            open. Say whether the open lands above or below it, until 04:00 ET that morning. A correct call earns {state.rules.points.correct} points, decided to the cent like the main game. No streak bonus in this mode.
           </li>
           <li>
             Points have no money value and can&apos;t be exchanged for anything. Without an account your picks live in this browser only; save your progress
