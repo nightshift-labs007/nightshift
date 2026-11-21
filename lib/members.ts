@@ -129,7 +129,7 @@ export async function emailStatus() {
   return { senderDomain: sender, keyLooksValid: /^re_[A-Za-z0-9_]{20,}$/.test(env.resendKey), last: raw ? JSON.parse(raw) : null };
 }
 /** Invite-only sign-up is enforced (App wallet tools, faucet) once both the store and email are configured. */
-export const signupRequired = () => !!(env.upstashUrl && env.upstashToken && env.cronSecret.length >= 16) && emailEnabled();
+export const signupRequired = () => env.redisConfigured && env.cronSecret.length >= 16 && emailEnabled();
 
 /**
  * Whether this wallet may get a code for this email (checked before any rate limit is spent). The email code is the

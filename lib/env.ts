@@ -24,6 +24,8 @@ export const env = {
   // Vercel's Upstash integration may name these KV_REST_API_*: accept either
   upstashUrl: v("UPSTASH_REDIS_REST_URL") || v("KV_REST_API_URL"),
   upstashToken: v("UPSTASH_REDIS_REST_TOKEN") || v("KV_REST_API_TOKEN"),
+  // a plain Redis (redis:// or rediss://), e.g. Railway's: used when Upstash isn't set
+  redisUrl: unquoted("REDIS_URL"),
   turnstileSecret: v("TURNSTILE_SECRET_KEY"),
   resendKey: unquoted("RESEND_API_KEY"),
   // a sender on a domain verified in Resend, e.g. "Nightshift <hello@nightshift.buzz>". Setting both switches on invite-only
@@ -36,6 +38,10 @@ export const env = {
   telegramChat: v("TELEGRAM_CHAT_ID"),
   walletConnect: v("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID"),
   turnstileSite: v("NEXT_PUBLIC_TURNSTILE_SITE_KEY"),
+  /** A durable Redis is connected: Upstash (URL and token) or a plain Redis (REDIS_URL). */
+  get redisConfigured() {
+    return !!((this.upstashUrl && this.upstashToken) || /^rediss?:\/\//.test(this.redisUrl));
+  },
 };
 
 const looksLikeKey = (k: string) => /^0x[0-9a-fA-F]{64}$/.test(k);
@@ -50,8 +56,8 @@ export function configStatus() {
     faucet: looksLikeKey(env.faucetKey),
     newsAgent: env.anthropicKey.length > 0,
     priceFallback: env.twelveDataKey.length > 0,
-    durableRateLimit: !!(env.upstashUrl && env.upstashToken),
-    profiles: !!(env.upstashUrl && env.upstashToken && env.cronSecret.length >= 16),
+    durableRateLimit: env.redisConfigured,
+    profiles: env.redisConfigured && env.cronSecret.length >= 16,
     email: !!(env.resendKey && env.resendFrom),
     captcha: !!(env.turnstileSecret && env.turnstileSite),
     alerts: !!(env.telegramToken && env.telegramChat),

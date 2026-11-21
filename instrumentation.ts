@@ -1,10 +1,12 @@
 // Server error monitoring without a third-party service: Next.js calls onRequestError for errors thrown while
 // rendering pages or running route handlers. They go to the scrubbed error log (/api/ops/errors) and the server log.
 // To add Sentry later, install @sentry/nextjs and call its captureRequestError here as well.
+// (The imports sit inside `if (NEXT_RUNTIME === "nodejs")` so the edge build leaves the Node-only modules out.)
 export async function onRequestError(err: unknown, request: { path: string; method: string }) {
-  if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  const { reportError } = await import("./lib/ops");
-  await reportError(`server ${request.method} ${request.path.replace(/[?#].*$/, "")}`, err);
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { reportError } = await import("./lib/ops");
+    await reportError(`server ${request.method} ${request.path.replace(/[?#].*$/, "")}`, err);
+  }
 }
 
 // Built-in scheduler for always-on hosts (Railway, a VM): with IN_APP_SCHEDULER=1 the server calls its own job

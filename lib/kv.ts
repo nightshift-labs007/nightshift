@@ -1,10 +1,15 @@
 import "server-only";
 import { env } from "./env";
+import { redisCmd } from "./redis-tcp";
 
-/** Minimal Upstash Redis (REST) client: the private store for profiles. Off when Upstash isn't connected. */
-export const kvEnabled = () => !!(env.upstashUrl && env.upstashToken);
+/**
+ * Minimal Redis client: the private store for profiles and the game. Upstash (REST) when its URL and token are set,
+ * otherwise a plain Redis over TCP when REDIS_URL is set (e.g. Railway's Redis). Off when neither is connected.
+ */
+export const kvEnabled = () => env.redisConfigured;
 
-async function cmd<T>(args: (string | number)[]): Promise<T> {
+export async function cmd<T>(args: (string | number)[]): Promise<T> {
+  if (!(env.upstashUrl && env.upstashToken)) return redisCmd<T>(env.redisUrl, args);
   const res = await fetch(env.upstashUrl, {
     method: "POST",
     headers: { Authorization: `Bearer ${env.upstashToken}`, "Content-Type": "application/json" },
