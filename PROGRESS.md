@@ -218,3 +218,10 @@ Newest entries go at the top of each section.
   - **Browser check** (headless Chrome against localhost:3000): /app Prices, /app#predict and / have no console errors or exceptions. Predict shows the stale state correctly. The open-round states ("Be the first to call it", "pays 1.32×", "no one on the other side yet", the live comparison) were checked by mocking `/api/predict` in the browser only.
   - **Not fixed (needs owner access):** the keeper itself. Production hosting, the scheduler, the keeper key and finalizing the 12 overdue rounds (Q3, Q4).
 - 2026-11-20: Phase 0 investigation (this section). Local dev server: `npm run dev` on :3000.
+
+### 2026-11-21 — Staging live on the owner's personal Railway
+- Project `determined-laughter` (personal workspace), service `nightshift`, URL https://nightshift-production-83254d3c.up.railway.app
+- Why the first deploy failed: the service was linked to GitHub `main` (old 6 Nov code, 488ea0d) and its build died in `next/font` (Google Fonts returned a reply without a font-file extension to Railway's build server; transient — the same fonts fetch fine from the laptop and the next build).
+- Fix: deployed `phase-3-5` from the laptop with `railway up`; set `NIGHTSHIFT_ENV=staging`, `PLAY_TEST_MODE=1` (non-secret). Build + healthcheck passed.
+- Smoke: 11 passed, 0 failed, 3 skipped (sign-in, scheduler, email — need `PLAY_SECRET`, `CRON_SECRET`, Upstash, Resend, which the owner enters).
+- Open: the service is still connected to GitHub `main` — a push to `main` would redeploy over this. Disconnect or repoint in the dashboard before pushing.
