@@ -129,11 +129,7 @@ export function AppPage() {
         <section className="block" id="predict">
           <div className="wrap">
             <PlayGame />
-            <div className="pl-divider">
-              <p className="mono xs muted">REAL STAKES · BETA</p>
-              <h3 className="sub-title">Call the Open with {PREDICT_STAKE.symbol}</h3>
-            </div>
-            <PredictTab />
+            <RealStakes />
           </div>
         </section>
       ) : tab === "stack" ? (
@@ -250,3 +246,17 @@ export function ProofPage() {
   );
 }
 
+/** Real-stakes rounds, only when the server says they're on (REAL_STAKES=on); nothing at all while loading or off. */
+function RealStakes() {
+  const { data } = useApi<{ enabled?: boolean }>("/api/predict", 60_000);
+  if (data?.enabled !== true) return null;
+  return (
+    <>
+      <div className="pl-divider">
+        <p className="mono xs muted">REAL STAKES · BETA</p>
+        <h3 className="sub-title">Call the Open with {PREDICT_STAKE.symbol}</h3>
+      </div>
+      <PredictTab />
+    </>
+  );
+}

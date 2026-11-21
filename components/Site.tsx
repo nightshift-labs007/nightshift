@@ -83,6 +83,9 @@ export function SiteFooter() {
             marked. The Earn panel shows a third-party vault run by Sentora; deposits happen on Sentora&apos;s site, and Nightshift does not hold
             funds or control that vault.
           </p>
+          <p className="footer-links">
+            <Link href="/privacy">Privacy</Link> · <Link href="/terms">Terms</Link>
+          </p>
         </div>
       </footer>
       <Toaster />

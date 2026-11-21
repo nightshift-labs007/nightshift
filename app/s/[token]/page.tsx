@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { track } from "@/lib/ops";
 import { readShare } from "@/lib/play/share";
 
 const day = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
@@ -15,6 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
 /** A shared result (signed on the server, so its numbers are the player's real ones), with a way into the game. */
 export default async function SharePage({ params }: { params: Promise<{ token: string }> }) {
   const card = readShare((await params).token);
+  if (card) await track("share_view"); // link previews by bots count too; treat as an upper bound
   return (
     <main className="wrap" style={{ maxWidth: 640, padding: "96px 16px 64px" }}>
       <p className="mono xs muted">NIGHTSHIFT · {card?.m === "ai" ? "BEAT THE AI" : "UP OR DOWN AT THE OPEN"}</p>

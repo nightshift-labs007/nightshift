@@ -20,8 +20,8 @@ export function useRegistered(account: string | null) {
     const load = () =>
       fetch(`/api/member?address=${account}`, { cache: "no-store" })
         .then((r) => r.json())
-        .then((j: { registered?: boolean }) => alive && setRegistered(j.registered !== false))
-        .catch(() => alive && setRegistered(true)); // store unreachable: don't lock people out
+        .then((j: { registered?: boolean }) => alive && setRegistered(j.registered === true))
+        .catch(() => alive && setRegistered(false)); // fail closed: an error or unknown answer is "not registered"
     setRegistered(null);
     load();
     window.addEventListener(EVENT, load);

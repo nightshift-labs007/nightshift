@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { makeShare } from "@/lib/play/share";
+import { track } from "@/lib/ops";
 import { playNow, playerId } from "@/lib/play/state";
+import { allow } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
@@ -8,11 +10,13 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const uid = playerId(req);
   if (!uid) return NextResponse.json({ error: "Make a pick first." }, { status: 401 });
+  if (!(await allow(`play:share:${uid}`, 30, 3600)).ok) return NextResponse.json({ error: "Too many share links. Try again later." }, { status: 429 });
   const body = (await req.json().catch(() => null)) as { mode?: unknown; date?: unknown } | null;
   const mode = body?.mode === "ai" ? "ai" : "close";
   const date = typeof body?.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date : "";
   const s = date ? await makeShare(uid, mode, date, playNow(req).now) : null;
   if (!s) return NextResponse.json({ error: "Nothing to share for that round." }, { status: 404 });
+  await track("share_created", uid);
   const q = encodeURIComponent;
   return NextResponse.json({
     ...s,

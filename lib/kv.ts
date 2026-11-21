@@ -1,10 +1,15 @@
 import "server-only";
 import { env } from "./env";
+import { redisCmd } from "./redis-tcp";
 
-/** Minimal Upstash Redis (REST) client: the private store for profiles. Off when Upstash isn't connected. */
-export const kvEnabled = () => !!(env.upstashUrl && env.upstashToken);
+/**
+ * Minimal Redis client: the private store for profiles and the game. Upstash (REST) when its URL and token are set,
+ * otherwise a plain Redis over TCP when REDIS_URL is set (e.g. Railway's Redis). Off when neither is connected.
+ */
+export const kvEnabled = () => env.redisConfigured;
 
-async function cmd<T>(args: (string | number)[]): Promise<T> {
+export async function cmd<T>(args: (string | number)[]): Promise<T> {
+  if (!(env.upstashUrl && env.upstashToken)) return redisCmd<T>(env.redisUrl, args);
   const res = await fetch(env.upstashUrl, {
     method: "POST",
     headers: { Authorization: `Bearer ${env.upstashToken}`, "Content-Type": "application/json" },
@@ -15,6 +20,18 @@ async function cmd<T>(args: (string | number)[]): Promise<T> {
   const j = (await res.json().catch(() => null)) as { result?: T; error?: string } | null;
   if (!res.ok || !j || j.error) throw new Error(`kv: ${j?.error ?? res.status}`);
   return j.result as T;
+}
+
+/** A real round trip: true only if Redis answers PING with PONG within `timeoutMs`. Never throws. */
+export async function kvPing(timeoutMs = 2000): Promise<boolean> {
+  if (!kvEnabled()) return false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<false>((r) => (timer = setTimeout(() => r(false), timeoutMs)));
+  try {
+    return await Promise.race([cmd<string>(["PING"]).then((x) => x === "PONG", () => false), late]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export const kvGet = (key: string) => cmd<string | null>(["GET", key]);
@@ -39,3 +56,4 @@ export const kvHGetAll = async (key: string) => {
 };
 export const kvSAdd = (key: string, member: string) => cmd<number>(["SADD", key, member]);
 export const kvSMembers = (key: string) => cmd<string[]>(["SMEMBERS", key]);
+export const kvSRem = (key: string, member: string) => cmd<number>(["SREM", key, member]);

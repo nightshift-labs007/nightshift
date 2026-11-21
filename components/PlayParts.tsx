@@ -5,6 +5,7 @@ import type { Board } from "@/lib/play/leaderboard";
 import type { PlayState } from "@/lib/play/state";
 import type { Side } from "@/lib/play-rules";
 import { toast } from "./Toast";
+import { Turnstile } from "./Turnstile";
 import { usd } from "./useApi";
 
 const ET = "America/New_York";
@@ -26,6 +27,7 @@ export function AccountPanel({ state, onState }: { state: PlayState; onState: (s
   const [code, setCode] = useState("");
   const [nick, setNick] = useState("");
   const [busy, setBusy] = useState(false);
+  const [captcha, setCaptcha] = useState<string | null>(null);
   const a = state.account;
 
   if (a) {
@@ -58,15 +60,29 @@ export function AccountPanel({ state, onState }: { state: PlayState; onState: (s
             </label>
           ))}
         </div>
-        <button
-          className="btn secondary small"
-          onClick={async () => {
-            await post("/api/play/account/signout", {});
-            window.location.reload();
-          }}
-        >
-          Sign out
-        </button>
+        <span className="pl-account-actions">
+          <button
+            className="btn secondary small"
+            onClick={async () => {
+              await post("/api/play/account/signout", {});
+              window.location.reload();
+            }}
+          >
+            Sign out
+          </button>
+          <button
+            className="linklike xs"
+            onClick={async () => {
+              if (!window.confirm("Delete your account? Your nickname, email, picks and points are removed for good. This can't be undone.")) return;
+              const r = await post("/api/play/account/delete", { confirm: "delete" });
+              if (!r.ok) return toast(r.json.error ?? "Couldn't delete the account.", "warn");
+              toast("Your account and its picks were deleted.", "ok");
+              setTimeout(() => window.location.reload(), 800);
+            }}
+          >
+            Delete my account
+          </button>
+        </span>
       </div>
     );
   }
@@ -90,7 +106,7 @@ export function AccountPanel({ state, onState }: { state: PlayState; onState: (s
             setBusy(true);
             try {
               if (step === "email") {
-                const r = await post<{ note?: string }>("/api/play/account/code", { email });
+                const r = await post<{ note?: string }>("/api/play/account/code", { email, captcha });
                 if (!r.ok) return toast(r.json.error ?? "Couldn't send the code.", "warn");
                 setStep("code");
                 toast(r.json.note ?? `We sent a 6-digit code to ${email}.`, "ok");
@@ -106,7 +122,10 @@ export function AccountPanel({ state, onState }: { state: PlayState; onState: (s
           }}
         >
           {step === "email" ? (
-            <input type="email" required placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email" />
+            <>
+              <input type="email" required placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email" />
+              <Turnstile onToken={setCaptcha} />
+            </>
           ) : (
             <>
               <input inputMode="numeric" pattern="\d{6}" required placeholder="6-digit code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} aria-label="Code" />
@@ -116,7 +135,9 @@ export function AccountPanel({ state, onState }: { state: PlayState; onState: (s
           <button className="btn primary small" disabled={busy}>
             {step === "email" ? "Send code" : "Sign in"}
           </button>
-          <span className="xs muted">We only use your email to sign you in and, if you ask, for reminders.</span>
+          <span className="xs muted">
+            We only use your email to sign you in and, if you ask, for reminders. See the <a href="/privacy">privacy policy</a>.
+          </span>
         </form>
       )}
     </div>

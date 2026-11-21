@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyCode } from "@/lib/play/account";
 import { playNow, playState, playerId, setPlayerCookie } from "@/lib/play/state";
+import { track } from "@/lib/ops";
 import { allow } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
   const nick = typeof body?.nick === "string" ? body.nick : undefined;
   const r = await verifyCode(email, code, playerId(req), nick);
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+  if (r.created) await track("signup", r.uid);
   const res = NextResponse.json({ created: r.created, state: await playState(r.uid, playNow(req).now) });
   setPlayerCookie(res, r.uid);
   return res;

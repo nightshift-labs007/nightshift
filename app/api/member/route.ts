@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isAddress } from "viem";
+import { isRegisteredWallet } from "@/lib/gates";
 import { isRegistered, signupRequired, usernameOwner } from "@/lib/members";
 import { profilesEnabled } from "@/lib/profile";
 import { USERNAME } from "@/lib/profile-shared";
@@ -14,14 +15,18 @@ const noStore = { "Cache-Control": "private, no-store" };
  */
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams;
-  if (!profilesEnabled()) return NextResponse.json({ enabled: false, registered: true }, { headers: noStore }); // no store: nothing to gate
+  const address = q.get("address");
+  // fail closed: without a member store or email nobody can finish sign-up, so nobody counts as registered
+  if (address && !signupRequired()) {
+    if (!isAddress(address)) return NextResponse.json({ error: "Invalid address." }, { status: 400 });
+    return NextResponse.json({ enabled: false, registered: false }, { headers: noStore });
+  }
+  if (!profilesEnabled()) return NextResponse.json({ enabled: false, registered: false }, { headers: noStore });
   try {
-    const address = q.get("address");
     if (address) {
       if (!isAddress(address)) return NextResponse.json({ error: "Invalid address." }, { status: 400 });
-      // until email sending is configured nobody could finish sign-up, so the gate stays open
-      if (!signupRequired()) return NextResponse.json({ enabled: false, registered: true }, { headers: noStore });
-      return NextResponse.json({ enabled: true, registered: await isRegistered(address) }, { headers: noStore });
+      const registered = isRegisteredWallet({ gateReady: signupRequired(), registered: await isRegistered(address).catch(() => null) });
+      return NextResponse.json({ enabled: true, registered }, { headers: noStore });
     }
     const username = (q.get("username") ?? "").toLowerCase();
     if (username) {

@@ -4,6 +4,7 @@ import { PLAY_TICKERS } from "@/lib/play-rules";
 import { getStockBoard } from "@/lib/stocks";
 import { currentAiRound } from "@/lib/time";
 import { sGet, sSet, tryLock } from "./store";
+import { testMode } from "@/lib/play/testmode";
 
 /**
  * Nightshift's evening call for "Beat the AI": the engine's fair value for each game asset, taken once per session
@@ -25,7 +26,7 @@ export async function getAiCall(session: string): Promise<AiCall | null> {
 
 /** Test-only (non-production): set a call for a past or future session, so settlement can be tested on real opens. */
 export async function setAiCallForTest(call: AiCall) {
-  if (process.env.NODE_ENV === "production") throw new Error("not in production");
+  if (!testMode()) throw new Error("test mode only");
   await sSet(KEY(call.session), JSON.stringify(call));
 }
 

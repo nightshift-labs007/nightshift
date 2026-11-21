@@ -1,0 +1,5 @@
+# Not needed by the website; keeps `railway up` uploads small. (.gitignore rules apply too.)
+nightshift-signals/
+algorand/
+formal/.lake/
+.next*/

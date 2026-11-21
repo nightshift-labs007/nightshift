@@ -5,12 +5,52 @@ Newest entries go at the top of each section.
 
 ## Current phase
 
-**Phase 3 (price provider, sign-in, leaderboard, Beat the AI, share cards, reminders): done 2026-11-21 on branch `phase-3`, waiting for "go".**
-- `main` now contains Phases 1 and 2A (merged locally from `phase-2a-points`, which includes `phase-1-fixes`). **Not pushed**; `main` is 17 commits ahead of `origin/main`.
-- `phase-3` is stacked on `phase-2a-points` and is **not** merged into `main` yet.
+**Phase 3.5 (go-live readiness): done 2026-11-21 on branch `phase-3-5`, waiting for "go".**
+- `main` contains Phases 1, 2A and 3 (Phase 3 merged locally). **Not pushed**; `main` is 27 commits ahead of `origin/main`.
+- `phase-3-5` is not merged.
+- **Not done: a real preview deployment.** I have no hosting access, and the Vercel project is disabled. The smoke test ran instead against a local production build started as a Vercel preview, then as production (see Done).
 - No contracts, funds or secrets were touched.
 
+**2026-11-21, push authorized by the owner. Paused before pushing (nothing pushed yet):**
+- **Step 1 (pre-push checks) passed:**
+  - `origin` = `github.com/nightshift-labs007/nightshift`, **PUBLIC**; the account has admin rights.
+  - Secret scan of all 140 commits on every local and remote branch (137k added diff lines):
+    - no API keys, tokens, RPC URLs with keys, Upstash, Resend, Vercel or Privy secrets, PEM blocks or mnemonics;
+    - the only hits are lockfile integrity hashes, plus Hardhat's three **public** default test keys in `scripts/` (derived addresses checked: none is a Nightshift owner or role wallet).
+  - `.env*` (except `.env.example`) and `.vercel` are gitignored and were never committed. `.env.example` has no values.
+  - New commits are authored as `jalaj88 <jalaj8985@gmail.com>`, already public on origin.
+  - Push dry run: `main` fast-forwards (488ea0d→4cb31fd), 4 new branches, no force needed.
+- **Why paused (step 3 findings):** the repo has two deployment integrations.
+  - Vercel project `nightshift3` (team `talonrobotics48-7144`, the one returning 402).
+  - Railway project with services "Nightshift" (production deploys of `deploy/railway-backend`, latest 11 Nov) and "sunny-prosperity" (deployed **`main`** @488ea0d to production on 10 Nov).
+  - Pushing `main` may therefore start a production deploy on Railway and/or Vercel. The owner asked for production only after a "go".
+- **Parallel work found:** Sarthak's `origin/deploy/railway-backend` (6 commits, 10–14 Nov, not in `main`) splits hosting:
+  - pages on Vercel, every `/api` route on Railway behind a proxy secret;
+  - replaces Upstash with **Railway Postgres** as the private store;
+  - **deletes the X agent**;
+  - its doc copies every Vercel variable, including the on-chain keeper keys, to Railway.
+
+  Our `main` (Phases 1–3.5) assumes Vercel + Upstash and changes the X agent. The two need reconciling before either goes live.
 ## Decisions
+
+- 2026-11-21 (owner): deploy a **separate, temporary staging copy on a new Railway project**, deployed from the laptop with `railway up` (no GitHub push, so the existing Vercel `nightshift3` and Railway services, and `main`, are untouched).
+  - Storage: Upstash free tier (our store speaks Upstash's REST API).
+  - Address: the Railway `*.up.railway.app` domain; nightshift.buzz unchanged.
+  - Secrets: entered by the owner in Railway's dashboard only.
+  - Code prep (commit b566ba4): test mode also allowed with `NIGHTSHIFT_ENV=staging` + `PLAY_TEST_MODE=1` (never with `NIGHTSHIFT_ENV=production` or Vercel production; unit-tested); links use `RAILWAY_PUBLIC_DOMAIN`; `railway.json` (build, start, health check `/api/ops/health?soft=1`); `.railwayignore`.
+  - Status: waiting for `railway login` (the CLI's saved session had expired).
+
+- 2026-11-21 (Phase 3.5, my choices, cheap to undo):
+  - **Scheduler:** game jobs moved from `/api/keeper` to `/api/jobs/play` (every 5 min); the keeper stays every 10 min (cron-job.org; see `docs/DEPLOY.md`). Every job records a heartbeat (`lib/ops.ts` `runJob`).
+    - A job is **stale** after 3 missed intervals of **scheduled, successful** runs. Page-triggered backstop runs never count, so a stopped scheduler can't hide.
+    - `/api/ops/health` returns 200 when ready, 503 when not, for uptime monitors.
+  - **Test mode** (`lib/play/testmode.ts`): the test clock, dev outbox and test routes work locally, and on a Vercel **preview** only with `PLAY_TEST_MODE=1`. Never in production, whatever the flags say (unit-tested).
+  - **Abuse caps:** codes 10/h and 20/day per IP, 3 per 10 min and 5/day per address; **all email 10/day per address**; picks 60/min and 2,000/day per IP, 120/h per player; shares 30/h per player; Turnstile on sign-in when configured. Durable only with Redis.
+  - **Monitoring without a third-party service:** server errors through `instrumentation.ts` `onRequestError`, browser errors through `ErrorReporter`. Both are scrubbed (no emails, keys or ids) into a 50-entry log at `/api/ops/errors` (Bearer `CRON_SECRET`). Sentry can be added later in `instrumentation.ts`.
+  - **Analytics** keyed by the anonymous player id only (no IP, email or user agent): daily counts of visit, pick, signup, code_sent, share_created, share_view, reminder_sent, reminder_click; active days per player; D1/D7 by first-seen cohort. All at `/api/ops/metrics` (Bearer).
+    - **Reminder "opens" are measured as clicks** through `/r/{kind}` links. Open pixels are unreliable and more invasive.
+  - **Privacy:** players can delete their game account (email, nickname, picks; aggregate counts stay). The privacy and terms pages are **drafts for legal review**, with a placeholder contact address.
+  - **Kill switch:** `PLAY_REMINDERS=off` pauses all reminder emails.
 
 - 2026-11-20 (Phase 2B, by the owner):
   - Settlement **Option B**.
@@ -89,14 +129,19 @@ Newest entries go at the top of each section.
 
 ## Open questions
 
-- **Q11 (new): production needs, before Phase 3 can go live:**
+- **Q15 (new, blocks the beta):** someone with Vercel access must resolve the `402 DEPLOYMENT_DISABLED` (or create a new project), then follow `docs/DEPLOY.md`. Check whether Vercel's Hobby terms (personal, non-commercial) fit, or use Pro.
+- **Q16 (new, blocks the beta):** a contact address for the privacy and terms pages, and a legal review of both.
+- **Q17 (new):** no admin page. Renaming an offensive nickname or deleting someone's account is done in Redis or code (`docs/DEPLOY.md` §11).
+- **Q18 (new):** the real-stakes prediction contract and its keeper are still in the codebase. The runbook says not to add the on-chain keys for this beta. Decide whether the Predict tab's real-USDC section should be hidden during the beta.
+
+- Q11 is now covered by `docs/DEPLOY.md`. **Original note: production needs, before Phase 3 can go live:**
   - `RESEND_API_KEY` and `RESEND_FROM` for codes and reminders (without them, sign-in says email isn't set up);
   - `PLAY_SECRET` (or `CRON_SECRET`) for codes, unsubscribe links and share cards;
   - `SITE_URL` if not nightshift.buzz;
   - Upstash Redis (otherwise everything is in memory and lost on restart);
   - the keeper's outside scheduler (Q3).
 - **Q12 (new): scale limits to revisit.** The leaderboard and reminders walk every account on each run (fine for hundreds of players). Past that, keep running totals at settlement. Price backoff is per server instance (in memory), not shared.
-- **Q13 (new): abuse.** Anonymous picks are rate-limited per IP but not per person; the leaderboard counts signed-in accounts only, and one email = one account. Turnstile (already in the repo) could gate sign-in if fake accounts show up.
+- Q13 partly addressed in Phase 3.5 (daily caps, per-player limits, Turnstile option). **Original note: abuse.** Anonymous picks are rate-limited per IP but not per person; the leaderboard counts signed-in accounts only, and one email = one account. Turnstile (already in the repo) could gate sign-in if fake accounts show up.
 - **Q14 (new):** email reminders state times in ET only. Phase 4 adds the player's own time zone.
 - **Q8 (new): Yahoo is a fragile source.** It returned HTTP 429 on both hosts for most of 2026-11-20, partly because the dev server polls it too. The points game copes (retries, 20 s budget, void after 72 h), but a licensed feed, or Twelve Data as a keyed fallback, should come before real money.
 - Q9 resolved in Phase 3 (email sign-in). Q10 resolved in Phase 3 (Beat the AI built).
@@ -112,6 +157,19 @@ Newest entries go at the top of each section.
 - **Q5:** Earlier ideas from 2026-11-20 not yet scheduled: blind call (user picks before seeing the AI), and crowd calls blended into the public signal (never into lending prices).
 
 ## Done
+
+- 2026-11-21: **Phase 3.5** on branch `phase-3-5`:
+  - **Docs:** `docs/DEPLOY.md` (runbook: services, secrets, every env var with its production/preview scope, setup order, scheduler, monitoring, abuse limits, incident table) and `docs/BETA_CHECKLIST.md` (before inviting, invite text, daily checks, metrics and targets, tester questions, stop rules, exit criteria). `.env.example` updated.
+  - **Code:** `lib/ops.ts`, `lib/ops-rules.ts`, `lib/play/testmode.ts`, `lib/turnstile.ts`, `/api/jobs/play`, `/api/ops/{health,errors,metrics,error}`, `/r/[kind]`, `/api/play/account/delete`, `/privacy`, `/terms`, `instrumentation.ts`, `components/ErrorReporter.tsx`.
+  - **Unit tests:** 67/67 (6 new: staleness, scrubbing, retention cohorts, test-mode gating). Typecheck: 0 errors in source.
+  - **`scripts/test-play3.mjs`:** 38/38 (adds account deletion). **`scripts/test-play.mjs`:** 17/17.
+  - **`scripts/smoke.mjs` (new), three runs:**
+    - dev server: 16 passed, 1 skipped (no `CRON_SECRET` there);
+    - **local production build started as a Vercel preview** (`VERCEL_ENV=preview`, `PLAY_TEST_MODE=1`, a test `CRON_SECRET`): **22/22**, covering sign-in, pick, lock at the close, settlement from real prices (SPY 715.87 → 713.56), one results email with tracked and unsubscribe links, scheduler endpoints and heartbeats, scrubbed error log, analytics counts, code and pick limits;
+    - **the same build started as production** (with `PLAY_TEST_MODE=1` set on purpose): 20 passed, 1 skipped. The dev outbox and test routes return 404, the test clock is ignored, metrics need the secret, strict health returns 503 without Redis and email. The skip: code limits can't run without Resend.
+  - **Browser (headless Chrome):** the privacy page renders with the draft banner; the game shows the "not financial advice" notice; no console errors.
+  - **Merge:** Phase 3 merged into `main` locally after 61/61 tests. Not pushed.
+  - **Noticed:** `next build` rewrites `tsconfig.json` to include its build folder. Reverted; it happens with any `NEXT_DIST_DIR`.
 
 - 2026-11-21: **Phase 3** on branch `phase-3`:
   - **Code:** `lib/prices/` (provider, backoff, Yahoo parsing), `lib/play/{account,mail,ai,leaderboard,share,remind}.ts`, `/api/play/account/{code,verify,settings,signout}`, `/api/play/leaderboard`, `/api/play/share`, `/api/play/unsubscribe`, dev-only `/api/play/dev/{outbox,ai-call}`, `/s/[token]` with `opengraph-image`, `components/PlayParts.tsx`.
@@ -160,3 +218,14 @@ Newest entries go at the top of each section.
   - **Browser check** (headless Chrome against localhost:3000): /app Prices, /app#predict and / have no console errors or exceptions. Predict shows the stale state correctly. The open-round states ("Be the first to call it", "pays 1.32×", "no one on the other side yet", the live comparison) were checked by mocking `/api/predict` in the browser only.
   - **Not fixed (needs owner access):** the keeper itself. Production hosting, the scheduler, the keeper key and finalizing the 12 overdue rounds (Q3, Q4).
 - 2026-11-20: Phase 0 investigation (this section). Local dev server: `npm run dev` on :3000.
+
+### 2026-11-21 — Staging live on the owner's personal Railway
+- Project `determined-laughter` (personal workspace), service `nightshift`, URL https://nightshift-production-83254d3c.up.railway.app
+- Why the first deploy failed: the service was linked to GitHub `main` (old 6 Nov code, 488ea0d) and its build died in `next/font` (Google Fonts returned a reply without a font-file extension to Railway's build server; transient — the same fonts fetch fine from the laptop and the next build).
+- Fix: deployed `phase-3-5` from the laptop with `railway up`; set `NIGHTSHIFT_ENV=staging`, `PLAY_TEST_MODE=1` (non-secret). Build + healthcheck passed.
+- Smoke: 11 passed, 0 failed, 3 skipped (sign-in, scheduler, email — need `PLAY_SECRET`, `CRON_SECRET`, Upstash, Resend, which the owner enters).
+- Open: the service is still connected to GitHub `main` — a push to `main` would redeploy over this. Disconnect or repoint in the dashboard before pushing.
+- 2026-11-21: built-in scheduler (`IN_APP_SCHEDULER=1`, commit 1dcecea) deployed to Railway; verified locally (all jobs scheduled, `schedulerPlay: true`). Inactive on Railway until the owner sets `CRON_SECRET`. Waiting on owner: `CRON_SECRET`, `PLAY_SECRET`, Upstash URL/token; then switch to production.
+- 2026-11-21: Railway Redis added to `determined-laughter` (owner asked not to use Upstash). App reads it via `REDIS_URL=${{Redis.REDIS_URL}}` (Railway reference; the password never left Railway). New zero-dependency TCP client (commit f859495). Verified on Railway: health `store: redis`, a pick survived a full redeploy. Still waiting on owner: `CRON_SECRET`, `PLAY_SECRET` (they run one command themselves), then switch to production.
+- 2026-11-21: **Railway switched to production** (owner asked to make it live). Owner set `CRON_SECRET`/`PLAY_SECRET` themselves; `NIGHTSHIFT_ENV=production`, `PLAY_TEST_MODE` removed. Found a variable change had redeployed old GitHub `main` (488ea0d, no game) → disconnected the GitHub source (`railway service source disconnect`); deploys are now `railway up` only. Health: redis/playSecret/cronSecret/scheduler all true, testMode false; only `email` false. Production smoke: 20 passed, 0 failed, 1 skipped (email). Not yet: Resend email, nightshift.buzz DNS, browser console check.
+- 2026-11-21: Domain moved. Owner changed GoDaddy DNS: `www` CNAME → Railway (skqlc5e3.up.railway.app), both `_railway-verify` TXT records, apex forwarded 301 → https://www.nightshift.buzz. Confirmed at GoDaddy, 1.1.1.1 and 8.8.8.8. Railway still "validating ownership" for the certificate at last check; `www` serves once it verifies. `SITE_URL` to be set to https://www.nightshift.buzz after that.

@@ -4,6 +4,7 @@ import { closeUtcMs, currentAiRound, currentPlayRound, playRoundFor, prevTrading
 import { accountUids, getAccount, unsubscribeUrl, type Account } from "./account";
 import { getAiCall } from "./ai";
 import { sendMail, siteOrigin } from "./mail";
+import { track } from "@/lib/ops";
 import { getPicks, getResult, sSetNX, tryLock, type Mode } from "./store";
 
 /**
@@ -22,9 +23,9 @@ const MAX_PER_RUN = 200;
 
 type Job = { kind: string; key: string; to: Account; subject: string; body: string[] };
 
-const footer = (a: Account) => {
+const footer = (a: Account, kind: string) => {
   const u = unsubscribeUrl(a.email);
-  return ["", `Play: ${siteOrigin()}/app#predict`, "Points only: no money, nothing to buy. Not investment advice.", ...(u ? [`Stop these emails: ${u}`] : [])];
+  return ["", `Play: ${siteOrigin()}/r/${kind}`, "Points only: no money, nothing to buy. Not investment advice.", ...(u ? [`Stop these emails: ${u}`] : [])];
 };
 
 async function jobsFor(a: Account, now: number): Promise<Job[]> {
@@ -87,6 +88,7 @@ async function jobsFor(a: Account, now: number): Promise<Job[]> {
 }
 
 export async function runReminders(now: number, opts: { noLock?: boolean } = {}): Promise<{ sent: number; failed: number; skipped?: string }> {
+  if ((process.env.PLAY_REMINDERS ?? "").trim().toLowerCase() === "off") return { sent: 0, failed: 0, skipped: "paused (PLAY_REMINDERS=off)" };
   if (!opts.noLock && !(await tryLock("play:reminding", 60))) return { sent: 0, failed: 0, skipped: "another run is in progress" };
   let sent = 0;
   let failed = 0;
@@ -96,8 +98,8 @@ export async function runReminders(now: number, opts: { noLock?: boolean } = {})
     if (!a || !(a.remind.open || a.remind.lock || a.remind.results)) continue;
     for (const j of await jobsFor(a, now)) {
       if (!(await sSetNX(`play:sent:${j.key}:${uid}`, "1", 14 * 86400))) continue; // already sent to this player
-      const r = await sendMail({ to: a.email, subject: j.subject, text: [...j.body, ...footer(a)].join("\n"), unsubscribeUrl: unsubscribeUrl(a.email) ?? undefined });
-      if (r.ok) sent++;
+      const r = await sendMail({ to: a.email, subject: j.subject, text: [...j.body, ...footer(a, j.kind)].join("\n"), unsubscribeUrl: unsubscribeUrl(a.email) ?? undefined });
+      if (r.ok) (sent++, await track("reminder_sent"));
       else failed++;
     }
   }
