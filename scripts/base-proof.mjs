@@ -79,7 +79,7 @@ for (const [role, a] of Object.entries(roles)) {
 }
 
 // ---- the public record on Base (notes written by the updater): from the live site's index, each a Base transaction
-const site = "https://nightshift.buzz";
+const site = "https://www.nightshift.buzz";
 const ledger = await fetch(`${site}/api/ledger`).then((r) => r.json()).catch(() => null);
 const predict = await fetch(`${site}/api/predict`).then((r) => r.json()).catch(() => null);
 const manifest = JSON.parse(fs.readFileSync("public/verified/manifest.json", "utf8"));

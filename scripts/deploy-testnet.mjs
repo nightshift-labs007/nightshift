@@ -17,7 +17,7 @@ import { baseSepolia } from "viem/chains";
 
 const RPC_URL = process.env.RPC_URL || "https://sepolia.base.org";
 const DRY_RUN = process.env.DRY_RUN === "1";
-const ORACLE_URL = process.env.ORACLE_URL || "https://nightshift.buzz/api/oracle";
+const ORACLE_URL = process.env.ORACLE_URL || "https://www.nightshift.buzz/api/oracle";
 const A = JSON.parse(fs.readFileSync("lib/chain/artifacts.json", "utf8"));
 const ASSETS = [
   { token: "SPY", name: "Nightshift Test SPY", faucet: "10", lltv: "0.77", inventory: null },

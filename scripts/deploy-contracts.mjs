@@ -11,7 +11,7 @@ import { privateKeyToAccount } from "viem/accounts";
 
 const RPC_URL = process.env.RPC_URL || "https://sepolia.base.org";
 const CHAIN_ID = Number(process.env.CHAIN_ID || 84532);
-const ORACLE_URL = process.env.ORACLE_URL || "https://nightshift.buzz/api/oracle";
+const ORACLE_URL = process.env.ORACLE_URL || "https://www.nightshift.buzz/api/oracle";
 const key = process.env.DEPLOYER_PRIVATE_KEY;
 if (!key) throw new Error("Set DEPLOYER_PRIVATE_KEY");
 

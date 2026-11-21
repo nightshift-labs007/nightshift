@@ -1,16 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { canonicalUrl } from "./lib/site";
 
-// One canonical address: www.nightshift.buzz → nightshift.buzz
+// https://www.nightshift.buzz is the canonical address (the bare domain is forwarded to it at the DNS provider, so this
+// must never redirect www → bare). Every page says where its canonical copy lives, whichever host served it.
 export function middleware(req: NextRequest) {
-  const host = req.headers.get("host") ?? "";
-  if (host.startsWith("www.")) {
-    const url = req.nextUrl.clone();
-    url.host = host.slice(4);
-    url.port = "";
-    url.protocol = "https";
-    return NextResponse.redirect(url, 308);
-  }
-  return NextResponse.next();
+  const res = NextResponse.next();
+  res.headers.set("Link", `<${canonicalUrl(req.nextUrl.pathname)}>; rel="canonical"`);
+  return res;
 }
 
-export const config = { matcher: "/:path*" };
+// pages only: not the API, Next's assets, or files with an extension
+export const config = { matcher: ["/((?!api/|_next/|.*\\.[a-z0-9]+$).*)"] };

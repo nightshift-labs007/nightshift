@@ -1,8 +1,8 @@
 // Invite codes for Nightshift sign-up (team only: uses CRON_SECRET from .env.local).
 //   node --env-file=.env.local scripts/invites.mjs create [count=1] [uses=1] [note]   new codes, each usable `uses` times
 //   node --env-file=.env.local scripts/invites.mjs list                               every code, seats used, by whom
-// SITE_URL=http://localhost:3000 points it at a local dev server instead of nightshift.buzz.
-const SITE = (process.env.SITE_URL || "https://nightshift.buzz").replace(/\/$/, "");
+// SITE_URL=http://localhost:3000 points it at a local dev server instead of www.nightshift.buzz.
+const SITE = (process.env.SITE_URL || "https://www.nightshift.buzz").replace(/\/$/, "");
 const secret = process.env.CRON_SECRET?.trim();
 if (!secret) throw new Error("CRON_SECRET is missing from .env.local");
 const auth = { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" };

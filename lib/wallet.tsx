@@ -108,7 +108,7 @@ function getWalletConnect(chainId: number) {
         metadata: {
           name: "Nightshift",
           description: "Tokenized ETFs, priced after the bell.",
-          url: typeof window !== "undefined" ? window.location.origin : "https://nightshift.buzz",
+          url: typeof window !== "undefined" ? window.location.origin : "https://www.nightshift.buzz",
           icons: [typeof window !== "undefined" ? `${window.location.origin}/brand/nightshift-n-128.png` : "/brand/nightshift-n-128.png"],
         },
       }),

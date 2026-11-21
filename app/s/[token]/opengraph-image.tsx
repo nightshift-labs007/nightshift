@@ -34,7 +34,7 @@ export default async function Image({ params }: { params: Promise<{ token: strin
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", marginTop: "auto", fontSize: 26, color: "#93a09b" }}>Free to play · points only, no money · nightshift.buzz</div>
+        <div style={{ display: "flex", marginTop: "auto", fontSize: 26, color: "#93a09b" }}>Free to play · points only, no money · www.nightshift.buzz</div>
       </div>
     ),
     size,

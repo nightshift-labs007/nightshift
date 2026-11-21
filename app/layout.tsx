@@ -3,6 +3,7 @@ import { Funnel_Sans, Geist_Mono, Inter_Tight, Playfair_Display, Unbounded } fro
 import "./globals.css";
 import "./theme.css";
 import { WalletProvider } from "@/lib/wallet";
+import { CANONICAL_ORIGIN } from "@/lib/site";
 import { PrivyRoot } from "@/components/PrivyRoot";
 import { AlwaysOnAudio } from "@/components/AlwaysOnAudio";
 import { Nyx } from "@/components/Nyx";
@@ -15,6 +16,7 @@ const serif = Playfair_Display({ subsets: ["latin"], weight: "500", style: "ital
 const mono = Geist_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(CANONICAL_ORIGIN), // absolute og:image / share URLs on the canonical www address
   title: "Nightshift — Tokenized ETFs, priced after the bell",
   description:
     "Off-hours price oracle, lending vault, loan guardian and zero-knowledge solvency proofs for tokenized ETFs on Robinhood Chain.",

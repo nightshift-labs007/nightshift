@@ -36,7 +36,7 @@ if (DRY_RUN) {
 
 // the first Oracle price: the live fair value (the site must already serve SLV), else SLV's last close
 async function startPrice() {
-  const r = await fetch(process.env.ORACLE_URL || "https://nightshift.buzz/api/oracle", { signal: AbortSignal.timeout(20000) }).then((x) => x.json()).catch(() => null);
+  const r = await fetch(process.env.ORACLE_URL || "https://www.nightshift.buzz/api/oracle", { signal: AbortSignal.timeout(20000) }).then((x) => x.json()).catch(() => null);
   const q = r?.quotes?.find((x) => x.token === SYM);
   if (q?.fairValue > 0) return { price: q.fairValue, confidence: q.confidence, from: "live Oracle" };
   throw new Error("The live Oracle doesn't serve SLV yet. Deploy the site with silver first (or set ORACLE_URL).");

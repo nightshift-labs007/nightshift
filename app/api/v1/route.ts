@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   return v1(req, async () => ({
     version: "v1",
-    docs: "https://nightshift.buzz/docs#api",
+    docs: "https://www.nightshift.buzz/docs#api",
     rateLimit: `${RATE.max} uncached requests per ${RATE.windowSec}s per IP; responses cached 60 s`,
     endpoints: {
       "GET /api/v1/prices": "all assets: fair value, confidence, beta, signals, on-chain feed addresses",

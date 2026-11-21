@@ -124,7 +124,7 @@ function threadText(week: string, lines: Line[], kind: string) {
     "",
     `Worst miss: ${worst.token} on ${fmtDay(worst.date)}, ${worst.errBps.toFixed(1)} bps. Misses included, every week.`,
     "1 bps = 0.01%. Data, not investment advice.",
-    "nightshift.buzz/scorecard",
+    "www.nightshift.buzz/scorecard",
   ].join("\n");
 }
 
