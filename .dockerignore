@@ -1,0 +1,8 @@
+node_modules
+.next*
+.git
+nightshift-signals
+algorand
+formal/.lake
+.env*
+!.env.example

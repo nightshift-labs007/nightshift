@@ -272,3 +272,12 @@ Newest entries go at the top of each section.
 4. **On-chain (read-only): rounds #5–#16 are still Proposed** (not finalised), ~367 h after proposal; contract USDC balance 0.3; round #5's 0.3 USDC not claimed.
 5. Contact address: owner chose to hold off (no mailbox on nightshift.buzz yet). Placeholder unchanged.
 6. SITE_URL is not set in Railway; nothing to remove (production defaults to https://www.nightshift.buzz).
+
+## 2026-11-22 — Landing page restored on Railway
+
+- **Bug:** since the move to Railway (21 Nov), every build prerendered `/` as a copy of `/app` (both 193 B in every build log), so the landing page with the engine scene never shipped. Source was correct and local builds were correct; it only happened in Railpack's build folder `/app` (this project also has an `app` route).
+- **Fix:** `Dockerfile` (same steps: npm install, next build, next start) building in `/srv/nightshift`; `railway.json` uses the DOCKERFILE builder; `.dockerignore`. First try with `npm ci` failed (lock file out of sync, as Railpack's `npm install` tolerated); switched to `npm install`. The failed build never replaced the live one.
+- **Verified live (deploy 83cc37e9):** `/` = landing with engine hero (4.81 kB), `/app` = app; browser check 6/6; scheduler running; health unchanged (only email false).
+- Undo: delete `Dockerfile`, restore `build` in `railway.json` to RAILPACK + `npm run build`, redeploy.
+- SSH note: the app now lives at `/srv/nightshift` in the container, not `/app` (the cleanup script only needs REDIS_URL, unaffected).
+- Not changed: the real-USDC prediction rounds stay hidden in the Predict tab because REAL_STAKES is off (owner decision, 21 Nov).
