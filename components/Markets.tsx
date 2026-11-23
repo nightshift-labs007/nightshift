@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { MARKETS, READINESS_LABEL, useMarket, type Market, type MarketId } from "@/lib/markets";
 import { Flag } from "./Flag";
 import { useApi } from "./useApi";
@@ -19,52 +19,6 @@ export function MarketChoice({ compact = false }: { compact?: boolean }) {
           {!compact && <span>{m.tagline}</span>}
         </button>
       ))}
-    </div>
-  );
-}
-
-/** Nav pill showing the current market, with a small menu to change it. */
-export function MarketSwitch() {
-  const [market, choose] = useMarket();
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const off = (e: MouseEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", off);
-    document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("mousedown", off);
-      document.removeEventListener("keydown", esc);
-    };
-  }, [open]);
-  return (
-    <div className="market-switch" ref={box}>
-      <button className="market-pill" onClick={() => setOpen((x) => !x)} aria-expanded={open} aria-haspopup="menu" title="Your market">
-        <Flag id={market?.id ?? null} size={18} />
-        <span className="market-pill-label">{market?.name ?? "Market"}</span>
-        <span aria-hidden="true" className="market-caret">▾</span>
-      </button>
-      {open && (
-        <div className="market-menu" role="menu">
-          {MARKETS.map((m) => (
-            <button
-              key={m.id}
-              role="menuitemradio"
-              aria-checked={market?.id === m.id}
-              className={market?.id === m.id ? "on" : ""}
-              onClick={() => {
-                choose(m.id);
-                setOpen(false);
-              }}
-            >
-              <Flag id={m.id} size={18} /> {m.name}
-              <small>Lending: {READINESS_LABEL[m.features.lending].toLowerCase()}</small>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

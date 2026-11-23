@@ -7,7 +7,6 @@ import { NETWORK, isDeployed, isMainnet } from "@/lib/chain";
 import { BrandMark } from "./BrandMark";
 import { ExplorePanel } from "./ExplorePanel";
 import { JoinPrompt } from "./Leaderboard";
-import { MarketSwitch } from "./Markets";
 import { Toaster } from "./Toast";
 import { WelcomeGuide } from "./WelcomeGuide";
 import { WalletButton } from "./WalletButton";
@@ -55,7 +54,6 @@ export function SiteNav() {
         <Link className="brand" href="/" aria-label="Nightshift home">
           <BrandMark /> <span className="wordmark">Night<em>shift</em></span>
         </Link>
-        <MarketSwitch />
         <WalletButton />
         {path !== "/app" && (
           <Link className="btn primary small nav-cta" href="/app">

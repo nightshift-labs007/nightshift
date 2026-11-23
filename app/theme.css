@@ -772,14 +772,6 @@ a.pf-chip:hover, button.pf-chip:hover { border-color: var(--mint); color: var(--
 .market-flag { font-size: 20px; line-height: 1; }
 .market-flag.big { font-size: 34px; }
 .guide-market-q { margin: 14px 0 8px; font-weight: 600; }
-.market-switch { position: relative; flex: none; }
-.market-pill { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-2); font: inherit; font-size: 13px; cursor: pointer; }
-.market-pill:hover { border-color: var(--border-strong); }
-.market-caret { font-size: 10px; color: var(--text-4); }
-.market-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; min-width: 220px; display: grid; padding: 6px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface-2); box-shadow: var(--shadow-lg); }
-.market-menu button { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; text-align: left; padding: 9px 10px; border-radius: 8px; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
-.market-menu button small { grid-column: 2; color: var(--text-4); font-size: 12px; }
-.market-menu button:hover, .market-menu button.on { background: var(--mint-soft); }
 .market-panel { display: grid; gap: 14px; }
 .market-panel h3 { margin: 0; }
 .market-panel p { margin: 0; }
@@ -802,7 +794,6 @@ a.pf-chip:hover, button.pf-chip:hover { border-color: var(--mint); color: var(--
 @media (max-width: 720px) {
   .market-choice, .market-features { grid-template-columns: 1fr; }
   .market-panel-head .market-choice { margin-left: 0; width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .market-pill-label { display: none; }
 }
 .market-notice { margin: 12px 0 0; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 14px; color: var(--text-2); }
 .market-notice.warn { border-color: rgba(231, 197, 127, .3); background: var(--amber-soft); }
@@ -834,7 +825,6 @@ a.pf-chip:hover, button.pf-chip:hover { border-color: var(--mint); color: var(--
 .flag { flex: none; display: inline-block; vertical-align: middle; border-radius: 3px; box-shadow: 0 0 0 1px rgba(255, 255, 255, .12); }
 .flag.globe { border-radius: 50%; box-shadow: none; color: var(--mint); }
 .market-flag { display: inline-flex; }
-.market-menu button { align-items: center; }
 
 /* ---------- India research desk ---------- */
 .in-board { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
