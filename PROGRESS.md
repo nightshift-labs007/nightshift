@@ -281,3 +281,8 @@ Newest entries go at the top of each section.
 - Undo: delete `Dockerfile`, restore `build` in `railway.json` to RAILPACK + `npm run build`, redeploy.
 - SSH note: the app now lives at `/srv/nightshift` in the container, not `/app` (the cleanup script only needs REDIS_URL, unaffected).
 - Not changed: the real-USDC prediction rounds stay hidden in the Predict tab because REAL_STAKES is off (owner decision, 21 Nov).
+
+## 2026-11-23 — Invite codes, top-bar market pill removed
+
+- 5 single-use invite codes created on production (note "friends") via `railway run node scripts/invites.mjs create 5 1 friends`; they only work once email (Resend) is configured. The cleanup script leaves `invite:*` / `invites` alone.
+- Top bar: removed the market (USA/Global) pill (owner: no use); the market choice stays on the profile page. Tests 77/0, build OK, deploy 858261ac live, browser check 6/6.
